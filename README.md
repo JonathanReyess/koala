@@ -17,9 +17,11 @@ The model architecture is based on the principles outlined in the paper ["Dynami
 
 ### Key Features
 
-* **Dynamic Sign Recognition:** Designed to accurately classify dynamic, time-series sign words.
-* **Skeleton-Based Input:** Uses **MediaPipe Holistic** to extract **47 joint skeleton points** (hands, body, and face) from video frames, reducing computational complexity, enhancing privacy, and improving robustness to background and lighting variations.
-* **Deep Learning Architecture:** The `PoseCNN_LSTM_Attn` model combines a **Convolutional Neural Network (CNN)** for feature extraction across joints, a **Long Short-Term Memory (LSTM)** network for temporal modeling, and an **Attention mechanism** to focus on the most relevant frames.
+* Dynamic recognition of time-series sign words.
+* Skeleton-based input using MediaPipe Holistic to extract 47 joint points, improving efficiency, privacy, and robustness.
+* Deep learning model combining CNNs for joint feature extraction, LSTM for temporal modeling, and attention to focus on the most relevant frames.
+
+
 
 ---
 
@@ -37,8 +39,8 @@ The notebook provides a full walkthrough of video preprocessing, feature extract
 
 | Component              | Technology                         | Description                                                                                   |
 | :--------------------- | :--------------------------------- | :-------------------------------------------------------------------------------------------- |
-| **Model**              | PyTorch, NumPy, Scikit-learn       | Trained on KSL77 dataset, achieving **86.18% test accuracy**.                                 |
-| **Feature Extraction** | MediaPipe Holistic, OpenCV (`cv2`) | Extracts 47 3D joint coordinates across a fixed sequence length (32 frames).                  |
+| **Model**              | PyTorch, NumPy, Scikit-learn       | Trained on KSL77 dataset, achieving **86.18%** test accuracy.                                 |
+| **Feature Extraction** | MediaPipe Holistic, OpenCV | Extracts 47 3D joint coordinates across a fixed sequence length (32 frames).                  |
 | **Backend API**        | Python, FastAPI                | Serves the trained PyTorch model and handles video uploads and preprocessing.                 |
 | **Frontend**           | Vite, React, TypeScript, Tailwind CSS    | Provides a user-friendly interface for recording/uploading videos and displaying AI feedback. |
 
@@ -59,7 +61,7 @@ The implemented `PoseCNN_LSTM_Attn` model structure:
 
 ### Setup and Deployment
 
-This project requires **Python** for the backend and **Node.js/npm** for the frontend.
+This project requires Python for the backend and Node.js/npm for the frontend.
 
 #### Backend (FastAPI)
 
