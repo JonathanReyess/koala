@@ -1,27 +1,18 @@
 
-## KSL Sign Language Recognition System
+## 코아라 - Korean Sign Language (KSL) Recognition System
 
-This is the repository for the **Koala Sign Language (KSL) recognition project**, which utilizes a deep learning model to classify dynamic Korean Sign Language words from video input. The system is deployed as a full-stack application with a **FastAPI** backend and a **React** frontend, allowing users to practice KSL signs and receive real-time AI feedback.
+This is the repository for the **Koala (코아라)**, which utilizes a deep learning model to classify dynamic Korean Sign Language words from video input. 
+
+The system is deployed as a full-stack application with a **FastAPI** backend and a **React** frontend, allowing users to practice KSL signs and receive real-time AI feedback.
 
 ---
 
 ### Project Overview
 
-Learning platform built on top of a Korean Sign Language recognition model trained on skeleton-based features extracted from videos. 
-
 This project addresses the need for accessible KSL learning tools and resources by utilizing a vision-based approach that can run on any camera-equipped device.
 
-The model architecture is based on the principles outlined in the paper ["Dynamic Korean Sign Language Recognition Using Pose Estimation Based and Attention‑Based Neural Network"](https://ieeexplore.ieee.org/document/10360810) by Jungpil Shin et al. (IEEE Access, Volume: 11, Date of Publication: 15 December 2023, DOI: 10.1109/ACCESS.2023.3343404).
-
----
-
-### Key Features
-
-* Dynamic recognition of time-series sign words.
-* Skeleton-based input using MediaPipe Holistic to extract 47 joint points, improving efficiency, privacy, and robustness.
-* Deep learning model combining CNNs for joint feature extraction, LSTM for temporal modeling, and attention to focus on the most relevant frames.
-
-
+The model architecture is based on the principles outlined in the paper:
+ ["Dynamic Korean Sign Language Recognition Using Pose Estimation Based and Attention‑Based Neural Network"](https://ieeexplore.ieee.org/document/10360810) by Jungpil Shin et al. (IEEE Access, Volume: 11, Date of Publication: 15 December 2023, DOI: 10.1109/ACCESS.2023.3343404).
 
 ---
 
