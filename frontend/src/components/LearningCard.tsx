@@ -126,6 +126,7 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
         method: "POST",
         body: formData,
         signal: controller.signal,
+        credentials: "include", // ✅ required
       });
 
       clearTimeout(timeoutId);
