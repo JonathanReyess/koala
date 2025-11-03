@@ -19,9 +19,9 @@ interface VideoFile {
 }
 
 // Map word string to class ID
-export const WORD_TO_ID_MAP: { [key: string]: string } = {
+export const getWordToIdMap = () => ({
   "hi": "1",
-  "meat": "3",
+  "meet": "3",
   "me": "7",
   "see": "10",
   "name": "11",
@@ -31,13 +31,10 @@ export const WORD_TO_ID_MAP: { [key: string]: string } = {
   "age": "20",
   "how many": "22",
   "day": "23",
-  "good, nice": "24",
-  "number": "33",
   "please?": "43",
   "study": "48",
   "human": "49",
   "now": "50",
-  "education": "53",
   "test": "54",
   "yet": "62",
   "finally": "63",
@@ -48,7 +45,7 @@ export const WORD_TO_ID_MAP: { [key: string]: string } = {
   "want": "72",
   "good": "76",
   "care": "77",
-};
+});
 
 export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -56,7 +53,7 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
   const [videoFile, setVideoFile] = useState<VideoFile | null>(null);
   const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
-
+  const WORD_TO_ID_MAP = getWordToIdMap();
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -107,42 +104,48 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
   const runInference = async (videoBlob: Blob) => {
     setFeedback("processing");
     toast.info("Sending video for analysis...");
-
+  
     const expectedClassLabel = WORD_TO_ID_MAP[word.toLowerCase()];
     if (!expectedClassLabel) {
       setFeedback("incorrect");
       toast.error(`Word "${word}" is not mapped to a class ID.`);
       return;
     }
-
+  
     try {
       const formData = new FormData();
       formData.append("video", videoBlob, "sign_video.webm");
-
+  
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
+  
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 120000);
-
+  
       const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
         body: formData,
         signal: controller.signal,
         credentials: "include",
       });
-
+  
       clearTimeout(timeoutId);
-
+  
       if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-
+  
       const result = await response.json();
+  
+      // --- LOGGING FOR DEBUGGING ---
+      console.log("Raw model output:", result);
+  
       if (!result.success) throw new Error(result.error || "Prediction failed.");
-
+  
       const predictedClassLabel = String(result.predicted_class);
       const isCorrect = predictedClassLabel === expectedClassLabel;
       const predictedWord = ID_TO_WORD_MAP[predictedClassLabel] || "Unknown";
       const expectedWord = ID_TO_WORD_MAP[expectedClassLabel] || "Unknown";
-
+  
+      console.log(`Expected: ${expectedWord} (${expectedClassLabel}), Predicted: ${predictedWord} (${predictedClassLabel})`);
+  
       setFeedback(isCorrect ? "correct" : "incorrect");
       toast[isCorrect ? "success" : "error"](
         isCorrect
@@ -150,11 +153,12 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
           : `Incorrect. Model predicted "${predictedWord}", expected "${expectedWord}".`
       );
     } catch (error: any) {
-      console.error(error);
+      console.error("Inference error:", error);
       setFeedback("incorrect");
       toast.error(error.name === 'AbortError' ? "Request timed out." : "Error during prediction.");
     }
   };
+  
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
