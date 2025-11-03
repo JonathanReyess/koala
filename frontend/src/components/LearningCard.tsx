@@ -120,7 +120,7 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
 
       // Add timeout for sleeping backend
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000);
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
 
       const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
