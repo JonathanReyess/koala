@@ -5,15 +5,10 @@ import { useNavigate } from "react-router-dom";
 
 // Words list for iteration in Learn.tsx
 export const words = [
-  "hi", "what", "meat", "bi bim rice", "glad", "hobby", "me", "movie", "face",
-  "see", "name", "read", "thank", "equal", "sorry", "eat", "fine", "do effort", "next",
-  "age", "again", "how many", "day", "good, nice", "when", "we", "subway", "be friendly",
-  "bus", "ride", "cell phone", "where", "number", "location", "guide", "responsibility",
-  "who", "arrive", "family", "time", "introduction", "recieve", "please?", "walk",
-  "parents", "10 minutes", "sister", "study", "human", "now", "special", "yesterday",
-  "education", "test", "end", "you", "worried_about", "marry", "effort", "no", "yet",
-  "finally", "born", "success", "favor", "Seoul", "dinner", "experience", "invite",
-  "food", "want", "visit", "one hour", "far", "good", "care"
+  "hi", "meat", "me", "see", "name", "thank", "equal", "sorry", 
+  "age", "how many", "day", "good, nice", "number", "please?", 
+  "study", "human", "now", "education", "test", "yet", "finally", 
+  "dinner", "experience", "invite", "food", "want", "good", "care"
 ];
 
 const Learn = () => {
