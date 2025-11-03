@@ -60,6 +60,8 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
+  const [isMirrored, setIsMirrored] = useState(true); // default mirrored
+
 
   const ID_TO_WORD_MAP: { [id: string]: string } = Object.fromEntries(
     Object.entries(WORD_TO_ID_MAP).map(([word, id]) => [id, word])
@@ -250,56 +252,40 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
       <CardContent className="pt-6 space-y-6">
         {/* VIDEO AREA */}
         <div className="relative aspect-video bg-[hsl(var(--muted))] border-2 border-dashed border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-inner">
-          <video
-            ref={videoRef}
-            autoPlay={!videoFile}
-            muted={!videoFile}
-            playsInline
-            src={videoFile ? videoFile.url : undefined}
-            className="w-full h-full object-cover"
-          />
+  <video
+    ref={videoRef}
+    autoPlay={!videoFile}
+    muted={!videoFile}
+    playsInline
+    src={videoFile ? videoFile.url : undefined}
+    className={`w-full h-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
+  />
 
-          {countdown !== null && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50">
-              <span className="text-white text-6xl font-bold animate-pulse">{countdown}</span>
-            </div>
-          )}
+  {/* Mirror Button Overlay */}
+  <button
+    onClick={() => setIsMirrored(!isMirrored)}
+    className="absolute bottom-4 right-4 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg transition-transform hover:scale-110"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`w-6 h-6 transition-transform ${isMirrored ? "scale-x-[-1]" : ""}`}
+    >
+      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+      <g id="SVGRepo_iconCarrier">
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
+          fill="#ffffff"
+        ></path>
+      </g>
+    </svg>
+  </button>
+</div>
 
-          {isIdle && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[hsl(var(--muted))/70]">
-              <Camera className="h-16 w-16 text-[hsl(var(--muted-foreground))]" />
-            </div>
-          )}
-
-          {isRecording && (
-            <div className="absolute top-4 left-4 flex items-center px-3 py-1 bg-[hsl(var(--destructive))] rounded-full shadow-lg">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-              </span>
-              <span className="ml-2 text-sm font-semibold text-[hsl(var(--destructive-foreground))]">Recording...</span>
-            </div>
-          )}
-
-          {feedback === "processing" && (
-            <div className="absolute inset-0 bg-gray-800/90 flex flex-col items-center justify-center animate-pulse">
-              <Loader className="h-10 w-10 text-white animate-spin mb-3" />
-              <p className="text-white text-xl font-semibold">Analyzing Sign...</p>
-            </div>
-          )}
-
-          {feedback === "correct" && (
-            <div className="absolute inset-0 bg-[hsl(var(--success))/90] flex items-center justify-center">
-              <CheckCircle className="h-24 w-24 text-[hsl(var(--success-foreground))]" />
-            </div>
-          )}
-
-          {feedback === "incorrect" && (
-            <div className="absolute inset-0 bg-[hsl(var(--destructive))/90] flex items-center justify-center">
-              <XCircle className="h-24 w-24 text-[hsl(var(--destructive-foreground))]" />
-            </div>
-          )}
-        </div>
 
         {/* CONTROLS */}
         <div className="space-y-4">
@@ -308,15 +294,15 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isPredicting}
-                className="flex-1 text-lg py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center gap-2"
-              >
+                className="flex-1 text-lg py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:brightness-90 transition flex items-center justify-center gap-2"
+                >
                 <Upload className="h-5 w-5" /> Upload Video
               </Button>
               <Button
                 onClick={startRecording}
                 disabled={isPredicting}
-                className="flex-1 text-lg py-6 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] flex items-center justify-center gap-2"
-              >
+                className="flex-1 text-lg py-6 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(190,29%,28%)] transition flex items-center justify-center gap-2"
+                >
                 <Camera className="h-5 w-5" /> Start Recording
               </Button>
             </div>
