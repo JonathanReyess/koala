@@ -32,7 +32,8 @@ VERCEL_FRONTEND_URL = os.environ.get("VITE_FRONTEND_URL")
 ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite default
     "http://127.0.0.1:5173",
-    "http://localhost:8080"
+    "http://localhost:8080",
+    "https://koala-sign-learn.vercel.app"  # Add your Vercel domain directly
 ]
 
 if VERCEL_FRONTEND_URL:
