@@ -20,82 +20,35 @@ interface VideoFile {
 
 // Map word string to class ID
 export const WORD_TO_ID_MAP: { [key: string]: string } = {
-  // " ": "0",
   "hi": "1",
-  // "what": "2",
   "meat": "3",
-  // "bi bim rice": "4",
-  // "glad": "5",
-  // "hobby": "6",
   "me": "7",
-  // "movie": "8",
-  // "face": "9",
   "see": "10",
   "name": "11",
-  // "read": "12",
   "thank": "13",
   "equal": "14",
   "sorry": "15",
-  // "eat": "16",
-  // "fine": "17",
-  // "do effort": "18",
-  // "next": "19",
   "age": "20",
-  // "again": "21",
   "how many": "22",
   "day": "23",
   "good, nice": "24",
-  // "when": "25",
-  // "we": "26",
-  // "subway": "27",
-  // "be friendly": "28",
-  // "bus": "29",
-  // "ride": "30",
-  // "cell phone": "31",
-  // "where": "32",
   "number": "33",
-  // "location": "34",
-  // "guide": "35",
-  // "responsibility": "36",
-  // "who": "37",
   "please?": "43",
-  // "walk": "44",
-  // "parents": "45",
-  // "10 minutes": "46",
-  // "sister": "47",
   "study": "48",
   "human": "49",
   "now": "50",
-  // "special": "51",
-  // "yesterday": "52",
   "education": "53",
   "test": "54",
-  // "end": "55",
-  // "you": "56",
-  // "worried_about": "57",
-  // "marry": "58",
-  // "effort": "59",
-  // "no": "60",
   "yet": "62",
   "finally": "63",
-  // "born": "64",
-  // "success": "65",
-  // "favor": "66",
-  // "Seoul": "67",
   "dinner": "68",
   "experience": "69",
   "invite": "70",
   "food": "71",
   "want": "72",
-  // "visit": "73",
-  // "one hour": "74",
-  // "far": "75",
   "good": "76",
   "care": "77",
-  // skipping empty labels 78-100
 };
-
-
 
 export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -110,6 +63,20 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isMobile = useIsMobile();
+
+  // Wake up backend on component mount
+  useEffect(() => {
+    const wakeUpBackend = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        await fetch(`${API_URL}/`);
+        console.log('Backend is ready');
+      } catch (error) {
+        console.log('Waking up backend...');
+      }
+    };
+    wakeUpBackend();
+  }, []);
 
   // Reset all recording/video/feedback state
   const resetState = () => {
@@ -129,7 +96,7 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
     }
   };
 
-  // Reset state when word changes (optional, if parent re-renders with new word)
+  // Reset state when word changes
   useEffect(() => {
     resetState();
   }, [word]);
@@ -149,13 +116,19 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
       const formData = new FormData();
       formData.append("video", videoBlob, "sign_video.webm");
 
-      
       const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+      // Add timeout for sleeping backend
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
 
       const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
 
@@ -171,21 +144,27 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
           ? "Great job! That's correct!"
           : `Incorrect. Model predicted "${predictedClassLabel}". Expected "${expectedClassLabel}".`
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
       setFeedback("incorrect");
-      toast.error("Error during model inference.");
+      if (error.name === 'AbortError') {
+        toast.error("Request timed out. The server might be sleeping. Please try again in a moment.");
+      } else {
+        toast.error("Error during model inference. Please try again.");
+      }
     }
   };
 
-  const handleVideoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      resetState();
-      setVideoFile({ blob: file, url: URL.createObjectURL(file) });
-      runInference(file);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    resetState();
+    
+    const videoUrl = URL.createObjectURL(file);
+    setVideoFile({ blob: file, url: videoUrl });
+    setIsReadyToSubmit(true);
+    toast.info("Video uploaded. Review and submit when ready.");
   };
 
   const startRecording = async () => {
@@ -246,7 +225,6 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
 
       {/* Navigation & Word */}
       <div className="flex items-center justify-between w-full max-w-2xl mb-8">
-        {/* Previous Button */}
         <button
           onClick={() => {
             onPrevious();
@@ -266,7 +244,6 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
 
         <h2 className="text-5xl font-extrabold text-[hsl(var(--primary))]">{word}</h2>
 
-        {/* Next Button */}
         <button
           onClick={() => {
             onNext();
@@ -295,21 +272,18 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
               className="w-full h-full object-cover"
             />
 
-            {/* Countdown */}
             {countdown !== null && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50">
                 <span className="text-white text-6xl font-bold animate-pulse">{countdown}</span>
               </div>
             )}
 
-            {/* Placeholder */}
             {isIdle && (
               <div className="absolute inset-0 flex items-center justify-center bg-[hsl(var(--muted))/70]">
                 <Camera className="h-16 w-16 text-[hsl(var(--muted-foreground))]" />
               </div>
             )}
 
-            {/* Recording */}
             {isRecording && (
               <div className="absolute top-4 left-4 flex items-center px-3 py-1 bg-[hsl(var(--destructive))] rounded-full shadow-lg">
                 <span className="relative flex h-3 w-3">
@@ -320,7 +294,6 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
               </div>
             )}
 
-            {/* Processing */}
             {feedback === "processing" && (
               <div className="absolute inset-0 bg-gray-800/90 flex flex-col items-center justify-center animate-pulse">
                 <Loader className="h-10 w-10 text-white animate-spin mb-3" />
@@ -328,7 +301,6 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
               </div>
             )}
 
-            {/* Feedback */}
             {feedback === "correct" && (
               <div className="absolute inset-0 bg-[hsl(var(--success))/90] flex items-center justify-center animate-in fade-in duration-500">
                 <CheckCircle className="h-24 w-24 text-[hsl(var(--success-foreground))]" />
@@ -362,7 +334,7 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
               </div>
             )}
 
-            <input ref={fileInputRef} type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+            <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileUpload} className="hidden" />
 
             <div className="flex flex-wrap justify-center gap-4 mt-4">
               {isRecording && (
