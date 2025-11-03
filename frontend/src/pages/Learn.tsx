@@ -4,17 +4,19 @@ import { VideoExampleCard } from "@/components/VideoExampleCard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 
-// Words list for iteration
-export const words = [
-  "hi", "meat", "me", "see", "name", "thank", "equal", "sorry",
-  "age", "how many", "day", "good, nice", "number", "please?",
-  "study", "human", "now", "education", "test", "yet", "finally",
+// Replace the array export with a getter function
+export const getWords = () => [
+  "hi", "meet", "me", "see", "name", "thank", "equal", "sorry",
+  "age", "how many", "day", "please?",
+  "study", "human", "now", "test", "yet", "finally",
   "dinner", "experience", "invite", "food", "want", "good", "care"
 ];
 
 const Learn = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  const words = getWords();
 
   // Start at a random index
   const [currentWordIndex, setCurrentWordIndex] = useState(
@@ -49,9 +51,9 @@ const Learn = () => {
 
         {/* Learning card + header */}
         <div className="flex-1 max-w-xl flex flex-col h-full justify-center">
-          {/* Header with word and arrows (styled like LearningCard) */}
+          {/* Header with word and arrows */}
           <div className="flex items-center justify-between w-full max-w-2xl mx-auto mt-4 md:-mt-24 mb-6">
-
+            {/* Previous Button */}
             <button
               onClick={handlePrevious}
               className="p-2 hover:opacity-80"
@@ -66,6 +68,7 @@ const Learn = () => {
               </svg>
             </button>
 
+            {/* Word header */}
             <div className="flex flex-col items-center">
               <p className="text-xl md:text-2xl font-semibold mb-2 tracking-tight text-[#878787]">
                 Sign the following word:
@@ -75,6 +78,7 @@ const Learn = () => {
               </h2>
             </div>
 
+            {/* Next Button */}
             <button
               onClick={handleNext}
               className="p-2 hover:opacity-80"
