@@ -14,6 +14,9 @@ export default {
     },
     extend: {
       colors: {
+        // Custom background color: #B6CDB6 (less saturated sage green)
+        'auth-bg': '#B6CDB6', 
+
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -84,10 +87,23 @@ export default {
             height: "0",
           },
         },
+        // Modified flip-in keyframe to use a CSS variable for the starting rotation.
+        // Default is -90deg (flip from left). Can be overridden to 90deg (flip from right).
+        "flip-in": { 
+          '0%': { 
+            transform: 'rotateY(var(--tw-rotate-y-start, -90deg)) scale(0.8)',
+            opacity: '0',
+          }, 
+          '100%': { 
+            transform: 'rotateY(0deg) scale(1)',
+            opacity: '1',
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "flip-in": "flip-in 1s ease-out forwards",
       },
     },
   },

@@ -12,14 +12,34 @@ export const SignupPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div 
+      // 1. Use custom background and add 3D perspective style
+      className="min-h-screen flex items-center justify-center p-4 bg-gray-50"
+      style={{ perspective: '1000px' }}
+    >
+      {/* 2. Apply flip animation and reverse starting direction.
+          The group-[.animate-flip-in] class will apply the 1s animation,
+          and we override the initial transform using an inline class. 
+          To make it flip from the right, the initial rotation must be +90deg.
+          We use an arbitrary value class `[--flip-start:90deg]` to modify the starting point.
+          NOTE: This requires adding a variable to your tailwind keyframe definition (see next section).
+      */}
+      <Card 
+        className="w-full max-w-md animate-flip-in"
+        style={{ 
+          // Override the initial rotation start point for the right-to-left flip
+          '--tw-rotate-y-start': '90deg' 
+        } as React.CSSProperties} // Cast required for custom CSS properties in TSX
+      >
         <CardHeader className="text-center">
-        <img
-            src="/koala_logo.svg"
-            alt="Koala Logo"
-            className="w-24 h-auto mx-auto mb-4"
+        {/* 3. Wrap logo with Link to home page */}
+        <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
+          <img
+              src="/koala_logo.svg"
+              alt="Go to Home"
+              className="w-24 h-auto mx-auto mb-4 cursor-pointer"
           />
+        </Link>
           <CardTitle className="text-3xl font-bold">Create Your Account</CardTitle>
           <CardDescription>
             Join now and start your journey to master Korean Sign Language.
@@ -62,7 +82,6 @@ export const SignupPage: React.FC = () => {
           </form>
           <div className="mt-4 text-center text-sm">
             Already have an account?{' '}
-            {/* Make sure your router is set up for the /login path */}
             <Link to="/login" className="text-primary hover:underline font-medium">
               Log In
             </Link>

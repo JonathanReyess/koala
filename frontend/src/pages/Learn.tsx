@@ -59,6 +59,9 @@ const Learn = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
+  // 💥 NEW: State for controlling the fade-in animation
+  const [isLoaded, setIsLoaded] = useState(false);
+
   // Initialize progress tracking from localStorage
   const [wordProgress, setWordProgress] = useState<Map<string, WordProgress>>(() => {
     const saved = localStorage.getItem("wordProgress");
@@ -96,6 +99,16 @@ const Learn = () => {
     const progressObj = Object.fromEntries(wordProgress);
     localStorage.setItem("wordProgress", JSON.stringify(progressObj));
   }, [wordProgress]);
+  
+  // 💥 NEW: Effect to trigger the fade-in class after component mounts
+  useEffect(() => {
+    // Small delay to ensure the component is fully rendered
+    const timeout = setTimeout(() => {
+      setIsLoaded(true);
+    }, 50); // 50ms is usually enough
+    
+    return () => clearTimeout(timeout);
+  }, []); // Run only once on mount
 
   const currentWord = practiceQueue[currentIndex];
   const currentWordData = wordList.find(w => w.english === currentWord);
@@ -264,8 +277,15 @@ const Learn = () => {
         </div>
       </div>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col md:flex-row items-start justify-center px-4 gap-8 pt-32 md:pt-40 pb-8">
+      {/* Main content - 💥 NEW: Added transition classes here */}
+      <main 
+        className={`
+          flex-1 flex flex-col md:flex-row items-start justify-center 
+          px-4 gap-8 pt-32 md:pt-40 pb-8
+          transition-opacity duration-1000 ease-out transform
+          ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+        `}
+      >
         {/* Example video */}
         <div className="flex-1 w-full max-w-xl flex flex-col justify-start mt-40">
           <VideoExampleCard word={currentWord} />
@@ -303,12 +323,6 @@ const Learn = () => {
               <p className="text-xl md:text-3xl font-bold text-[hsl(var(--accent))] mt-1">
                 {currentWordData?.korean}
               </p>
-              {progress && (progress.correctCount > 0 || progress.incorrectCount > 0) && (
-                <div className="flex gap-3 mt-2 text-sm">
-                  <span className="text-green-600 font-medium">✓ {progress.correctCount}</span>
-                  <span className="text-red-600 font-medium">✗ {progress.incorrectCount}</span>
-                </div>
-              )}
             </div>
 
             {/* Next Button */}

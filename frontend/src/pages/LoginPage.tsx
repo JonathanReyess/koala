@@ -1,8 +1,8 @@
 import React from 'react';
-import { Button } from "@/components/ui/button"; // Assuming this is your Button component
-import { Input } from "@/components/ui/input";   // You may need to create or install an Input component
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; // Assuming you use Card components (like shadcn/ui)
-import { Link } from 'react-router-dom'; // Assuming you use react-router-dom for navigation
+import { Button } from "@/components/ui/button"; 
+import { Input } from "@/components/ui/input";   
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; 
+import { Link } from 'react-router-dom'; // <-- Already imported
 
 export const LoginPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
@@ -12,14 +12,20 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-      <Card className="w-full max-w-md">
+    <div 
+      className="min-h-screen flex items-center justify-center p-4 bg-gray-50"
+      style={{ perspective: '1000px' }} // Critical for 3D rotation effect
+    >
+      <Card className="w-full max-w-md animate-flip-in">
         <CardHeader className="text-center">
-          <img
-            src="/koala_logo.svg"
-            alt="Koala Logo"
-            className="w-24 h-auto mx-auto mb-4"
-          />
+          {/* 👇 WRAPPING THE IMAGE WITH THE LINK COMPONENT */}
+          <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
+            <img
+              src="/koala_logo.svg"
+              alt="Go to Home" // Changed alt text for clarity
+              className="w-24 h-auto mx-auto mb-4 cursor-pointer"
+            />
+          </Link>
           <CardTitle className="text-3xl font-bold">Welcome Back!</CardTitle>
           <CardDescription>
             Sign in to continue mastering Korean Sign Language.
@@ -52,7 +58,6 @@ export const LoginPage: React.FC = () => {
           </form>
           <div className="mt-4 text-center text-sm">
             Don't have an account?{' '}
-            {/* Make sure your router is set up for the /signup path */}
             <Link to="/signup" className="text-primary hover:underline font-medium">
               Sign Up
             </Link>

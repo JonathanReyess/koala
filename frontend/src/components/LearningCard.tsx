@@ -263,7 +263,7 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
 
   return (
     <Card className="w-full max-w-2xl shadow-xl bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))]">
-      <CardContent className="pt-6 -mb-8 space-y-6">
+      <CardContent className="pt-6 -mb-7 space-y-6">
         {/* VIDEO AREA */}
         <div className="relative aspect-video bg-[hsl(var(--muted))] border-2 border-dashed border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-inner">
           <video
@@ -284,6 +284,15 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
             </div>
           )}
 
+{/* Incorrect Feedback Overlay (Pastel Red - Text Not Boxed) */}
+{feedback === "incorrect" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-rose-200/50 backdrop-blur-sm transition-opacity duration-300">
+                <div className="text-rose-900 text-3xl font-bold flex items-center gap-3">
+                    <XCircle className="w-8 h-8"/> Try again!
+                </div>
+            </div>
+          )}
+          
           {/* Mirror Button Overlay */}
           <button
             onClick={() => setIsMirrored(!isMirrored)}
@@ -334,8 +343,8 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
 
           <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileUpload} className="hidden" />
 
-          {/* ADDED pb-10 and w-full to the button wrapper to push the bottom edge down when only one button is visible */}
-          <div className="flex flex-wrap justify-center gap-4 **w-full pb-10**">
+          {/* MODIFIED: Apply pb-10 only if the wrapper has content (i.e., isRecording or isReadyToSubmit is true) */}
+          <div className={`flex flex-wrap justify-center gap-4 w-full ${isRecording || isReadyToSubmit ? 'pb-8' : ''}`}>
             {isRecording && (
               <Button size="lg" onClick={stopRecording} className="text-lg px-8 py-6 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))]">
                 <StopCircle className="h-5 w-5" /> Stop Recording
@@ -389,13 +398,9 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
               <span className="font-semibold">Correct! Great job!</span>
             </div>
           )}
+          
+          {/* Removed the separate 'incorrect' feedback message as requested. It is now implemented as an overlay above. */}
 
-          {feedback === "incorrect" && (
-            <div className="flex items-center justify-center gap-2 p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg">
-              <XCircle className="h-5 w-5" />
-              <span className="font-semibold">Try again!</span>
-            </div>
-          )}
         </div>
       </CardContent>
     </Card>
