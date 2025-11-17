@@ -9,6 +9,7 @@ interface LearningCardProps {
   word: string;
   onNext: () => void;
   onPrevious: () => void;
+  onFeedback?: (word: string, correct: boolean) => void; // Added for spaced repetition
 }
 
 type FeedbackState = "idle" | "correct" | "incorrect" | "processing";
@@ -29,7 +30,6 @@ export const getWordToIdMap = () => ({
   "equal": "14",
   "sorry": "15",
   "age": "20",
-  //"how many": "22",
   "day": "23",
   "please?": "43",
   "study": "48",
@@ -47,7 +47,7 @@ export const getWordToIdMap = () => ({
   "care": "77",
 });
 
-export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) => {
+export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningCardProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>("idle");
   const [videoFile, setVideoFile] = useState<VideoFile | null>(null);
@@ -61,7 +61,6 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
   const [isMirrored, setIsMirrored] = useState(true); // default mirrored
-
 
   const ID_TO_WORD_MAP: { [id: string]: string } = Object.fromEntries(
     Object.entries(WORD_TO_ID_MAP).map(([word, id]) => [id, word])
@@ -127,6 +126,9 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
     if (!expectedClassLabel) {
       setFeedback("incorrect");
       toast.error(`Word "${word}" is not mapped to a class ID.`);
+      if (onFeedback) {
+        onFeedback(word, false);
+      }
       return;
     }
 
@@ -159,6 +161,12 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
       const expectedWord = ID_TO_WORD_MAP[expectedClassLabel] || "Unknown";
 
       setFeedback(isCorrect ? "correct" : "incorrect");
+      
+      // Call the feedback callback for spaced repetition tracking
+      if (onFeedback) {
+        onFeedback(word, isCorrect);
+      }
+
       toast[isCorrect ? "success" : "error"](
         isCorrect
           ? `Great job! You signed "${predictedWord}" correctly!`
@@ -167,6 +175,12 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
     } catch (error: any) {
       console.error("Inference error:", error);
       setFeedback("incorrect");
+      
+      // Track as incorrect for spaced repetition
+      if (onFeedback) {
+        onFeedback(word, false);
+      }
+      
       toast.error(error.name === 'AbortError' ? "Request timed out." : "Error during prediction.");
     }
   };
@@ -249,60 +263,70 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
 
   return (
     <Card className="w-full max-w-2xl shadow-xl bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))]">
-      <CardContent className="pt-6 space-y-6">
+      <CardContent className="pt-6 -mb-8 space-y-6">
         {/* VIDEO AREA */}
         <div className="relative aspect-video bg-[hsl(var(--muted))] border-2 border-dashed border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-inner">
-  <video
-    ref={videoRef}
-    autoPlay={!videoFile}
-    muted={!videoFile}
-    playsInline
-    src={videoFile ? videoFile.url : undefined}
-    className={`w-full h-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
-  />
+          <video
+            ref={videoRef}
+            autoPlay={!videoFile}
+            muted={!videoFile}
+            playsInline
+            src={videoFile ? videoFile.url : undefined}
+            className={`w-full h-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
+          />
 
-  {/* Mirror Button Overlay */}
-  <button
-    onClick={() => setIsMirrored(!isMirrored)}
-    className="absolute bottom-4 right-4 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg transition-transform hover:scale-110"
-  >
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className={`w-6 h-6 transition-transform ${isMirrored ? "scale-x-[-1]" : ""}`}
-    >
-      <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-      <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
-      <g id="SVGRepo_iconCarrier">
-        <path
-          fillRule="evenodd"
-          clipRule="evenodd"
-          d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
-          fill="#ffffff"
-        ></path>
-      </g>
-    </svg>
-  </button>
-</div>
+          {/* Countdown Overlay */}
+          {countdown !== null && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+              <div className="text-white text-9xl font-bold animate-pulse">
+                {countdown}
+              </div>
+            </div>
+          )}
 
+          {/* Mirror Button Overlay */}
+          <button
+            onClick={() => setIsMirrored(!isMirrored)}
+            className="absolute bottom-4 right-4 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg transition-transform hover:scale-110"
+            aria-label="Toggle mirror"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className={`w-6 h-6 transition-transform ${isMirrored ? "scale-x-[-1]" : ""}`}
+            >
+              <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
+              <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+              <g id="SVGRepo_iconCarrier">
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
+                  fill="#ffffff"
+                ></path>
+              </g>
+            </svg>
+          </button>
+        </div>
 
         {/* CONTROLS */}
-        <div className="space-y-4">
+        {/* ADDED min-h-20 to maintain consistent card height across states */}
+        <div className="space-y-4 min-h-20">
           {(isIdle || feedback === "incorrect") && !isReadyToSubmit && (
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isPredicting}
                 className="flex-1 text-lg py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:brightness-90 transition flex items-center justify-center gap-2"
-                >
+              >
                 <Upload className="h-5 w-5" /> Upload Video
               </Button>
               <Button
                 onClick={startRecording}
                 disabled={isPredicting}
                 className="flex-1 text-lg py-6 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(190,29%,28%)] transition flex items-center justify-center gap-2"
-                >
+              >
                 <Camera className="h-5 w-5" /> Start Recording
               </Button>
             </div>
@@ -310,7 +334,8 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
 
           <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileUpload} className="hidden" />
 
-          <div className="flex flex-wrap justify-center gap-4 mt-4">
+          {/* ADDED pb-10 and w-full to the button wrapper to push the bottom edge down when only one button is visible */}
+          <div className="flex flex-wrap justify-center gap-4 **w-full pb-10**">
             {isRecording && (
               <Button size="lg" onClick={stopRecording} className="text-lg px-8 py-6 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))]">
                 <StopCircle className="h-5 w-5" /> Stop Recording
@@ -340,13 +365,37 @@ export const LearningCard = ({ word, onNext, onPrevious }: LearningCardProps) =>
                 <Button
                   size="lg"
                   onClick={() => videoFile && runInference(videoFile.blob)}
-                  className="text-lg px-8 py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                  disabled={isPredicting}
+                  className="text-lg px-8 py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center gap-2"
                 >
-                  <CheckCircle className="h-5 w-5" /> Submit
+                  {isPredicting ? (
+                    <>
+                      <Loader className="h-5 w-5 animate-spin" /> Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="h-5 w-5" /> Submit
+                    </>
+                  )}
                 </Button>
               </>
             )}
           </div>
+
+          {/* Feedback Messages */}
+          {feedback === "correct" && (
+            <div className="flex items-center justify-center gap-2 p-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg">
+              <CheckCircle className="h-5 w-5" />
+              <span className="font-semibold">Correct! Great job!</span>
+            </div>
+          )}
+
+          {feedback === "incorrect" && (
+            <div className="flex items-center justify-center gap-2 p-4 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg">
+              <XCircle className="h-5 w-5" />
+              <span className="font-semibold">Try again!</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

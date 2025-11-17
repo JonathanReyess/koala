@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Learn from "./pages/Learn";
+// New Imports for Auth Pages
+import { LoginPage } from "./pages/LoginPage";
+import { SignupPage } from "./pages/SignupPage";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +21,9 @@ const App = () => (
       <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/learn" element={<Learn />} />
+      {/* New Routes for Authentication */}
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
       </BrowserRouter>
