@@ -17,8 +17,6 @@ The frontend is configured to communicate with the live backend API.
 
 ## 2. Local Setup and Deployment
 
-If you wish to host the application and API locally, follow these steps.
-
 ### Prerequisites
 
 * **Python 3.8+** (for the FastAPI backend)
@@ -29,7 +27,7 @@ If you wish to host the application and API locally, follow these steps.
 First, clone the project and navigate into the root directory:
 
 ```bash
-git clone [https://github.com/JonathanReyess/koala-sign-learn.git](https://github.com/JonathanReyess/koala-sign-learn.git)
+git clone https://github.com/JonathanReyess/koala-sign-learn.git
 cd koala-sign-learn/
 ````
 
