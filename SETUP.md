@@ -1,17 +1,17 @@
 # ⚙️ SETUP and INSTALLATION GUIDE
 
-This document provides instructions for accessing the deployed version of the **PoseCNN_LSTM_Attn** project, hosting the application locally, and replicating the original study.
+This document provides instructions for accessing the deployed version of the project, hosting the application locally, and replicating the original study.
 
 ---
 
-## 🚀 1. Accessing the Deployed Application
+## 1. Accessing the Deployed Application
 
 For immediate testing, the project is deployed across two services:
 
 | Component | Deployment Service | URL / IP Address | Notes |
 | :--- | :--- | :--- | :--- |
 | **Frontend (Vite.js)** | Vercel | [https://koala-sign-learn.vercel.app/](https://koala-sign-learn.vercel.app/) | Access the live web application here. |
-| **Backend (FastAPI)** | AWS Lightsail | `34.239.230.9` | The API runs on this static IP address in Virginia. |
+| **Backend (FastAPI)** | AWS Lightsail 
 
 The frontend is configured to communicate with the live backend API.
 
