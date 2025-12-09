@@ -90,16 +90,19 @@ The backend requires the trained model file to function.
 
 -----
 
-## 🔬 3. Study Replication and Analysis
+## 3. Study Replication and Analysis
 
-If you wish to replicate the study, train the model, or perform in-depth analysis on the data, it is advised to use the provided Jupyter Notebook.
+To replicate the original study, which was performed in a Google Colab Jupyter environment using a T4 GPU, follow these steps:
 
-1.  **Install Notebook Dependencies:** Ensure you have Jupyter installed in your backend environment:
+1.  **Follow the Notebook:** Open and execute the instructions in the main notebook:
     ```bash
-    pip install jupyter
+    /notebook/KSL.ipynb
     ```
-2.  **Access Data:** The necessary raw and pre-processed data are located in the `data/` directory.
-3.  **Follow the Notebook:** Navigate to the `notebook/` directory and open the provided Jupyter Notebook file to follow the step-by-step instructions for data loading, training, and evaluation.
+2.  **Access Data:** Review the data requirements and setup instructions in the data documentation:
+3.  **Skip Preprocessing (Optional):** If you wish to bypass the initial data preprocessing steps, the final pre-processed data can be found and loaded directly from:
+       ```bash
+    /data/KSL77_joint_stream_47pt.pkl
+    ```
 
 <!-- end list -->
 
