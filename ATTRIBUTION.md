@@ -1,10 +1,10 @@
 # ATTRIBUTION
 
-This document details the external resources, libraries, datasets, and methodologies used in the **PoseCNN_LSTM_Attn** project.
+This document details the external resources, libraries, datasets, and methodologies used in the project.
 
 ---
 
-## 1. Project Datasets
+## 1. Datasets
 
 ### A. Korean Sign Language (KSL) Dataset
 
@@ -14,7 +14,7 @@ The core training data for this project is derived from the Korean Sign Language
 * **Original Paper (Required Citation):**
     > Yang, S., Jung, S., Kang, H., & Kim, C. (2020). The Korean Sign Language Dataset for Action Recognition. In *Proceedings of the 11th ACM Multimedia Systems Conference (MMSys '20)* (pp. 532–542). Springer, Cham.
 * **Source Link:** [Source Research Paper (Springer)](https://link.springer.com/content/pdf/10.1007/978-3-030-37731-1_43.pdf)
-* **License (Data Package):** Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
+* **Data License:** Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
 
 ---
 
@@ -24,10 +24,10 @@ The core training data for this project is derived from the Korean Sign Language
 
 The model architecture, **PoseCNN\_LSTM\_Attn** (Pose Convolutional Neural Network with Long Short-Term Memory and Attention), is based on established research combining human pose estimation with temporal deep learning.
 
-* **Foundation:** The methodology combines concepts from pose estimation (e.g., OpenPose, MediaPipe) with recurrent neural networks and attention mechanisms for sequential sign language recognition.
-* **Specific Model Inspiration:** *[**Crucial:** If your architecture is a direct implementation of a specific paper (e.g., "A specific paper for attention in sign language recognition"), cite it here.]*
-    * **[Citation/Link to Key Research Paper on Model Idea]**
-* **License (Model Code):** MIT License
+* **Foundation:** The methodology combines concepts from **pose estimation** (e.g., OpenPose, MediaPipe) with **recurrent neural networks** and **attention mechanisms** for sequential sign language recognition.
+* **Model Inspiration:** This model is inspired by deep learning approaches to Korean Sign Language (KSL) recognition, specifically those utilizing LSTM and modern attention mechanisms.
+    * **Transformer-Based KSL Recognition:** Lee, J., et al. (2023). Korean Sign Language Recognition Using Transformer-Based Deep Neural Network. *Applied Sciences*, 13(5), 3029. [https://www.mdpi.com/2076-3417/13/5/3029](https://www.mdpi.com/2076-3417/13/5/3029)
+    * **LSTM-Based KSL Recognition:** Han, S., et al. (2020). Korean Sign Language Recognition Using LSTM and Video Datasets. *Journal of KIPS*, 27(1), 356. [https://xml.jips-k.org/full-text/view?doi=10.3745/JIPS.04.0356](https://xml.jips-k.org/full-text/view?doi=10.3745/JIPS.04.0356)
 
 ---
 
