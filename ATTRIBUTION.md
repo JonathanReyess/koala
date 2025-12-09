@@ -42,7 +42,6 @@ The model architecture, **PoseCNN\_LSTM\_Attn** (Pose Convolutional Neural Netwo
 | **Uvicorn** | ASGI server used to run the FastAPI application. |
 | **PyTorch** | Deep learning framework used for model training and inference (`best_model.pt`). |
 | **NumPy / Pandas** | Data manipulation and processing (used heavily in the notebook). |
-| **Other Dependencies** | *[List other key packages from your `requirements.txt` here, e.g., Scikit-learn, OpenCV, etc.]* |
 
 ### B. Frontend (JavaScript/Vite.js)
 
@@ -57,11 +56,11 @@ The model architecture, **PoseCNN\_LSTM\_Attn** (Pose Convolutional Neural Netwo
 
 ## 4. Hosting and Infrastructure
 
-| Service | Purpose | License/Terms |
-| :--- | :--- | :--- |
-| **AWS Lightsail** | Hosting for the FastAPI backend API service. | AWS Customer Agreement |
-| **Vercel** | Hosting for the Vite.js frontend application. | Vercel Terms of Service |
-| **Google Colab (T4 GPU)** | Execution environment used for training the original model and running the study notebook. | Google Terms of Service |
+| Service | Purpose |
+| :--- | :--- |
+| **AWS Lightsail** | Hosting for the **FastAPI** backend API service. |
+| **Vercel** | Hosting for the **Vite.js** frontend application. |
+| **Google Colab (T4 GPU)** | Execution environment used for training the original model and running the study notebook. |
 
 ---
 
