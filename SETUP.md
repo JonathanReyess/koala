@@ -8,14 +8,15 @@ This document provides instructions for accessing the deployed version of the pr
 
 For immediate testing, the project is deployed across two services:
 
-**Frontend (Vite.js)** | Vercel | [https://koala-sign-learn.vercel.app/](https://koala-sign-learn.vercel.app/) | Access the live web application here. |
-**Backend (FastAPI)** | AWS Lightsail 
+* **Frontend (Vite.js) - Hosted on Vercel:** [https://koala-sign-learn.vercel.app/](https://koala-sign-learn.vercel.app/)
+    * *Access the live web application here.*
+* **Backend (FastAPI) - Hosted on AWS Lightsail**
 
 The frontend is configured to communicate with the live backend API.
 
 ---
 
-## 💻 2. Local Setup and Deployment
+## 2. Local Setup and Deployment
 
 If you wish to host the application and API locally, follow these steps.
 
