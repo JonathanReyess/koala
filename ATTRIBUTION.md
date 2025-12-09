@@ -1,4 +1,4 @@
-# ATTRIBUTION
+# Attributions
 
 This document details the external resources, libraries, datasets, and methodologies used in the project.
 
