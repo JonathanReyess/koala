@@ -95,14 +95,12 @@ The backend requires the trained model file to function.
 To replicate the original study, which was performed in a Google Colab Jupyter environment using a T4 GPU, follow these steps:
 
 1.  **Follow the Notebook:** Open and execute the instructions in the main notebook:
-    ```bash
-    /notebook/KSL.ipynb
-    ```
+      * `/notebook/KSL.ipynb`
 2.  **Access Data:** Review the data requirements and setup instructions in the data documentation:
+      * `/data/DATA_README.md`
 3.  **Skip Preprocessing (Optional):** If you wish to bypass the initial data preprocessing steps, the final pre-processed data can be found and loaded directly from:
-       ```bash
-    /data/KSL77_joint_stream_47pt.pkl
-    ```
+      * `/data/KSL77_joint_stream_47pt.pkl`
+
 
 <!-- end list -->
 
