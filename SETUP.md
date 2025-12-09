@@ -1,4 +1,4 @@
-# ⚙️ SETUP and INSTALLATION GUIDE
+# Setup and Installation Guide 
 
 This document provides instructions for accessing the deployed version of the project, hosting the application locally, and replicating the original study.
 
@@ -8,10 +8,8 @@ This document provides instructions for accessing the deployed version of the pr
 
 For immediate testing, the project is deployed across two services:
 
-| Component | Deployment Service | URL / IP Address | Notes |
-| :--- | :--- | :--- | :--- |
-| **Frontend (Vite.js)** | Vercel | [https://koala-sign-learn.vercel.app/](https://koala-sign-learn.vercel.app/) | Access the live web application here. |
-| **Backend (FastAPI)** | AWS Lightsail 
+**Frontend (Vite.js)** | Vercel | [https://koala-sign-learn.vercel.app/](https://koala-sign-learn.vercel.app/) | Access the live web application here. |
+**Backend (FastAPI)** | AWS Lightsail 
 
 The frontend is configured to communicate with the live backend API.
 
