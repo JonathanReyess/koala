@@ -8,9 +8,6 @@ This is the repository for the **Koala (코아라)**, a full-stack application t
 
 Koala addresses the need for accessible KSL learning tools by utilizing a vision-based approach. The system extracts **47 3D joint coordinates** from video frames using **MediaPipe Holistic** and feeds this sequence data into a specialized **CNN-LSTM-Attention** model. This model analyzes the spatial and temporal patterns of the signs to classify them against **67 distinct KSL words**. The system is deployed as a user-friendly web application with a **FastAPI** backend serving the PyTorch model and a **React/TypeScript** frontend for recording and displaying AI-driven results. 
 
-[Image of KSL sign recognition system diagram]
-
-
 ---
 
 ## Quick Start
