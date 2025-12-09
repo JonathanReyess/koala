@@ -103,5 +103,3 @@ To replicate the original study, which was performed in a Google Colab Jupyter e
 
 
 <!-- end list -->
-
-```
