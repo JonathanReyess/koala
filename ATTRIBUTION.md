@@ -35,23 +35,23 @@ The model architecture, **PoseCNN\_LSTM\_Attn** (Pose Convolutional Neural Netwo
 
 ### A. Backend (Python/FastAPI)
 
-| Dependency | Purpose | License |
-| :--- | :--- | :--- |
-| **Python** | Core execution environment. | Python Software Foundation License (PSF) |
-| **FastAPI** | High-performance Python web framework for the API. | MIT License |
-| **Uvicorn** | ASGI server used to run the FastAPI application. | BSD 3-Clause "New" or "Revised" License |
-| **PyTorch** | Deep learning framework used for model training and inference (`best_model.pt`). | BSD-style license |
-| **NumPy / Pandas** | Data manipulation and processing (used heavily in the notebook). | BSD License |
-| **Other Dependencies** | *[List other key packages from your `requirements.txt` here, e.g., Scikit-learn, OpenCV, etc.]* | *[List License for each]* |
+| Dependency | Purpose |
+| :--- | :--- |
+| **Python** | Core execution environment. |
+| **FastAPI** | High-performance Python web framework for the API. |
+| **Uvicorn** | ASGI server used to run the FastAPI application. |
+| **PyTorch** | Deep learning framework used for model training and inference (`best_model.pt`). |
+| **NumPy / Pandas** | Data manipulation and processing (used heavily in the notebook). |
+| **Other Dependencies** | *[List other key packages from your `requirements.txt` here, e.g., Scikit-learn, OpenCV, etc.]* |
 
 ### B. Frontend (JavaScript/Vite.js)
 
-| Dependency | Purpose | License |
-| :--- | :--- | :--- |
-| **Node.js/npm** | Core execution environment and package management. | MIT License |
-| **Vite** | Modern frontend build tool. | MIT License |
-| **React** | JavaScript library for building the user interface. | MIT License |
-| **Axios** | HTTP client for communicating with the FastAPI backend. | MIT License |
+| Dependency | Purpose |
+| :--- | :--- |
+| **Node.js/npm** | Core execution environment and package management. |
+| **Vite** | Modern frontend build tool. |
+| **React** | JavaScript library for building the user interface. |
+| **Axios** | HTTP client for communicating with the FastAPI backend. |
 
 ---
 
