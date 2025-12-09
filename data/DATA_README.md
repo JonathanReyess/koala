@@ -1,10 +1,6 @@
 ### 1\. Data Access & Download
 
-The raw training video data is a large file (over 5 GB).
-
-#### **Raw Video Data**
-
-To get the complete set of video files, download the compressed archive from the cloud storage link below:
+To get the complete set of raw video files, download the compressed archive from the cloud storage link below:
 
   * **Download Link:** [Training Videos](https://www.dropbox.com/scl/fi/daqmxyxycgr4r39lzn7gf/video.zip?rlkey=uphg8vs7n4mrdgl7bzi62y0on&e=1&dl=0)
       * **Size:** Approximately **5.3 GB** (Compressed ZIP).
