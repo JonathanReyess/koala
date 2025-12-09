@@ -1,4 +1,4 @@
-# ✍️ ATTRIBUTION
+# ATTRIBUTION
 
 This document details the external resources, libraries, datasets, and methodologies used in the **PoseCNN_LSTM_Attn** project.
 
