@@ -74,7 +74,7 @@ This guide explains how to run the full-stack Koala application locally.
 
 ## Evaluation
 
-The model was trained and evaluated on a subset of the **KSL77 dataset** (67 classes).
+The model was trained and evaluated on the KSL77 dataset (67 classes).
 
 ### Training Data
 - **Total Samples:** 1,228 video sequences
@@ -149,9 +149,3 @@ A detailed Jupyter Notebook is included in the `notebook/` folder, providing a f
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-## Acknowledgments
-
-- KSL77 dataset provided by [Yangseung/KSL](https://github.com/Yangseung/KSL)
-- Architecture inspired by the work of Jungpil Shin et al. in their IEEE paper on Dynamic KSL Recognition
-- MediaPipe framework by Google for pose estimation capabilities
