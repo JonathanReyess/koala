@@ -5,7 +5,7 @@ To get the complete set of raw video files, download the compressed archive from
   * **Download Link:** [Training Videos](https://www.dropbox.com/scl/fi/daqmxyxycgr4r39lzn7gf/video.zip?rlkey=uphg8vs7n4mrdgl7bzi62y0on&e=1&dl=0)
       * **Size:** Approximately **5.3 GB** (Compressed ZIP).
       * **Format:** MP4 video files.
-      * **Content:** Videos of sign language gestures used to train the model.
+      * **Content:** 67 Videos of sign language gestures used to train the model.
 
 -----
 
