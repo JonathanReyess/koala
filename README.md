@@ -119,6 +119,17 @@ This matrix visualizes the performance of the final model across all 67 KSL clas
 
 ---
 
+Video Links
+Demo Video
+
+[Direct link to your project demonstration video]
+
+Technical Walkthrough
+
+[Direct link to your technical explanation video]
+
+---
+
 ### Development Details
 
 A detailed Jupyter Notebook is included in the `notebook/` folder, providing a full walkthrough of video preprocessing, feature extraction, and model training (run on Google Colab using an NVIDIA T4 GPU).
