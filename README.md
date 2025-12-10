@@ -123,11 +123,11 @@ This matrix visualizes the performance of the final model across all 67 KSL clas
 
 ### Demo Video
 
-* [Direct link to your project demonstration video]
+* [[Direct link to your project demonstration video](https://drive.google.com/file/d/1yLzAQuSom0Jd4RHR5TRBISpGadesfTPI/view?usp=sharing)]
 
 ### Technical Walkthrough
 
-* [Direct link to your technical explanation video]
+* [[Direct link to your technical explanation video](https://drive.google.com/file/d/1Lt1UWiWIKzmVFABiiG2bvR8rSkJSy9c3/view?usp=sharing)]
 
 ---
 
