@@ -87,10 +87,12 @@ The architecture is based on the principles in the paper: ["Dynamic Korean Sign 
 ### Training Curves
 
 The following plots illustrate the model's accuracy and loss convergence over the training and validation epochs.
+![Training Curves for KSL Recognition Model](images/training_curves.png)
 
 ### Confusion Matrix
 
 This matrix visualizes the performance of the final model across all 67 KSL classes on the test set. The strong diagonal indicates good performance, with off-diagonal elements highlighting specific misclassifications.
+![Confusion Matrix for KSL Recognition Model](images/confusion_matrix.png)
 
 ### Full Classification Report
 
