@@ -136,15 +136,15 @@ This matrix visualizes the performance of the final model across all 67 KSL clas
 A detailed Jupyter Notebook is included in the `notebook/` folder, providing a full walkthrough of video preprocessing, feature extraction, and model training (run on Google Colab using an NVIDIA T4 GPU).
 
 ---
-
 ## Limitations
-
 The model is currently trained on the KSL77 dataset (1,228 video samples) due to the scarcity of publicly and globally accessible Korean Sign Language datasets.
 
-While a significantly larger and more comprehensive resource—the KSL-Guide dataset (121K video samples, including interrogative sentences, as described in Ham et al., FG 2021)—exists, its access is severely restricted. The dataset is hosted on the Korean AI-Hub platform (https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=realm&dataSetSn=103), which limits data application and download to Korean citizens. 
+While a significantly larger and more comprehensive resource exists—the KSL-Guide dataset (121,000 video samples, including interrogative sentences, as described in Ham et al., FG 2021)—its access is severely restricted. The dataset is hosted on the Korean AI-Hub platform (https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=realm&dataSetSn=103), which limits data application and download to Korean citizens only.
 
-This accessibility constraint prevents the system from being trained on a richer, more diverse corpus, thereby limiting the vocabulary scope and generalization capability of the current model.
-
+This accessibility constraint prevents our system from being trained on a richer, more diverse corpus, thereby limiting the vocabulary scope and generalization capability of the current model. Future work could benefit from:
+* Collaboration with Korean institutions for dataset access
+* Development of transfer learning approaches using related sign language datasets
+* Community-driven data collection efforts to expand the available corpus
 ---
 
 ## License
