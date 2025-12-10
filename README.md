@@ -74,7 +74,7 @@ This guide explains how to run the full-stack Koala application locally.
 
 ## Evaluation
 
-The model was trained and evaluated on the KSL77 dataset (67 classes).
+The model was trained and evaluated on the KSL77 dataset (67 classes) by [Yangseung/KSL](https://github.com/Yangseung/KSL)
 
 ### Training Data
 - **Total Samples:** 1,228 video sequences
@@ -119,22 +119,9 @@ This matrix visualizes the performance of the final model across all 67 KSL clas
 
 ---
 
-## Technical Stack & Development Details
-
-| Component | Technology | Description |
-| :--- | :--- | :--- |
-| **Model** | PyTorch, NumPy, Scikit-learn | Trained on KSL77 dataset, achieving 88.21% test accuracy. |
-| **Feature Extraction** | MediaPipe Holistic, OpenCV | Extracts 47 3D joint coordinates across a fixed sequence length (32 frames). |
-| **Backend API** | Python, FastAPI | Serves the trained PyTorch model and handles video uploads and preprocessing. |
-| **Frontend** | Vite, React, TypeScript, Tailwind CSS | Provides a user-friendly interface for recording/uploading videos and displaying AI feedback. |
-
 ### Development Details
 
 A detailed Jupyter Notebook is included in the `notebook/` folder, providing a full walkthrough of video preprocessing, feature extraction, and model training (run on Google Colab using an NVIDIA T4 GPU).
-
-> **Dataset Source:** Original KSL77 dataset and labels obtained from [Yangseung/KSL](https://github.com/Yangseung/KSL).
-> 
-> **Reference Paper:** ["Dynamic Korean Sign Language Recognition Using Pose Estimation Based and Attention‑Based Neural Network"](https://ieeexplore.ieee.org/document/10360810) by Jungpil Shin et al.
 
 ---
 
