@@ -139,7 +139,11 @@ A detailed Jupyter Notebook is included in the `notebook/` folder, providing a f
 
 ## Limitations
 
-- **Limited Dataset Availability:** The model is trained on a subset of the KSL77 dataset due to the scarcity of publicly available Korean Sign Language datasets. This limits the vocabulary scope and generalization capability of the system.
+- **Limited Dataset Availability:** The model is currently trained on the KSL77 dataset (1,228 video samples) due to the scarcity of publicly and globally accessible Korean Sign Language datasets.
+
+While a significantly larger and more comprehensive resource—the KSL-Guide dataset (121K video samples, including interrogative sentences, as described in Ham et al., FG 2021)—exists, its access is severely restricted. The dataset is hosted on the Korean AI-Hub platform (https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&aihubDataSe=realm&dataSetSn=103), which limits data application and download to Korean citizens. 
+
+This accessibility constraint prevents the system from being trained on a richer, more diverse corpus, thereby limiting the vocabulary scope and generalization capability of the current model.
 
 ---
 
