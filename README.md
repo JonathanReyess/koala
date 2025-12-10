@@ -1,10 +1,3 @@
-This is a fantastic use case for incorporating your results into a README. You have excellent statistics, a clear architecture, and a strong project goal.
-
-I have updated your README to include a new "Detailed Results" section with your statistics, and added placeholders for your images. I have also fixed a minor inconsistency in your evaluation section regarding the Test Accuracy (from 86.18% to the new 88.21%).
-
-Here is the fully updated README:
-
-````markdown
 # 🇰🇷 Koala (코아라) - Korean Sign Language (KSL) Recognition System
 
 This is the repository for the Koala (코아라), a full-stack application that uses a deep learning model to **classify dynamic Korean Sign Language (KSL) words** from user video input. The system provides real-time AI feedback to help users practice KSL signs.
@@ -206,5 +199,4 @@ A detailed Jupyter Notebook is included in the [`notebook/`](https://www.google.
 > **Dataset Source:** Original KSL77 dataset and labels obtained from [Yangseung/KSL](https://github.com/Yangseung/KSL).
 > **Reference Paper:** ["Dynamic Korean Sign Language Recognition Using Pose Estimation Based and Attention‑Based Neural Network"](https://ieeexplore.ieee.org/document/10360810) by Jungpil Shin et al.
 
-```
 ```
