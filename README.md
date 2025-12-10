@@ -121,9 +121,9 @@ This matrix visualizes the performance of the final model across all 67 KSL clas
 
 ## Video Links
 
-* [[Demo Video](https://drive.google.com/file/d/1yLzAQuSom0Jd4RHR5TRBISpGadesfTPI/view?usp=sharing)]
+* [Demo Video](https://drive.google.com/file/d/1yLzAQuSom0Jd4RHR5TRBISpGadesfTPI/view?usp=sharing)
 
-* [[Technical Walktrough](https://drive.google.com/file/d/1Lt1UWiWIKzmVFABiiG2bvR8rSkJSy9c3/view?usp=sharing)]
+* [Technical Walktrough](https://drive.google.com/file/d/1Lt1UWiWIKzmVFABiiG2bvR8rSkJSy9c3/view?usp=sharing)
 
 ---
 
