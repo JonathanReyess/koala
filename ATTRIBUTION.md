@@ -26,8 +26,9 @@ The model architecture, **PoseCNN\_LSTM\_Attn** (Pose Convolutional Neural Netwo
 
 * **Foundation:** The methodology combines concepts from **pose estimation** (e.g., OpenPose, MediaPipe) with **recurrent neural networks** and **attention mechanisms** for sequential sign language recognition.
 * **Model Inspiration:** This model is inspired by deep learning approaches to Korean Sign Language (KSL) recognition, specifically those utilizing LSTM and modern attention mechanisms.
-    * **Transformer-Based KSL Recognition:** Lee, J., et al. (2023). Korean Sign Language Recognition Using Transformer-Based Deep Neural Network. *Applied Sciences*, 13(5), 3029. [https://www.mdpi.com/2076-3417/13/5/3029](https://www.mdpi.com/2076-3417/13/5/3029)
-    * **LSTM-Based KSL Recognition:** Han, S., et al. (2020). Korean Sign Language Recognition Using LSTM and Video Datasets. *Journal of KIPS*, 27(1), 356. [https://xml.jips-k.org/full-text/view?doi=10.3745/JIPS.04.0356](https://xml.jips-k.org/full-text/view?doi=10.3745/JIPS.04.0356)
+** **Transformer-Based KSL Recognition:** Lee, J., et al. (2023). Korean sign language recognition using transformer-based deep neural network. *Applied Sciences*, *13*(5), 3029. https://www.mdpi.com/2076-3417/13/5/3029
+** **LSTM-Based KSL Recognition:** Han, S., et al. (2020). Korean sign language recognition using LSTM and video datasets. *Journal of KIPS*, *27*(1), 356. https://xml.jips-k.org/full-text/view?doi=10.3745/JIPS.04.0356
+** **Pose Estimation Based and Attention-Based Neural Network:** Shin, J., Miah, A. S. M., Suzuki, K., Hirooka, K., & Hasan, M. A. M. (2023). Dynamic Korean sign language recognition using pose estimation based and attention-based neural network. *IEEE Access*, *11*, 121299-121311. https://ieeexplore.ieee.org/document/10360810
 
 ---
 
