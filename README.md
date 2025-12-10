@@ -201,4 +201,3 @@ A detailed Jupyter Notebook is included in the [`notebook/`](https://www.google.
 > **Dataset Source:** Original KSL77 dataset and labels obtained from [Yangseung/KSL](https://github.com/Yangseung/KSL).
 > **Reference Paper:** ["Dynamic Korean Sign Language Recognition Using Pose Estimation Based and Attention‑Based Neural Network"](https://ieeexplore.ieee.org/document/10360810) by Jungpil Shin et al.
 
-```
