@@ -87,12 +87,10 @@ The architecture is based on the principles in the paper: ["Dynamic Korean Sign 
 ### Training Curves
 
 The following plots illustrate the model's accuracy and loss convergence over the training and validation epochs.
-![Training Curves for KSL Recognition Model](images/training_curves.png)
 
 ### Confusion Matrix
 
 This matrix visualizes the performance of the final model across all 67 KSL classes on the test set. The strong diagonal indicates good performance, with off-diagonal elements highlighting specific misclassifications.
-![Confusion Matrix for KSL Recognition Model](images/confusion_matrix.png)
 
 ### Full Classification Report
 
@@ -192,7 +190,7 @@ The table highlights that classes like **11** (`F1-Score: 0.29`), **31** (`Recal
 | **Model** | PyTorch, NumPy, Scikit-learn | Trained on KSL77 dataset, achieving 88.21% test accuracy. |
 | **Feature Extraction** | MediaPipe Holistic, OpenCV | Extracts 47 3D joint coordinates across a fixed sequence length (32 frames). |
 | **Backend API** | Python, FastAPI | Serves the trained PyTorch model and handles video uploads and preprocessing. |
-| **Frontend** | Vite, React, TypeScript, Tailwind CSS | Provides a user-friendly interface for recording/uploading videos and displaying AI feedback. |
+| **Frontend** | Vite, React, TypeScript, Tailwind CSS | Provides a user-friendly interface for recording/uploa ding videos and displaying AI feedback. |
 
 ### Development Details
 
@@ -201,3 +199,4 @@ A detailed Jupyter Notebook is included in the [`notebook/`](https://www.google.
 > **Dataset Source:** Original KSL77 dataset and labels obtained from [Yangseung/KSL](https://github.com/Yangseung/KSL).
 > **Reference Paper:** ["Dynamic Korean Sign Language Recognition Using Pose Estimation Based and Attention‑Based Neural Network"](https://ieeexplore.ieee.org/document/10360810) by Jungpil Shin et al.
 
+```
