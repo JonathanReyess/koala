@@ -119,14 +119,15 @@ This matrix visualizes the performance of the final model across all 67 KSL clas
 
 ---
 
-Video Links
-Demo Video
+## Video Links
 
-[Direct link to your project demonstration video]
+### Demo Video
 
-Technical Walkthrough
+* [Direct link to your project demonstration video]
 
-[Direct link to your technical explanation video]
+### Technical Walkthrough
+
+* [Direct link to your technical explanation video]
 
 ---
 
@@ -147,3 +148,4 @@ A detailed Jupyter Notebook is included in the `notebook/` folder, providing a f
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
+
