@@ -1,6 +1,6 @@
 # 🇰🇷 Koala (코아라) - Korean Sign Language (KSL) Recognition System
 
-This is the repository for the Koala (코아라), a full-stack application that uses a deep learning model to **classify dynamic Korean Sign Language (KSL) words** from user video input. The system provides real-time AI feedback to help users practice KSL signs.
+This is the repository for the Koala (코아라), a full-stack application that uses a deep learning model to classify dynamic Korean Sign Language (KSL) words from user video input. The system provides real-time AI feedback to help users practice KSL signs.
 
 ---
 
@@ -85,10 +85,10 @@ The model was trained and evaluated on a subset of the **KSL77 dataset** (67 cla
 
 | Metric | Value |
 | :--- | :--- |
-| **Test Accuracy** | **88.21%** |
-| **Precision (Macro Avg)** | **0.91** |
-| **Recall (Macro Avg)** | **0.88** |
-| **F1-Score (Macro Avg)** | **0.88** |
+| **Test Accuracy** | 88.21% |
+| **Precision (Macro Avg)** | 0.91 |
+| **Recall (Macro Avg)** | 0.88 |
+| **F1-Score (Macro Avg)** | 0.88 |
 | **Framework** | PyTorch |
 | **Best Hyperparameters** | `lr`: 0.00034, `cnn_hidden`: 64, `lstm_hidden`: 256, `dropout_rate`: 0.222, `optimizer`: Adam |
 
