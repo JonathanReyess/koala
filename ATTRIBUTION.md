@@ -57,8 +57,8 @@ The model architecture, PoseCNN_LSTM_Attn (Pose Convolutional Neural Network wit
 
 | Service | Purpose |
 | :--- | :--- |
-| **AWS Lightsail** | Hosting for the **FastAPI** backend API service. |
-| **Vercel** | Hosting for the **Vite.js** frontend application. |
+| **AWS Lightsail** | Hosting for the FastAPI backend API service. |
+| **Vercel** | Hosting for the Vite.js frontend application. |
 | **Google Colab (T4 GPU)** | Execution environment used for training the original model and running the study notebook. |
 
 ---
@@ -68,7 +68,7 @@ The model architecture, PoseCNN_LSTM_Attn (Pose Convolutional Neural Network wit
 This section discloses the use of large language models (LLMs) in the project's development:
 
 * **Model Used:** Gemini 3
-* **Scope of Assistance:** Gemini 3 was used for generating **preliminary versions** of code across both the frontend and backend, including:
+* **Scope of Assistance:** Gemini 3 was used for generating preliminary versions of code across both the frontend and backend, including:
     * **Frontend Components:** Drafting initial React components, layout structures, and API integration logic.
     * **Model Processing:** Generating code for initial data preprocessing steps and segments of the model training pipeline within the Jupyter notebook.
     * **Documentation:** Assisting with the structuring and drafting of project documentation (e.g., `README.md`, `SETUP.md`, and this `ATTRIBUTION.md`).
