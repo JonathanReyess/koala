@@ -21,3 +21,9 @@ reverse_label_map = {
     24:27, 25:29, 33:39, 37:43, 40:48, 41:49, 42:50, 45:54, 46:55, 47:56,
     48:57, 49:58, 51:60, 53:62, 55:64, 58:67, 62:71, 63:72, 64:74
 }
+
+
+#The model was trained in the notebook using re-indexed, zero-based integer labels (e.g., $0, 1, 2, ...$) instead of
+#  the original, non-contiguous class IDs to satisfy PyTorch's training requirements. When the model makes a prediction 
+# in `app.py`, it outputs one of these internal re-indexed values. The `reverse_label_map` is therefore essential to 
+# translate this predicted index back into the original, semantic class ID that corresponds to the actual sign in the dataset.
