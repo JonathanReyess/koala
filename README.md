@@ -89,10 +89,6 @@ The model was trained and evaluated on a subset of the **KSL77 dataset** (67 cla
 | **Precision (Macro Avg)** | **0.91** |
 | **Recall (Macro Avg)** | **0.88** |
 | **F1-Score (Macro Avg)** | **0.88** |
-| **Precision (Weighted Avg)** | **0.91** |
-| **Recall (Weighted Avg)** | **0.88** |
-| **F1-Score (Weighted Avg)** | **0.88** |
-| **Classes** | 67 |
 | **Framework** | PyTorch |
 | **Best Hyperparameters** | `lr`: 0.00034, `cnn_hidden`: 64, `lstm_hidden`: 256, `dropout_rate`: 0.222, `optimizer`: Adam |
 
