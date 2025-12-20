@@ -1,21 +1,27 @@
-import React from 'react';
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from 'react-router-dom';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
 export const SignupPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement actual sign-up/registration logic
-    console.log('Signup attempt...');
+    console.log("Signup attempt...");
   };
 
   return (
-    <div 
+    <div
       // 1. Use custom background and add 3D perspective style
       className="min-h-screen flex items-center justify-center p-4 bg-gray-50"
-      style={{ perspective: '1000px' }}
+      style={{ perspective: "1000px" }}
     >
       {/* 2. Apply flip animation and reverse starting direction.
           The group-[.animate-flip-in] class will apply the 1s animation,
@@ -24,23 +30,30 @@ export const SignupPage: React.FC = () => {
           We use an arbitrary value class `[--flip-start:90deg]` to modify the starting point.
           NOTE: This requires adding a variable to your tailwind keyframe definition (see next section).
       */}
-      <Card 
+      <Card
         className="w-full max-w-md animate-flip-in"
-        style={{ 
-          // Override the initial rotation start point for the right-to-left flip
-          '--tw-rotate-y-start': '90deg' 
-        } as React.CSSProperties} // Cast required for custom CSS properties in TSX
+        style={
+          {
+            // Override the initial rotation start point for the right-to-left flip
+            "--tw-rotate-y-start": "90deg",
+          } as React.CSSProperties
+        } // Cast required for custom CSS properties in TSX
       >
         <CardHeader className="text-center">
-        {/* 3. Wrap logo with Link to home page */}
-        <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
-          <img
+          {/* 3. Wrap logo with Link to home page */}
+          <Link
+            to="/"
+            className="inline-block hover:opacity-80 transition-opacity"
+          >
+            <img
               src="/koala_logo.svg"
               alt="Go to Home"
-              className="w-24 h-auto mx-auto mb-4 cursor-pointer"
-          />
-        </Link>
-          <CardTitle className="text-3xl font-bold">Create Your Account</CardTitle>
+              className="w-32 h-auto mx-auto cursor-pointer"
+            />
+          </Link>
+          <CardTitle className="text-3xl font-bold">
+            Create Your Account
+          </CardTitle>
           <CardDescription>
             Join now and start your journey to master Korean Sign Language.
           </CardDescription>
@@ -81,8 +94,11 @@ export const SignupPage: React.FC = () => {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline font-medium">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="text-primary hover:underline font-medium"
+            >
               Log In
             </Link>
           </div>

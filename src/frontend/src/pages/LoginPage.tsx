@@ -1,29 +1,38 @@
-import React from 'react';
-import { Button } from "@/components/ui/button"; 
-import { Input } from "@/components/ui/input";   
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"; 
-import { Link } from 'react-router-dom'; // <-- Already imported
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Link } from "react-router-dom"; // <-- Already imported
 
 export const LoginPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // TODO: Implement actual log-in logic (API call, state management, etc.)
-    console.log('Login attempt...');
+    console.log("Login attempt...");
   };
 
   return (
-    <div 
+    <div
       className="min-h-screen flex items-center justify-center p-4 bg-gray-50"
-      style={{ perspective: '1000px' }} // Critical for 3D rotation effect
+      style={{ perspective: "1000px" }} // Critical for 3D rotation effect
     >
       <Card className="w-full max-w-md animate-flip-in">
         <CardHeader className="text-center">
           {/* 👇 WRAPPING THE IMAGE WITH THE LINK COMPONENT */}
-          <Link to="/" className="inline-block hover:opacity-80 transition-opacity">
+          <Link
+            to="/"
+            className="inline-block hover:opacity-80 transition-opacity"
+          >
             <img
               src="/koala_logo.svg"
               alt="Go to Home" // Changed alt text for clarity
-              className="w-24 h-auto mx-auto mb-4 cursor-pointer"
+              className="w-32 h-auto mx-auto cursor-pointer"
             />
           </Link>
           <CardTitle className="text-3xl font-bold">Welcome Back!</CardTitle>
@@ -57,8 +66,11 @@ export const LoginPage: React.FC = () => {
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary hover:underline font-medium">
+            Don't have an account?{" "}
+            <Link
+              to="/signup"
+              className="text-primary hover:underline font-medium"
+            >
               Sign Up
             </Link>
           </div>
