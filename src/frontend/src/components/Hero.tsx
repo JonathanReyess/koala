@@ -21,8 +21,7 @@ export const Hero = ({ onStartLearning }: HeroProps) => {
         <img
           src="/koala_logo.svg"
           alt="Koala Logo"
-          // Removed inline style and used Tailwind classes for width control
-          className="h-auto w-[120px] sm:w-[172px] md:w-[250px] cursor-pointer hover:opacity-90 transition-opacity"
+          className="h-auto w-[120px] sm:w-[172px] md:w-[250px] cursor-pointer hover:opacity-90 transition-opacity mix-blend-multiply dark:mix-blend-screen bg-transparent"
         />
 
         {/* Log-in and Sign-up Buttons (Right side) - Adjusted for better mobile alignment */}
@@ -52,10 +51,13 @@ export const Hero = ({ onStartLearning }: HeroProps) => {
         <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8">
           <div className="space-y-3 sm:space-y-4">
             <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-tight">
-              Learn Korean<br />Sign Language
+              Learn Korean
+              <br />
+              Sign Language
             </h1>
             <p className="text-base sm:text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-              Master Korean Sign Language through <br />interactive practice with real-time feedback.
+              Master Korean Sign Language through <br />
+              interactive practice with real-time feedback.
             </p>
           </div>
 
@@ -78,7 +80,9 @@ export const Hero = ({ onStartLearning }: HeroProps) => {
             </a>
 
             {/* Practice (primary) */}
-            <a href="/learn" className="w-full sm:w-auto"> {/* Added w-full for full-width on mobile */}
+            <a href="/learn" className="w-full sm:w-auto">
+              {" "}
+              {/* Added w-full for full-width on mobile */}
               <Button
                 size="lg"
                 className="w-full sm:w-auto text-lg px-8 py-6 bg-primary hover:bg-primary/90 transition-all duration-300 hover:scale-105"
@@ -93,13 +97,21 @@ export const Hero = ({ onStartLearning }: HeroProps) => {
           <div className="pt-6 grid grid-cols-2 gap-4 sm:gap-8 max-w-2xl mx-auto">
             <div className="space-y-1 sm:space-y-2">
               {/* Scaled down font size for mobile */}
-              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">100%</div>
-              <div className="text-sm sm:text-base md:text-lg text-muted-foreground">Free Forever</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">
+                100%
+              </div>
+              <div className="text-sm sm:text-base md:text-lg text-muted-foreground">
+                Free Forever
+              </div>
             </div>
             <div className="space-y-1 sm:space-y-2">
               {/* Scaled down font size for mobile */}
-              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">AI</div>
-              <div className="text-sm sm:text-base md:text-lg text-muted-foreground">Powered Learning</div>
+              <div className="text-3xl sm:text-4xl md:text-5xl font-bold text-primary">
+                AI
+              </div>
+              <div className="text-sm sm:text-base md:text-lg text-muted-foreground">
+                Powered Learning
+              </div>
             </div>
           </div>
         </div>
