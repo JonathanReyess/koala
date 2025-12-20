@@ -39,7 +39,7 @@
 39: 'family'
 40: 'time'
 41: 'introduction'
-42: 'recieve'
+42: 'receive'
 43: 'please?'
 44: 'walk'
 45: 'parents'

@@ -1,7 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, StopCircle, CheckCircle, XCircle, Upload, Play, Pause, Loader } from "lucide-react";
+import {
+  Camera,
+  StopCircle,
+  CheckCircle,
+  XCircle,
+  Upload,
+  Play,
+  Pause,
+  Loader,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -19,35 +28,93 @@ interface VideoFile {
   url: string;
 }
 
-// Map word string to class ID
+// Map word string to Folder ID
 export const getWordToIdMap = () => ({
-  "hi": "1",
-  "meet": "3",
-  "me": "7",
-  "see": "10",
-  "name": "11",
-  "thank": "13",
-  "equal": "14",
-  "sorry": "15",
-  "age": "20",
-  "day": "23",
+  hi: "1",
+  what: "2",
+  meet: "3",
+  "bi bim rice": "4",
+  glad: "5",
+  hobby: "6",
+  me: "7",
+  movie: "8",
+  face: "9",
+  see: "10",
+  name: "11",
+  read: "12",
+  thank: "13",
+  equal: "14",
+  sorry: "15",
+  eat: "16",
+  fine: "17",
+  "do effort": "18",
+  next: "19",
+  age: "20",
+  again: "21",
+  "how many": "22",
+  day: "23",
+  "good, nice": "24",
+  when: "25",
+  we: "26",
+  subway: "27",
+  "be friendly": "28",
+  bus: "29",
+  ride: "30",
+  "cell phone": "31",
+  where: "32",
+  number: "33",
+  location: "34",
+  guide: "35",
+  responsibility: "36",
+  who: "37",
+  arrive: "38",
+  family: "39",
+  time: "40",
+  introduction: "41",
+  receive: "42",
   "please?": "43",
-  "study": "48",
-  "human": "49",
-  "now": "50",
-  "test": "54",
-  "yet": "62",
-  "finally": "63",
-  "dinner": "68",
-  "experience": "69",
-  "invite": "70",
-  "food": "71",
-  "want": "72",
-  "good": "76",
-  "care": "77",
+  walk: "44",
+  parents: "45",
+  "10 minutes": "46",
+  sister: "47",
+  study: "48",
+  human: "49",
+  now: "50",
+  special: "51",
+  yesterday: "52",
+  education: "53",
+  test: "54",
+  end: "55",
+  you: "56",
+  worried_about: "57",
+  marry: "58",
+  effort: "59",
+  no: "60",
+  sweat: "61",
+  yet: "62",
+  finally: "63",
+  born: "64",
+  success: "65",
+  favor: "66",
+  Seoul: "67",
+  dinner: "68",
+  experience: "69",
+  invite: "70",
+  food: "71",
+  want: "72",
+  visit: "73",
+  "one hour": "74",
+  far: "75",
+  good: "76",
+  care: "77",
 });
 
-export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningCardProps) => {
+export const LearningCard = ({
+  word,
+  onNext,
+  onPrevious,
+  onFeedback,
+}: LearningCardProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>("idle");
   const [videoFile, setVideoFile] = useState<VideoFile | null>(null);
@@ -78,9 +145,9 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
       try {
         const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
         await fetch(`${API_URL}/`);
-        console.log('Backend is ready');
+        console.log("Backend is ready");
       } catch {
-        console.log('Waking up backend...');
+        console.log("Waking up backend...");
       }
     };
     wakeUpBackend();
@@ -88,7 +155,10 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: false,
+      });
       if (videoRef.current) videoRef.current.srcObject = stream;
     } catch {
       toast.error("Could not access camera.");
@@ -98,7 +168,7 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
   const stopCamera = () => {
     if (videoRef.current?.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       if (videoRef.current) videoRef.current.srcObject = null;
     }
   };
@@ -153,7 +223,8 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
       if (!response.ok) throw new Error(`Request failed: ${response.status}`);
 
       const result = await response.json();
-      if (!result.success) throw new Error(result.error || "Prediction failed.");
+      if (!result.success)
+        throw new Error(result.error || "Prediction failed.");
 
       const predictedClassLabel = String(result.predicted_class);
       const isCorrect = predictedClassLabel === expectedClassLabel;
@@ -161,7 +232,7 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
       const expectedWord = ID_TO_WORD_MAP[expectedClassLabel] || "Unknown";
 
       setFeedback(isCorrect ? "correct" : "incorrect");
-      
+
       // Call the feedback callback for spaced repetition tracking
       if (onFeedback) {
         onFeedback(word, isCorrect);
@@ -175,13 +246,17 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
     } catch (error: any) {
       console.error("Inference error:", error);
       setFeedback("incorrect");
-      
+
       // Track as incorrect for spaced repetition
       if (onFeedback) {
         onFeedback(word, false);
       }
-      
-      toast.error(error.name === 'AbortError' ? "Request timed out." : "Error during prediction.");
+
+      toast.error(
+        error.name === "AbortError"
+          ? "Request timed out."
+          : "Error during prediction."
+      );
     }
   };
 
@@ -208,7 +283,8 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
+      mediaRecorder.ondataavailable = (e) =>
+        e.data.size > 0 && chunksRef.current.push(e.data);
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
         setVideoFile({ blob, url: URL.createObjectURL(blob) });
@@ -272,7 +348,9 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
             muted={!videoFile}
             playsInline
             src={videoFile ? videoFile.url : undefined}
-            className={`w-full h-full object-cover ${isMirrored ? "scale-x-[-1]" : ""}`}
+            className={`w-full h-full object-cover ${
+              isMirrored ? "scale-x-[-1]" : ""
+            }`}
           />
 
           {/* Countdown Overlay */}
@@ -284,15 +362,24 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
             </div>
           )}
 
-{/* Incorrect Feedback Overlay (Pastel Red - Text Not Boxed) */}
-{feedback === "incorrect" && (
+          {/* Incorrect Feedback Overlay (Pastel Red - Text Not Boxed) */}
+          {feedback === "incorrect" && (
             <div className="absolute inset-0 flex items-center justify-center bg-rose-200/50 backdrop-blur-sm transition-opacity duration-300">
-                <div className="text-rose-900 text-3xl font-bold flex items-center gap-3">
-                    <XCircle className="w-8 h-8"/> Try again!
-                </div>
+              <div className="text-rose-900 text-3xl font-bold flex items-center gap-3">
+                <XCircle className="w-8 h-8" /> Try again!
+              </div>
             </div>
           )}
-          
+
+          {/* Correct Feedback Overlay (Pastel Green - Text Not Boxed) */}
+          {feedback === "correct" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-emerald-100/60 backdrop-blur-sm transition-opacity duration-300">
+              <div className="text-emerald-900 text-3xl font-bold flex items-center gap-3">
+                <CheckCircle className="w-8 h-8" /> Correct! Great job!
+              </div>
+            </div>
+          )}
+
           {/* Mirror Button Overlay */}
           <button
             onClick={() => setIsMirrored(!isMirrored)}
@@ -303,10 +390,16 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
               viewBox="0 0 24 24"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className={`w-6 h-6 transition-transform ${isMirrored ? "scale-x-[-1]" : ""}`}
+              className={`w-6 h-6 transition-transform ${
+                isMirrored ? "scale-x-[-1]" : ""
+              }`}
             >
               <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-              <g id="SVGRepo_tracerCarrier" strokeLinecap="round" strokeLinejoin="round"></g>
+              <g
+                id="SVGRepo_tracerCarrier"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              ></g>
               <g id="SVGRepo_iconCarrier">
                 <path
                   fillRule="evenodd"
@@ -341,12 +434,26 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
             </div>
           )}
 
-          <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileUpload} className="hidden" />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="video/*"
+            onChange={handleFileUpload}
+            className="hidden"
+          />
 
           {/* MODIFIED: Apply pb-10 only if the wrapper has content (i.e., isRecording or isReadyToSubmit is true) */}
-          <div className={`flex flex-wrap justify-center gap-4 w-full ${isRecording || isReadyToSubmit ? 'pb-8' : ''}`}>
+          <div
+            className={`flex flex-wrap justify-center gap-4 w-full ${
+              isRecording || isReadyToSubmit ? "pb-8" : ""
+            }`}
+          >
             {isRecording && (
-              <Button size="lg" onClick={stopRecording} className="text-lg px-8 py-6 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))]">
+              <Button
+                size="lg"
+                onClick={stopRecording}
+                className="text-lg px-8 py-6 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))]"
+              >
                 <StopCircle className="h-5 w-5" /> Stop Recording
               </Button>
             )}
@@ -359,7 +466,15 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
                   variant="outline"
                   className="text-lg px-8 py-6 flex items-center justify-center gap-2"
                 >
-                  {isPlaying ? <><Pause className="h-5 w-5" /> Pause</> : <><Play className="h-5 w-5" /> Replay</>}
+                  {isPlaying ? (
+                    <>
+                      <Pause className="h-5 w-5" /> Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-5 w-5" /> Replay
+                    </>
+                  )}
                 </Button>
 
                 <Button
@@ -390,17 +505,6 @@ export const LearningCard = ({ word, onNext, onPrevious, onFeedback }: LearningC
               </>
             )}
           </div>
-
-          {/* Feedback Messages */}
-          {feedback === "correct" && (
-            <div className="flex items-center justify-center gap-2 p-4 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-semibold">Correct! Great job!</span>
-            </div>
-          )}
-          
-          {/* Removed the separate 'incorrect' feedback message as requested. It is now implemented as an overlay above. */}
-
         </div>
       </CardContent>
     </Card>
