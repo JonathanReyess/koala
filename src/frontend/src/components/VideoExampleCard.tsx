@@ -37,7 +37,8 @@ export const VideoExampleCard = ({ word }: VideoExampleCardProps) => {
       <Card className="w-full h-full shadow-xl bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] flex flex-col">
         <CardContent className="pt-6 space-y-6 flex flex-col flex-1">
           {/* Video Section */}
-          <div className="relative aspect-video w-full bg-[hsl(var(--muted))] border-2 border-dashed border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-inner flex items-center justify-center">
+          <div className="relative aspect-video bg-[hsl(var(--muted))] rounded-xl overflow-hidden shadow-inner">
+            {" "}
             {isVisible ? (
               <>
                 <video
@@ -79,7 +80,11 @@ export const VideoExampleCard = ({ word }: VideoExampleCardProps) => {
               onClick={toggleVisibility}
               className="flex-1 text-lg py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:brightness-90 transition flex items-center justify-center gap-2"
             >
-              {isVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              {isVisible ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
               {isVisible ? "Hide Video" : "Unhide Video"}
             </Button>
 

@@ -18,7 +18,7 @@ interface LearningCardProps {
   word: string;
   onNext: () => void;
   onPrevious: () => void;
-  onFeedback?: (word: string, correct: boolean) => void; // Added for spaced repetition
+  onFeedback?: (word: string, correct: boolean) => void;
 }
 
 type FeedbackState = "idle" | "correct" | "incorrect" | "processing";
@@ -28,7 +28,6 @@ interface VideoFile {
   url: string;
 }
 
-// Map word string to Folder ID
 export const getWordToIdMap = () => ({
   hi: "1",
   what: "2",
@@ -127,25 +126,23 @@ export const LearningCard = ({
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
-  const [isMirrored, setIsMirrored] = useState(true); // default mirrored
+  const [isMirrored, setIsMirrored] = useState(true);
 
   const ID_TO_WORD_MAP: { [id: string]: string } = Object.fromEntries(
     Object.entries(WORD_TO_ID_MAP).map(([word, id]) => [id, word])
   );
 
-  // Start camera on mount
   useEffect(() => {
     startCamera();
     return () => stopCamera();
   }, []);
 
-  // Wake up backend on mount
   useEffect(() => {
     const wakeUpBackend = async () => {
       try {
-        const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+        const API_URL =
+          import.meta.env.VITE_API_URL || "http://34.239.230.9:8000";
         await fetch(`${API_URL}/`);
-        console.log("Backend is ready");
       } catch {
         console.log("Waking up backend...");
       }
@@ -173,7 +170,6 @@ export const LearningCard = ({
     }
   };
 
-  // Reset all state
   const resetState = () => {
     setFeedback("idle");
     setVideoFile(null);
@@ -182,7 +178,6 @@ export const LearningCard = ({
     setCountdown(null);
   };
 
-  // Reset when word changes
   useEffect(() => {
     resetState();
     startCamera();
@@ -192,82 +187,45 @@ export const LearningCard = ({
     setFeedback("processing");
     toast.info("Sending video for analysis...");
 
-    const expectedClassLabel = WORD_TO_ID_MAP[word.toLowerCase()];
-    if (!expectedClassLabel) {
-      setFeedback("incorrect");
-      toast.error(`Word "${word}" is not mapped to a class ID.`);
-      if (onFeedback) {
-        onFeedback(word, false);
-      }
-      return;
-    }
+    const expectedClassLabel =
+      WORD_TO_ID_MAP[word.toLowerCase() as keyof typeof WORD_TO_ID_MAP];
 
     try {
       const formData = new FormData();
       formData.append("video", videoBlob, "sign_video.webm");
-
-      const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 120000);
+      const API_URL =
+        import.meta.env.VITE_API_URL || "http://34.239.230.9:8000";
 
       const response = await fetch(`${API_URL}/predict`, {
         method: "POST",
         body: formData,
-        signal: controller.signal,
-        credentials: "include",
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) throw new Error(`Request failed: ${response.status}`);
-
       const result = await response.json();
-      if (!result.success)
-        throw new Error(result.error || "Prediction failed.");
-
       const predictedClassLabel = String(result.predicted_class);
       const isCorrect = predictedClassLabel === expectedClassLabel;
-      const predictedWord = ID_TO_WORD_MAP[predictedClassLabel] || "Unknown";
-      const expectedWord = ID_TO_WORD_MAP[expectedClassLabel] || "Unknown";
 
       setFeedback(isCorrect ? "correct" : "incorrect");
-
-      // Call the feedback callback for spaced repetition tracking
-      if (onFeedback) {
-        onFeedback(word, isCorrect);
-      }
+      if (onFeedback) onFeedback(word, isCorrect);
 
       toast[isCorrect ? "success" : "error"](
         isCorrect
-          ? `Great job! You signed "${predictedWord}" correctly!`
-          : `Incorrect. Model predicted "${predictedWord}", expected "${expectedWord}".`
+          ? `Correct!`
+          : `Incorrect. Model predicted ${ID_TO_WORD_MAP[predictedClassLabel]}`
       );
-    } catch (error: any) {
-      console.error("Inference error:", error);
+    } catch (error) {
       setFeedback("incorrect");
-
-      // Track as incorrect for spaced repetition
-      if (onFeedback) {
-        onFeedback(word, false);
-      }
-
-      toast.error(
-        error.name === "AbortError"
-          ? "Request timed out."
-          : "Error during prediction."
-      );
+      toast.error("Error during prediction.");
     }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     resetState();
+    stopCamera(); // Turn off camera to show file preview
     setVideoFile({ blob: file, url: URL.createObjectURL(file) });
     setIsReadyToSubmit(true);
-    toast.info("Video uploaded. Review and submit.");
   };
 
   const startRecording = async () => {
@@ -277,21 +235,17 @@ export const LearningCard = ({
 
     try {
       const stream = videoRef.current?.srcObject as MediaStream;
-      if (!stream) throw new Error("Camera stream unavailable");
-
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
-      mediaRecorder.ondataavailable = (e) =>
-        e.data.size > 0 && chunksRef.current.push(e.data);
+      mediaRecorder.ondataavailable = (e) => chunksRef.current.push(e.data);
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "video/webm" });
         setVideoFile({ blob, url: URL.createObjectURL(blob) });
         setIsRecording(false);
         setIsReadyToSubmit(true);
-        stopCamera();
-        toast.info("Recording complete. Review or submit.");
+        stopCamera(); // Turn off camera to show the reviewable video
       };
 
       let count = 3;
@@ -304,22 +258,14 @@ export const LearningCard = ({
           setCountdown(null);
           mediaRecorder.start();
           setIsRecording(true);
-          toast.info("Recording started!");
         }
       }, 1000);
     } catch {
-      toast.error("Could not access camera.");
-      resetState();
+      toast.error("Camera error.");
     }
   };
 
   const stopRecording = () => mediaRecorderRef.current?.stop();
-
-  const handleRetry = async () => {
-    resetState();
-    await startCamera();
-    toast.info("Camera ready for re-recording!");
-  };
 
   const handlePlaybackToggle = () => {
     const video = videoRef.current;
@@ -334,22 +280,19 @@ export const LearningCard = ({
     }
   };
 
-  const isPredicting = feedback === "processing";
-  const isIdle = feedback === "idle" && !isRecording;
-
   return (
     <Card className="w-full max-w-2xl shadow-xl bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))]">
       <CardContent className="pt-6 -mb-7 space-y-6">
-        {/* VIDEO AREA */}
-        <div className="relative aspect-video bg-[hsl(var(--muted))] border-2 border-dashed border-[hsl(var(--border))] rounded-xl overflow-hidden shadow-inner">
+        <div className="relative aspect-video bg-[hsl(var(--muted))] rounded-xl overflow-hidden shadow-inner">
           <video
             ref={videoRef}
-            autoPlay={!videoFile}
+            key={videoFile?.url} // Force re-render to switch from stream to file
+            src={videoFile?.url}
+            autoPlay={!videoFile || isPlaying}
             muted={!videoFile}
             playsInline
-            src={videoFile ? videoFile.url : undefined}
             className={`w-full h-full object-cover ${
-              isMirrored ? "scale-x-[-1]" : ""
+              isMirrored && !videoFile ? "scale-x-[-1]" : ""
             }`}
           />
 
@@ -362,25 +305,34 @@ export const LearningCard = ({
             </div>
           )}
 
-          {/* Incorrect Feedback Overlay (Pastel Red - Text Not Boxed) */}
+          {/* Loading Animation during "Submit" */}
+          {feedback === "processing" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+              <Loader className="w-12 h-12 text-white animate-spin mb-2" />
+              <span className="text-white font-semibold">
+                Analyzing Sign...
+              </span>
+            </div>
+          )}
+
+          {/* Feedback Overlays */}
           {feedback === "incorrect" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-rose-200/50 backdrop-blur-sm transition-opacity duration-300">
+            <div className="absolute inset-0 flex items-center justify-center bg-rose-200/50 backdrop-blur-sm">
               <div className="text-rose-900 text-3xl font-bold flex items-center gap-3">
-                <XCircle className="w-8 h-8" /> Try again!
+                <XCircle /> Try again!
               </div>
             </div>
           )}
 
-          {/* Correct Feedback Overlay (Pastel Green - Text Not Boxed) */}
           {feedback === "correct" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-emerald-100/60 backdrop-blur-sm transition-opacity duration-300">
+            <div className="absolute inset-0 flex items-center justify-center bg-emerald-100/60 backdrop-blur-sm">
               <div className="text-emerald-900 text-3xl font-bold flex items-center gap-3">
-                <CheckCircle className="w-8 h-8" /> Correct! Great job!
+                <CheckCircle /> Correct!
               </div>
             </div>
           )}
 
-          {/* Mirror Button Overlay */}
+          {/* Mirror Button Overlay - Original SVG Restored */}
           <button
             onClick={() => setIsMirrored(!isMirrored)}
             className="absolute bottom-4 right-4 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-lg transition-transform hover:scale-110"
@@ -394,42 +346,30 @@ export const LearningCard = ({
                 isMirrored ? "scale-x-[-1]" : ""
               }`}
             >
-              <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
-              <g
-                id="SVGRepo_tracerCarrier"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              ></g>
-              <g id="SVGRepo_iconCarrier">
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
-                  fill="#ffffff"
-                ></path>
-              </g>
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
+                fill="#ffffff"
+              />
             </svg>
           </button>
         </div>
 
-        {/* CONTROLS */}
-        {/* ADDED min-h-20 to maintain consistent card height across states */}
         <div className="space-y-4 min-h-20">
-          {(isIdle || feedback === "incorrect") && !isReadyToSubmit && (
+          {!isRecording && !isReadyToSubmit && (
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isPredicting}
-                className="flex-1 text-lg py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:brightness-90 transition flex items-center justify-center gap-2"
+                className="flex-1 text-lg py-6"
               >
-                <Upload className="h-5 w-5" /> Upload Video
+                <Upload className="mr-2" /> Upload Video
               </Button>
               <Button
                 onClick={startRecording}
-                disabled={isPredicting}
-                className="flex-1 text-lg py-6 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(190,29%,28%)] transition flex items-center justify-center gap-2"
+                className="flex-1 text-lg py-6 bg-[hsl(var(--accent))]"
               >
-                <Camera className="h-5 w-5" /> Start Recording
+                <Camera className="mr-2" /> Start Recording
               </Button>
             </div>
           )}
@@ -442,7 +382,6 @@ export const LearningCard = ({
             className="hidden"
           />
 
-          {/* MODIFIED: Apply pb-10 only if the wrapper has content (i.e., isRecording or isReadyToSubmit is true) */}
           <div
             className={`flex flex-wrap justify-center gap-4 w-full ${
               isRecording || isReadyToSubmit ? "pb-8" : ""
@@ -452,57 +391,62 @@ export const LearningCard = ({
               <Button
                 size="lg"
                 onClick={stopRecording}
-                className="text-lg px-8 py-6 bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))]"
+                className="bg-destructive text-white py-6"
               >
-                <StopCircle className="h-5 w-5" /> Stop Recording
+                <StopCircle className="mr-2" /> Stop Recording
               </Button>
             )}
 
-            {isReadyToSubmit && (
+            {/* ... Inside the return statement, locate the Re-record Button ... */}
+
+            {isReadyToSubmit && feedback !== "processing" && (
               <>
                 <Button
                   size="lg"
                   onClick={handlePlaybackToggle}
                   variant="outline"
-                  className="text-lg px-8 py-6 flex items-center justify-center gap-2"
+                  className="py-6"
                 >
                   {isPlaying ? (
-                    <>
-                      <Pause className="h-5 w-5" /> Pause
-                    </>
+                    <Pause className="mr-2" />
                   ) : (
-                    <>
-                      <Play className="h-5 w-5" /> Replay
-                    </>
+                    <Play className="mr-2" />
                   )}
+                  {isPlaying ? "Pause" : "Replay"}
                 </Button>
 
                 <Button
                   size="lg"
-                  onClick={handleRetry}
+                  onClick={() => {
+                    setVideoFile(null); // 1. Clears the video preview
+                    setFeedback("idle"); // 2. Removes Correct/Incorrect overlays
+                    setIsReadyToSubmit(false); // 3. Switches back to initial Record/Upload buttons
+                    startCamera(); // 4. Restarts the live camera feed
+                  }}
                   variant="outline"
-                  className="text-lg px-8 py-6 flex items-center justify-center gap-2"
+                  className="py-6"
                 >
-                  <Camera className="h-5 w-5" /> Re-record
+                  <Camera className="mr-2" /> Re-record
                 </Button>
 
                 <Button
                   size="lg"
                   onClick={() => videoFile && runInference(videoFile.blob)}
-                  disabled={isPredicting}
-                  className="text-lg px-8 py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] flex items-center justify-center gap-2"
+                  className="bg-primary text-white py-6"
                 >
-                  {isPredicting ? (
-                    <>
-                      <Loader className="h-5 w-5 animate-spin" /> Processing...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-5 w-5" /> Submit
-                    </>
-                  )}
+                  <CheckCircle className="mr-2" /> Submit
                 </Button>
               </>
+            )}
+            {/* Show only spinner when processing */}
+            {feedback === "processing" && (
+              <Button
+                size="lg"
+                disabled
+                className="bg-primary/50 text-white py-6"
+              >
+                <Loader className="mr-2 animate-spin" /> Analyzing...
+              </Button>
             )}
           </div>
         </div>

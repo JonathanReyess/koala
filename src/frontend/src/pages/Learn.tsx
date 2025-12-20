@@ -7,38 +7,39 @@ import { Button } from "@/components/ui/button";
 import { RotateCcw, Shuffle } from "lucide-react";
 
 // Word list with Korean translations
+// Verified Word List (Strictly 31 Perfect-Accuracy Classes)
 const wordList = [
   { english: "hi", korean: "안녕" }, // Index 0 -> Folder 1
   { english: "meet", korean: "고기" }, // Index 2 -> Folder 3
   { english: "glad", korean: "기쁘다" }, // Index 4 -> Folder 5
   { english: "me", korean: "나" }, // Index 6 -> Folder 7
-  { english: "see", korean: "보다" }, // Index 9 -> Folder 10
   { english: "name", korean: "이름" }, // Index 10 -> Folder 11
   { english: "equal", korean: "같다" }, // Index 12 -> Folder 14
-  { english: "sorry", korean: "미안하다" }, // Index 13 -> Folder 15
   { english: "eat", korean: "먹다" }, // Index 14 -> Folder 16
-  { english: "fine", korean: "괜찮다" }, // Index 15 -> Folder 17
   { english: "do effort", korean: "노력하다" }, // Index 16 -> Folder 18
   { english: "age", korean: "나이" }, // Index 17 -> Folder 20
   { english: "again", korean: "다시" }, // Index 18 -> Folder 21
   { english: "how many", korean: "얼마나" }, // Index 19 -> Folder 22
   { english: "day", korean: "날" }, // Index 20 -> Folder 23
-  { english: "good", korean: "좋다" }, // Index 21 -> Folder 24
   { english: "when", korean: "언제" }, // Index 22 -> Folder 25
-  { english: "who", korean: "누구" }, // Index 31 -> Folder 37
+  { english: "subway", korean: "지하철" }, // Index 24 -> Folder 27
   { english: "family", korean: "가족" }, // Index 33 -> Folder 39
-  { english: "time", korean: "시간" }, // Index 34 -> Folder 40
-  { english: "introduction", korean: "소개" }, // Index 35 -> Folder 41
-  { english: "receive", korean: "받다" }, // Index 36 -> Folder 42
+  { english: "please", korean: "부탁하다" }, // Index 37 -> Folder 43
   { english: "sister", korean: "언니/누나" }, // Index 39 -> Folder 47
   { english: "study", korean: "공부하다" }, // Index 40 -> Folder 48
   { english: "human", korean: "사람" }, // Index 41 -> Folder 49
   { english: "now", korean: "지금" }, // Index 42 -> Folder 50
-  { english: "yesterday", korean: "어제" }, // Index 44 -> Folder 52
   { english: "end", korean: "끝" }, // Index 46 -> Folder 55
+  { english: "you", korean: "당신" }, // Index 47 -> Folder 56
+  { english: "worried", korean: "걱정하다" }, // Index 48 -> Folder 57
   { english: "marry", korean: "결혼하다" }, // Index 49 -> Folder 58
-  { english: "effort", korean: "수고" }, // Index 50 -> Folder 59
+  { english: "no", korean: "아니요" }, // Index 51 -> Folder 60
+  { english: "sweat", korean: "땀" }, // Index 52 -> Folder 61
   { english: "yet", korean: "아직" }, // Index 53 -> Folder 62
+  { english: "born", korean: "태어나다" }, // Index 55 -> Folder 64
+  { english: "Seoul", korean: "서울" }, // Index 58 -> Folder 67
+  { english: "dinner", korean: "저녁" }, // Index 59 -> Folder 68
+  { english: "food", korean: "음식" }, // Index 62 -> Folder 71
 ];
 
 export const getWords = () => wordList.map((w) => w.english);

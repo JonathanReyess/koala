@@ -19,8 +19,8 @@ perfect_mapped_classes = [
     47, 48, 49, 51, 52, 53, 55, 58, 59, 62
 ]
 
-# Keys are the model output indices (0-66)
-# Values are the Folder IDs from your list
+# The keys are the 0-66 indices from your model's argmax
+# The values are the FOLDER NUMBERS from your provided list
 reverse_label_map = {
     0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10,
     10: 11, 11: 13, 12: 14, 13: 15, 14: 16, 15: 17, 16: 18, 17: 20, 18: 21, 19: 22,
