@@ -1,56 +1,52 @@
 import { useState, useEffect } from "react";
 import { LearningCard } from "@/components/LearningCard";
 import { VideoExampleCard } from "@/components/VideoExampleCard";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { RotateCcw, Shuffle } from "lucide-react";
+import { RotateCcw, Shuffle, ChevronLeft, ChevronRight } from "lucide-react";
 
 // Word list with Korean translations
-// Verified Word List (Strictly 31 Perfect-Accuracy Classes)
 const wordList = [
-  { english: "hi", korean: "안녕" }, // Index 0 -> Folder 1
-  { english: "meet", korean: "고기" }, // Index 2 -> Folder 3
-  { english: "glad", korean: "기쁘다" }, // Index 4 -> Folder 5
-  { english: "me", korean: "나" }, // Index 6 -> Folder 7
-  { english: "name", korean: "이름" }, // Index 10 -> Folder 11
-  { english: "equal", korean: "같다" }, // Index 12 -> Folder 14
-  { english: "eat", korean: "먹다" }, // Index 14 -> Folder 16
-  { english: "do effort", korean: "노력하다" }, // Index 16 -> Folder 18
-  { english: "age", korean: "나이" }, // Index 17 -> Folder 20
-  { english: "again", korean: "다시" }, // Index 18 -> Folder 21
-  { english: "how many", korean: "얼마나" }, // Index 19 -> Folder 22
-  { english: "day", korean: "날" }, // Index 20 -> Folder 23
-  { english: "when", korean: "언제" }, // Index 22 -> Folder 25
-  { english: "subway", korean: "지하철" }, // Index 24 -> Folder 27
-  { english: "family", korean: "가족" }, // Index 33 -> Folder 39
-  { english: "please", korean: "부탁하다" }, // Index 37 -> Folder 43
-  { english: "sister", korean: "언니/누나" }, // Index 39 -> Folder 47
-  { english: "study", korean: "공부하다" }, // Index 40 -> Folder 48
-  { english: "human", korean: "사람" }, // Index 41 -> Folder 49
-  { english: "now", korean: "지금" }, // Index 42 -> Folder 50
-  { english: "end", korean: "끝" }, // Index 46 -> Folder 55
-  { english: "you", korean: "당신" }, // Index 47 -> Folder 56
-  { english: "worried", korean: "걱정하다" }, // Index 48 -> Folder 57
-  { english: "marry", korean: "결혼하다" }, // Index 49 -> Folder 58
-  { english: "no", korean: "아니요" }, // Index 51 -> Folder 60
-  { english: "sweat", korean: "땀" }, // Index 52 -> Folder 61
-  { english: "yet", korean: "아직" }, // Index 53 -> Folder 62
-  { english: "born", korean: "태어나다" }, // Index 55 -> Folder 64
-  { english: "Seoul", korean: "서울" }, // Index 58 -> Folder 67
-  { english: "dinner", korean: "저녁" }, // Index 59 -> Folder 68
-  { english: "food", korean: "음식" }, // Index 62 -> Folder 71
+  { english: "hi", korean: "안녕" },
+  { english: "meet", korean: "고기" },
+  { english: "glad", korean: "기쁘다" },
+  { english: "me", korean: "나" },
+  { english: "name", korean: "이름" },
+  { english: "equal", korean: "같다" },
+  { english: "eat", korean: "먹다" },
+  { english: "do effort", korean: "노력하다" },
+  { english: "age", korean: "나이" },
+  { english: "again", korean: "다시" },
+  { english: "how many", korean: "얼마나" },
+  { english: "day", korean: "날" },
+  { english: "when", korean: "언제" },
+  { english: "subway", korean: "지하철" },
+  { english: "family", korean: "가족" },
+  { english: "please", korean: "부탁하다" },
+  { english: "sister", korean: "언니/누나" },
+  { english: "study", korean: "공부하다" },
+  { english: "human", korean: "사람" },
+  { english: "now", korean: "지금" },
+  { english: "end", korean: "끝" },
+  { english: "you", korean: "당신" },
+  { english: "worried", korean: "걱정하다" },
+  { english: "marry", korean: "결혼하다" },
+  { english: "no", korean: "아니요" },
+  { english: "sweat", korean: "땀" },
+  { english: "yet", korean: "아직" },
+  { english: "born", korean: "태어나다" },
+  { english: "Seoul", korean: "서울" },
+  { english: "dinner", korean: "저녁" },
+  { english: "food", korean: "음식" },
 ];
 
 export const getWords = () => wordList.map((w) => w.english);
 
-// Spaced repetition tracking
 interface WordProgress {
   word: string;
   correctCount: number;
   incorrectCount: number;
   lastSeen: number;
-  interval: number; // Days until review
+  interval: number;
   easeFactor: number;
 }
 
@@ -64,13 +60,8 @@ const shuffleArray = <T,>(array: T[]): T[] => {
 };
 
 const Learn = () => {
-  const isMobile = useIsMobile();
-  const navigate = useNavigate();
-
-  // 💥 NEW: State for controlling the fade-in animation
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Initialize progress tracking from localStorage
   const [wordProgress, setWordProgress] = useState<Map<string, WordProgress>>(
     () => {
       const saved = localStorage.getItem("wordProgress");
@@ -82,7 +73,6 @@ const Learn = () => {
           // If parsing fails, initialize fresh
         }
       }
-      // Initialize all words with default progress
       const initialProgress = new Map<string, WordProgress>();
       wordList.forEach(({ english }) => {
         initialProgress.set(english, {
@@ -104,27 +94,21 @@ const Learn = () => {
 
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Save progress to localStorage whenever it changes
   useEffect(() => {
     const progressObj = Object.fromEntries(wordProgress);
     localStorage.setItem("wordProgress", JSON.stringify(progressObj));
   }, [wordProgress]);
 
-  // 💥 NEW: Effect to trigger the fade-in class after component mounts
   useEffect(() => {
-    // Small delay to ensure the component is fully rendered
     const timeout = setTimeout(() => {
       setIsLoaded(true);
-    }, 50); // 50ms is usually enough
-
+    }, 50);
     return () => clearTimeout(timeout);
-  }, []); // Run only once on mount
+  }, []);
 
   const currentWord = practiceQueue[currentIndex];
   const currentWordData = wordList.find((w) => w.english === currentWord);
-  const progress = wordProgress.get(currentWord);
 
-  // Calculate statistics
   const totalWords = wordList.length;
   const practicedWords = Array.from(wordProgress.values()).filter(
     (p) => p.correctCount > 0 || p.incorrectCount > 0
@@ -137,7 +121,6 @@ const Learn = () => {
     if (currentIndex < practiceQueue.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      // Completed all words, reshuffle and start over
       const newQueue = shuffleArray(wordList.map((w) => w.english));
       setPracticeQueue(newQueue);
       setCurrentIndex(0);
@@ -179,7 +162,6 @@ const Learn = () => {
     }
   };
 
-  // Update progress based on user performance (SM-2 algorithm)
   const updateProgress = (word: string, correct: boolean) => {
     setWordProgress((prev) => {
       const newProgress = new Map(prev);
@@ -196,8 +178,7 @@ const Learn = () => {
 
       if (correct) {
         current.correctCount += 1;
-        // SM-2 spaced repetition algorithm
-        const quality = 4; // Good response
+        const quality = 4;
         current.easeFactor = Math.max(
           1.3,
           current.easeFactor +
@@ -213,7 +194,7 @@ const Learn = () => {
         }
       } else {
         current.incorrectCount += 1;
-        current.interval = 0; // Reset to beginning
+        current.interval = 0;
         current.easeFactor = Math.max(1.3, current.easeFactor - 0.2);
       }
 
@@ -224,139 +205,113 @@ const Learn = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-[hsl(var(--background))]">
-      {/* Progress Bar - Fixed at top */}
-      <div className="fixed top-0 left-0 right-0 bg-[hsl(var(--card))] border-b border-[hsl(var(--border))] py-4 px-6 z-40 shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mb-3 gap-4">
-            {/* Logo */}
+    <div className="relative min-h-screen flex flex-col bg-white dark:bg-black">
+      {/* Header with backdrop blur - Apple style */}
+      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-black/80 border-b border-gray-200/20 dark:border-gray-800/20">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          {/* Top row: Logo and action buttons */}
+          <div className="flex items-center justify-between mb-4">
             <img
               src="/koala_logo.svg"
               alt="Koala Logo"
-              style={{ width: isMobile ? "120px" : "180px", height: "auto" }}
-              className="cursor-pointer hover:opacity-90 transition-opacity flex-shrink-0"
-              onClick={() => navigate("/")}
+              className="h-14 md:h-14 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply dark:mix-blend-screen mt-2"
+              onClick={() => (window.location.href = "/")}
             />
 
-            {/* Progress Stats */}
-            <div className="flex items-center gap-4 flex-wrap flex-1 justify-center">
-              <span className="text-sm font-semibold text-[hsl(var(--foreground))]">
-                Progress: {currentIndex + 1} / {totalWords}
-              </span>
-              {!isMobile && (
-                <span className="text-sm text-[hsl(var(--muted-foreground))]">
-                  Practiced: {practicedWords} | Mastered: {masteredWords}
-                </span>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={handleShuffle}
-                className="flex items-center gap-1"
+                className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 px-3 py-2"
               >
-                <Shuffle className="h-4 w-4" />
-                {!isMobile && "Shuffle"}
+                <Shuffle className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Shuffle</span>
               </Button>
               <Button
                 size="sm"
-                variant="outline"
+                variant="ghost"
                 onClick={handleReset}
-                className="flex items-center gap-1 text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))]"
+                className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 px-3 py-2 text-red-600 dark:text-red-400"
               >
-                <RotateCcw className="h-4 w-4" />
-                {!isMobile && "Reset"}
+                <RotateCcw className="h-4 w-4 md:mr-2" />
+                <span className="hidden md:inline">Reset</span>
               </Button>
             </div>
           </div>
 
-          {/* Mobile Stats - Show on second line for mobile */}
-          {isMobile && (
-            <div className="text-center mb-2">
-              <span className="text-xs text-[hsl(var(--muted-foreground))]">
-                Practiced: {practicedWords} | Mastered: {masteredWords}
-              </span>
-            </div>
-          )}
+          {/* Progress stats */}
+          <div className="flex items-center justify-center gap-6 mb-3 text-sm">
+            <span className="font-semibold text-gray-900 dark:text-gray-100">
+              {currentIndex + 1} of {totalWords}
+            </span>
+            <span className="text-gray-600 dark:text-gray-400 hidden sm:inline">
+              Practiced: {practicedWords}
+            </span>
+            <span className="text-gray-600 dark:text-gray-400 hidden sm:inline">
+              Mastered: {masteredWords}
+            </span>
+          </div>
 
-          {/* Progress Bar */}
-          <div className="w-full bg-[hsl(var(--muted))] rounded-full h-3.5 overflow-hidden">
+          {/* Progress bar */}
+          <div className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden">
             <div
-              className="bg-[hsl(var(--accent))] h-full transition-all duration-300 ease-in-out"
+              className="bg-primary h-full transition-all duration-300 ease-out"
               style={{ width: `${((currentIndex + 1) / totalWords) * 100}%` }}
             />
           </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main content - 💥 NEW: Added transition classes here */}
+      {/* Main content */}
       <main
         className={`
-          flex-1 flex flex-col md:flex-row items-start justify-center 
-          px-4 gap-8 pt-32 md:pt-40 pb-8
-          transition-opacity duration-1000 ease-out transform
-          ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
+          flex-1 flex flex-col lg:flex-row items-start justify-center 
+          max-w-7xl mx-auto w-full px-6 gap-12 pt-40 pb-12
+          transition-opacity duration-700 ease-out
+          ${isLoaded ? "opacity-100" : "opacity-0"}
         `}
       >
-        {/* Example video */}
-        <div className="flex-1 w-full max-w-xl flex flex-col justify-start mt-40">
+        {/* Video example section */}
+        <div className="flex-1 w-full max-w-2xl mt-[176px]">
           <VideoExampleCard word={currentWord} />
         </div>
 
-        {/* Learning card + header */}
-        <div className="flex-1 w-full max-w-xl flex flex-col justify-start mt-3.5">
-          {/* Header with word and arrows */}
-          <div className="flex items-center justify-between w-full mb-6 gap-4">
-            {/* Previous Button */}
+        {/* Practice section */}
+        <div className="flex-1 w-full max-w-2xl space-y-8">
+          {/* Word header with navigation */}
+          <div className="flex items-center justify-between gap-4">
             <button
               onClick={handlePrevious}
               disabled={currentIndex === 0}
-              className="p-2 hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity flex-shrink-0"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
               aria-label="Previous word"
             >
-              <svg
-                fill="#b6d3b7"
-                viewBox="0 0 32 32"
-                className="w-8 h-8 md:w-10 md:h-10"
-                style={{ transform: "scaleX(-1)" }}
-              >
-                <path d="M25.468,14.508l-20.967,-0.008c-0.828,-0  -1.501,0.672 -1.501,1.499c-0,0.828 0.672,1.501 1.499,1.501l21.125,0.009c-0.107,0.159 -0.234,0.306 -0.377,0.439c-3.787,3.502 -9.68,8.951 -9.68,8.951c-0.608,0.562 -0.645,1.511 -0.083,2.119c0.562,0.608 1.512,0.645 2.12,0.083c-0,0 5.892,-5.448 9.68,-8.95c1.112,-1.029 1.751,-2.47 1.766,-3.985c0.014,-1.515 -0.596,-2.968 -1.688,-4.018l-9.591,-9.221c-0.596,-0.574 -1.547,-0.556 -2.121,0.041c-0.573,0.597 -0.555,1.547 0.042,2.121l9.591,9.221c0.065,0.063 0.127,0.129 0.185,0.198Z" />
-              </svg>
+              <ChevronLeft className="w-8 h-8 text-gray-700 dark:text-gray-300" />
             </button>
 
-            {/* Word header with Korean translation */}
-            <div className="flex flex-col items-center flex-1">
-              <p className="text-base md:text-xl font-semibold mb-1 tracking-tight text-[#878787]">
-                Sign the following word:
+            <div className="flex flex-col items-center flex-1 space-y-2">
+              <p className="text-base md:text-lg font-medium text-gray-600 dark:text-gray-400">
+                Sign this word
               </p>
-              <h2 className="text-3xl md:text-5xl font-extrabold text-[hsl(var(--primary))]">
+              <h2 className="text-4xl md:text-6xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
                 {currentWordData?.english}
               </h2>
-              <p className="text-xl md:text-3xl font-bold text-[hsl(var(--accent))] mt-1">
+              <p className="text-2xl md:text-4xl font-semibold text-primary">
                 {currentWordData?.korean}
               </p>
             </div>
 
-            {/* Next Button */}
             <button
               onClick={handleNext}
-              className="p-2 hover:opacity-80 transition-opacity flex-shrink-0"
+              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-all"
               aria-label="Next word"
             >
-              <svg
-                fill="#b6d3b7"
-                viewBox="0 0 32 32"
-                className="w-8 h-8 md:w-10 md:h-10"
-              >
-                <path d="M25.468,14.508l-20.967,-0.008c-0.828,-0  -1.501,0.672 -1.501,1.499c-0,0.828 0.672,1.501 1.499,1.501l21.125,0.009c-0.107,0.159 -0.234,0.306 -0.377,0.439c-3.787,3.502 -9.68,8.951 -9.68,8.951c-0.608,0.562 -0.645,1.511 -0.083,2.119c0.562,0.608 1.512,0.645 2.12,0.083c-0,0 5.892,-5.448 9.68,-8.95c1.112,-1.029 1.751,-2.47 1.766,-3.985c0.014,-1.515 -0.596,-2.968 -1.688,-4.018l-9.591,-9.221c-0.596,-0.574 -1.547,-0.556 -2.121,0.041c-0.573,0.597 -0.555,1.547 0.042,2.121l9.591,9.221c0.065,0.063 0.127,0.129 0.185,0.198Z" />
-              </svg>
+              <ChevronRight className="w-8 h-8 text-gray-700 dark:text-gray-300" />
             </button>
           </div>
 
-          {/* Learning Card - Pass updateProgress callback */}
+          {/* Learning Card */}
           <LearningCard
             word={currentWord}
             onNext={handleNext}

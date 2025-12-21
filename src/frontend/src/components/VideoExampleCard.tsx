@@ -13,7 +13,6 @@ export const VideoExampleCard = ({ word }: VideoExampleCardProps) => {
   const [isEnded, setIsEnded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Reload video when word or example changes
   useEffect(() => {
     if (videoRef.current) {
       setIsEnded(false);
@@ -34,11 +33,10 @@ export const VideoExampleCard = ({ word }: VideoExampleCardProps) => {
 
   return (
     <div className="flex-1 flex flex-col justify-center items-center w-full">
-      <Card className="w-full h-full shadow-xl bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] flex flex-col">
-        <CardContent className="pt-6 space-y-6 flex flex-col flex-1">
+      <Card className="w-full border-0 shadow-lg bg-white dark:bg-gray-900 rounded-2xl overflow-hidden">
+        <CardContent className="p-6 space-y-6">
           {/* Video Section */}
-          <div className="relative aspect-video bg-[hsl(var(--muted))] rounded-xl overflow-hidden shadow-inner">
-            {" "}
+          <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
             {isVisible ? (
               <>
                 <video
@@ -60,38 +58,47 @@ export const VideoExampleCard = ({ word }: VideoExampleCardProps) => {
                 {isEnded && (
                   <button
                     onClick={handleReplay}
-                    className="absolute inset-0 flex items-center justify-center bg-black/40 text-white hover:bg-black/60 transition rounded-xl"
+                    className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm hover:bg-black/70 transition-all group"
                   >
-                    <RotateCcw className="w-16 h-16" />
+                    <div className="flex flex-col items-center gap-2">
+                      <RotateCcw className="w-16 h-16 text-white group-hover:scale-110 transition-transform" />
+                      <span className="text-white text-lg font-medium">
+                        Replay
+                      </span>
+                    </div>
                   </button>
                 )}
               </>
             ) : (
-              <div className="flex items-center justify-center w-full h-full text-[hsl(var(--foreground))] text-xl font-semibold bg-[hsl(var(--muted))]">
-                Video Hidden
+              <div className="flex items-center justify-center w-full h-full bg-gray-100 dark:bg-gray-800">
+                <div className="flex flex-col items-center gap-3">
+                  <EyeOff className="w-12 h-12 text-gray-400 dark:text-gray-600" />
+                  <span className="text-gray-600 dark:text-gray-400 text-lg font-medium">
+                    Video Hidden
+                  </span>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 mt-4 w-full">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
-              size="lg"
               onClick={toggleVisibility}
-              className="flex-1 text-lg py-6 bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:brightness-90 transition flex items-center justify-center gap-2"
+              className="flex-1 h-12 text-base font-medium rounded-full hover:opacity-90 transition-opacity"
+              variant="outline"
             >
               {isVisible ? (
-                <EyeOff className="h-5 w-5" />
+                <EyeOff className="mr-2 h-5 w-5" />
               ) : (
-                <Eye className="h-5 w-5" />
+                <Eye className="mr-2 h-5 w-5" />
               )}
-              {isVisible ? "Hide Video" : "Unhide Video"}
+              {isVisible ? "Hide Example" : "Show Example"}
             </Button>
 
             <Button
-              size="lg"
               onClick={toggleExample}
-              className="flex-1 text-lg py-6 bg-[hsl(var(--accent))] text-[hsl(var(--accent-foreground))] hover:bg-[hsl(190,29%,28%)] transition flex items-center justify-center gap-2"
+              className="flex-1 h-12 text-base font-medium rounded-full hover:opacity-90 transition-opacity"
             >
               Example {example === 1 ? 2 : 1}
             </Button>
