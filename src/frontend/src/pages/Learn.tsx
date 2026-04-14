@@ -424,7 +424,7 @@ const Learn = () => {
           {/* Top row: Logo and action buttons */}
           <div className="flex items-center justify-between mb-4">
             <img
-              src="/koala_logo.svg"
+              src="/koala_logo.png"
               alt="Koala - Go to homepage"
               className="h-14 md:h-14 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply dark:mix-blend-screen mt-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
               onClick={() => navigate("/")}

@@ -46,7 +46,7 @@ export const SignupPage: React.FC = () => {
             className="inline-block hover:opacity-80 transition-opacity"
           >
             <img
-              src="/koala_logo.svg"
+              src="/koala_logo.png"
               alt="Go to Home"
               className="w-32 h-auto mx-auto cursor-pointer"
             />
