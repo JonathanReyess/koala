@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-
-const LANGUAGE_TOGGLE_MS = 6500;
 
 interface HeroProps {
   onStartLearning: () => void;
@@ -15,20 +13,7 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const [isKorean, setIsKorean] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
 
-  // Auto-toggle language, respecting motion preferences and pause state
-  useEffect(() => {
-    if (shouldReduceMotion || isPaused) return;
-
-    const interval = setInterval(() => {
-      setIsKorean((prev) => !prev);
-    }, LANGUAGE_TOGGLE_MS);
-
-    return () => clearInterval(interval);
-  }, [shouldReduceMotion, isPaused]);
-
-  // Animation variants with reduced motion support
   const textVariants = shouldReduceMotion
     ? { initial: {}, animate: {}, exit: {} }
     : {
@@ -41,39 +26,45 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
     ? { duration: 0 }
     : { duration: 0.6, ease: [0.4, 0, 0.2, 1] as const };
 
-  // Manual language toggle
-  const toggleLanguage = () => {
-    setIsPaused(true);
-    setIsKorean((prev) => !prev);
-  };
+  const toggleLanguage = () => setIsKorean((prev) => !prev);
 
   return (
-    <div className="min-h-screen flex flex-col relative bg-white dark:bg-black">
+    <div
+      className="min-h-screen flex flex-col relative overflow-hidden bg-white dark:bg-black"
+      style={{
+        backgroundImage: `
+          radial-gradient(ellipse at 15% 40%, rgba(143, 173, 136, 0.12) 0%, transparent 55%),
+          radial-gradient(ellipse at 85% 15%, rgba(143, 173, 136, 0.09) 0%, transparent 50%),
+          radial-gradient(ellipse at 60% 85%, rgba(143, 173, 136, 0.07) 0%, transparent 45%)
+        `,
+      }}
+    >
       {/* Header */}
-      <header className="w-full flex items-center justify-between px-6 md:px-12 py-4 absolute top-0 left-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-black/80 border-b border-gray-200/20 dark:border-gray-800/20">
+      <header className="w-full flex items-center justify-between px-6 md:px-12 py-4 absolute top-0 left-0 z-50 bg-transparent">
         <img
-          src="/koala_logo.svg"
+          src="/koala_logo.png"
           alt="Koala - Korean Sign Language Learning"
           onClick={() => navigate("/")}
           onKeyDown={(e) => e.key === "Enter" && navigate("/")}
           tabIndex={0}
           role="button"
-          className="h-16 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply dark:mix-blend-screen focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+          className="h-20 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply dark:mix-blend-screen focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
         />
 
         <div className="flex items-center gap-3">
-          {/* Language toggle button */}
           <Button
             variant="ghost"
-            size="icon"
             onClick={toggleLanguage}
-            className="rounded-full"
-            aria-label={isKorean ? "Switch to English" : "한국어로 전환"}
+            className="rounded-full flex items-center gap-2"
+            aria-label={isKorean ? "Switch to English" : "Switch to Korean"}
           >
-            <Globe className="h-5 w-5" />
+            <Globe className="size-7" />
+            <span className="text-base font-semibold tracking-wide">
+              {isKorean ? "KOR" : "ENG"}
+            </span>
           </Button>
 
-          <Button
+          {/* <Button
             variant="ghost"
             onClick={() => navigate("/login")}
             className="rounded-full"
@@ -86,7 +77,7 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
             className="rounded-full"
           >
             {isKorean ? "가입하기" : "Sign up"}
-          </Button>
+          </Button> */}
         </div>
       </header>
 
@@ -98,7 +89,6 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
             className="text-5xl md:text-7xl lg:text-8xl font-semibold tracking-tight leading-[1.1] mb-6 relative"
             lang={isKorean ? "ko" : "en"}
           >
-            {/* Ghost element for stable height */}
             <span className="invisible block" aria-hidden="true">
               Learn Korean
               <br />
@@ -138,7 +128,6 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
             className="text-xl md:text-2xl lg:text-3xl text-gray-600 dark:text-gray-400 font-normal mb-12 max-w-3xl mx-auto leading-relaxed relative"
             lang={isKorean ? "ko" : "en"}
           >
-            {/* Ghost element for stable height */}
             <span className="invisible block" aria-hidden="true">
               Master Korean Sign Language through interactive practice with
               real-time feedback.
@@ -170,18 +159,10 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
             <Button
               size="lg"
               onClick={onStartLearning}
-              className="w-full sm:w-auto px-8 py-6 rounded-full"
+              className="w-full sm:w-auto px-12 py-7 rounded-full text-lg"
             >
               {isKorean ? "연습하기" : "Practice"}
               <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={onOpenDictionary}
-              className="w-full sm:w-auto px-8 py-6 rounded-full border-2"
-            >
-              {isKorean ? "사전" : "Dictionary"}
             </Button>
           </div>
 
@@ -212,6 +193,13 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
           </div>
         </div>
       </main>
+      {/* Peeking koala */}
+      <img
+        src="/koala_wave.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute bottom-0 right-12 w-48 md:w-60 translate-y-1/4 pointer-events-none select-none"
+      />
     </div>
   );
 };
