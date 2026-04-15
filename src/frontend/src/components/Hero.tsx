@@ -4,6 +4,36 @@ import { ArrowRight, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
+const JumpyText = ({ text, indexOffset = 0 }: { text: string; indexOffset?: number }) => {
+  const shouldReduceMotion = useReducedMotion();
+  return (
+    <>
+      {text.split("").map((char, i) =>
+        char === " " ? (
+          <span key={i} className="inline-block">&nbsp;</span>
+        ) : (
+          <motion.span
+            key={i}
+            className="inline-block cursor-default"
+            animate={shouldReduceMotion ? {} : { y: [0, -12, 0] }}
+            transition={{
+              delay: (indexOffset + i) * 0.04,
+              duration: 0.5,
+              ease: [0.22, 1, 0.36, 1],
+            }}
+            whileHover={shouldReduceMotion ? {} : {
+              y: -10,
+              transition: { type: "spring", stiffness: 500, damping: 12 },
+            }}
+          >
+            {char}
+          </motion.span>
+        )
+      )}
+    </>
+  );
+};
+
 interface HeroProps {
   onStartLearning: () => void;
   onOpenDictionary?: () => void;
@@ -13,6 +43,7 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const [isKorean, setIsKorean] = useState(false);
+  const [isWiggling, setIsWiggling] = useState(false);
 
   const textVariants = shouldReduceMotion
     ? { initial: {}, animate: {}, exit: {} }
@@ -95,21 +126,19 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
                 initial="initial"
                 animate="animate"
                 exit="exit"
-                className="absolute inset-0 flex items-center justify-center"
+                className="absolute inset-0 flex flex-col items-center justify-center"
                 transition={transitionConfig}
                 aria-live="polite"
               >
                 {isKorean ? (
                   <>
-                    한국 수어
-                    <br />
-                    배우기
+                    <span><JumpyText text="한국 수어" indexOffset={0} /></span>
+                    <span><JumpyText text="배우기" indexOffset={"한국 수어".length} /></span>
                   </>
                 ) : (
                   <>
-                    Learn Korean
-                    <br />
-                    Sign Language
+                    <span><JumpyText text="Learn Korean" indexOffset={0} /></span>
+                    <span><JumpyText text="Sign Language" indexOffset={"Learn Korean".length} /></span>
                   </>
                 )}
               </motion.span>
@@ -149,14 +178,21 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
-            <Button
-              size="lg"
-              onClick={onStartLearning}
-              className="w-full sm:w-auto px-12 py-7 rounded-full text-lg"
+            <motion.div
+              animate={isWiggling && !shouldReduceMotion ? { rotate: [0, -6, 6, 0] } : { rotate: 0 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              onHoverStart={() => { if (!shouldReduceMotion) setIsWiggling(true); }}
+              onAnimationComplete={() => setIsWiggling(false)}
             >
-              {isKorean ? "연습하기" : "Practice"}
-              <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
-            </Button>
+              <Button
+                size="lg"
+                onClick={onStartLearning}
+                className="w-full sm:w-auto px-12 py-7 rounded-full text-lg"
+              >
+                {isKorean ? "연습하기" : "Practice"}
+                <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+              </Button>
+            </motion.div>
           </div>
 
           {/* Features Section */}
