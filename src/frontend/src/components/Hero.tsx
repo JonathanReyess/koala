@@ -31,13 +31,6 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
   return (
     <div
       className="min-h-screen flex flex-col relative overflow-hidden bg-white dark:bg-black"
-      style={{
-        backgroundImage: `
-          radial-gradient(ellipse at 15% 40%, rgba(143, 173, 136, 0.12) 0%, transparent 55%),
-          radial-gradient(ellipse at 85% 15%, rgba(143, 173, 136, 0.09) 0%, transparent 50%),
-          radial-gradient(ellipse at 60% 85%, rgba(143, 173, 136, 0.07) 0%, transparent 45%)
-        `,
-      }}
     >
       {/* Header */}
       <header className="w-full flex items-center justify-between px-6 md:px-12 py-4 absolute top-0 left-0 z-50 bg-transparent">
