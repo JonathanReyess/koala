@@ -353,7 +353,7 @@ export const LearningCard = ({
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex-1 h-12 text-base font-medium rounded-full hover:opacity-90 transition-opacity"
+                className="flex-1 h-12 text-base font-medium rounded-full bg-[#5e877a] text-white hover:bg-[#5e877a] hover:brightness-110 transition-all"
                 variant="outline"
               >
                 <Upload className="mr-2 h-5 w-5" />

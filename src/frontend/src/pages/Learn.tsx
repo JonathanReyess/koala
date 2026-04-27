@@ -478,6 +478,17 @@ const Learn = () => {
         {/* Video example section */}
         <div className="flex-1 w-full max-w-2xl mt-[176px]">
           <VideoExampleCard word={currentWord} />
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">
+            Video source:{" "}
+            <a
+              href="https://doi.org/10.1007/978-3-030-37731-1_43"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              Yang et al., "The Korean Sign Language Dataset for Action Recognition," MMM 2020
+            </a>
+          </p>
         </div>
 
         {/* Practice section */}

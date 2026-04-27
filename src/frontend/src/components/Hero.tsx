@@ -4,13 +4,21 @@ import { ArrowRight, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
-const JumpyText = ({ text, indexOffset = 0 }: { text: string; indexOffset?: number }) => {
+const JumpyText = ({
+  text,
+  indexOffset = 0,
+}: {
+  text: string;
+  indexOffset?: number;
+}) => {
   const shouldReduceMotion = useReducedMotion();
   return (
     <>
       {text.split("").map((char, i) =>
         char === " " ? (
-          <span key={i} className="inline-block">&nbsp;</span>
+          <span key={i} className="inline-block">
+            &nbsp;
+          </span>
         ) : (
           <motion.span
             key={i}
@@ -21,14 +29,18 @@ const JumpyText = ({ text, indexOffset = 0 }: { text: string; indexOffset?: numb
               duration: 0.5,
               ease: [0.22, 1, 0.36, 1],
             }}
-            whileHover={shouldReduceMotion ? {} : {
-              y: -10,
-              transition: { type: "spring", stiffness: 500, damping: 12 },
-            }}
+            whileHover={
+              shouldReduceMotion
+                ? {}
+                : {
+                    y: -10,
+                    transition: { type: "spring", stiffness: 500, damping: 12 },
+                  }
+            }
           >
             {char}
           </motion.span>
-        )
+        ),
       )}
     </>
   );
@@ -60,9 +72,7 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
   const toggleLanguage = () => setIsKorean((prev) => !prev);
 
   return (
-    <div
-      className="min-h-screen flex flex-col relative overflow-hidden bg-white dark:bg-black"
-    >
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-white dark:bg-black">
       {/* Header */}
       <header className="w-full flex items-center justify-between px-6 md:px-12 py-4 absolute top-0 left-0 z-50 bg-transparent">
         <img
@@ -132,13 +142,27 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
               >
                 {isKorean ? (
                   <>
-                    <span><JumpyText text="한국 수어" indexOffset={0} /></span>
-                    <span><JumpyText text="배우기" indexOffset={"한국 수어".length} /></span>
+                    <span>
+                      <JumpyText text="한국 수어" indexOffset={0} />
+                    </span>
+                    <span>
+                      <JumpyText
+                        text="배우기"
+                        indexOffset={"한국 수어".length}
+                      />
+                    </span>
                   </>
                 ) : (
                   <>
-                    <span><JumpyText text="Learn Korean" indexOffset={0} /></span>
-                    <span><JumpyText text="Sign Language" indexOffset={"Learn Korean".length} /></span>
+                    <span>
+                      <JumpyText text="Learn Korean" indexOffset={0} />
+                    </span>
+                    <span>
+                      <JumpyText
+                        text="Sign Language"
+                        indexOffset={"Learn Korean".length}
+                      />
+                    </span>
                   </>
                 )}
               </motion.span>
@@ -179,9 +203,15 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-20">
             <motion.div
-              animate={isWiggling && !shouldReduceMotion ? { rotate: [0, -6, 6, 0] } : { rotate: 0 }}
+              animate={
+                isWiggling && !shouldReduceMotion
+                  ? { rotate: [0, -6, 6, 0] }
+                  : { rotate: 0 }
+              }
               transition={{ duration: 0.5, ease: "easeInOut" }}
-              onHoverStart={() => { if (!shouldReduceMotion) setIsWiggling(true); }}
+              onHoverStart={() => {
+                if (!shouldReduceMotion) setIsWiggling(true);
+              }}
               onAnimationComplete={() => setIsWiggling(false)}
             >
               <Button
@@ -227,7 +257,7 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
         src="/koala_wave.png"
         alt=""
         aria-hidden="true"
-        className="absolute bottom-0 right-12 w-48 md:w-60 translate-y-1/4 pointer-events-none select-none"
+        className="absolute bottom-2 right-12 w-48 md:w-72 translate-y-1/4 pointer-events-none select-none"
       />
     </div>
   );
