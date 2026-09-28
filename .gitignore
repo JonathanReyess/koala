@@ -9,3 +9,10 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# extract_landmarks.py / train.py / evaluate.py outputs (large, regenerable,
+# and typically live on Google Drive when run on Colab, not in this repo)
+/mediapipe_models/
+/runs/
+/features_v2/
+
