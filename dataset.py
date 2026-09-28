@@ -23,11 +23,15 @@ import pickle
 from dataclasses import dataclass, field
 from typing import Optional
 
+import random
+
 import numpy as np
 import pandas as pd
 import torch
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit, train_test_split
 from torch.utils.data import Dataset
+
+import transforms
 
 
 # ---------------------------------------------------------------------------
@@ -284,12 +288,33 @@ def check_signer_partition(folds: list[Split], signer_ids: np.ndarray) -> None:
 
 
 class PoseDataset(Dataset):
-    """Same augmentations as notebook/KSL.ipynb's PoseDataset (Cell 6)."""
+    """Same augmentations as notebook/KSL.ipynb's PoseDataset (Cell 6), plus
+    an optional --mirror-aug (see transforms.mirror_clip).
 
-    def __init__(self, X: np.ndarray, y: np.ndarray, augment: bool = False):
+    `mask` (N, T, J), if given, is the real per-joint detection mask from
+    extract_landmarks.py, used so mirroring reflects/swaps only actually-
+    detected joints correctly. If `mask` is None (e.g. the legacy .pkl,
+    which has no mask at all), a joint is treated as "detected" in a frame
+    iff its (x, y, z) isn't exactly (0, 0, 0) -- the same silent-zero-fill
+    convention that data was written with, so this is the best available
+    stand-in, not a new assumption.
+    """
+
+    def __init__(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        mask: np.ndarray | None = None,
+        augment: bool = False,
+        mirror_aug: bool = False,
+        mirror_p: float = 0.5,
+    ):
         self.X = torch.as_tensor(X, dtype=torch.float32)
         self.y = torch.as_tensor(y, dtype=torch.long)
+        self.mask = mask
         self.augment = augment
+        self.mirror_aug = mirror_aug
+        self.mirror_p = mirror_p
 
     def __len__(self) -> int:
         return len(self.X)
@@ -297,13 +322,22 @@ class PoseDataset(Dataset):
     def __getitem__(self, idx: int):
         x = self.X[idx].clone()
         y = self.y[idx]
+        if self.mirror_aug and random.random() < self.mirror_p:
+            x = self._mirror(x, idx)
         if self.augment:
             x = self.apply_augmentations(x)
         return x, y
 
-    def apply_augmentations(self, x: torch.Tensor) -> torch.Tensor:
-        import random
+    def _mirror(self, x: torch.Tensor, idx: int) -> torch.Tensor:
+        coords = transforms.chw_to_tjc(x.numpy())
+        if self.mask is not None:
+            joint_mask = self.mask[idx].astype(bool)
+        else:
+            joint_mask = transforms.infer_mask_from_coords(coords)
+        mirrored_coords, _ = transforms.mirror_clip(coords, joint_mask)
+        return torch.as_tensor(transforms.tjc_to_chw(mirrored_coords), dtype=torch.float32)
 
+    def apply_augmentations(self, x: torch.Tensor) -> torch.Tensor:
         if random.random() < 0.5:
             x += torch.randn_like(x) * 0.01
         if random.random() < 0.3:
@@ -316,10 +350,24 @@ class PoseDataset(Dataset):
 
 
 def build_datasets(
-    features: np.ndarray, labels: np.ndarray, split: Split, augment_train: bool = True
+    features: np.ndarray,
+    labels: np.ndarray,
+    split: Split,
+    mask: np.ndarray | None = None,
+    augment_train: bool = True,
+    mirror_aug: bool = False,
+    mirror_p: float = 0.5,
 ) -> tuple[PoseDataset, PoseDataset, PoseDataset]:
     y_dense = _dense(labels, split.label_map)
-    train_ds = PoseDataset(features[split.train_idx], y_dense[split.train_idx], augment=augment_train)
+    train_mask = mask[split.train_idx] if mask is not None else None
+    train_ds = PoseDataset(
+        features[split.train_idx],
+        y_dense[split.train_idx],
+        mask=train_mask,
+        augment=augment_train,
+        mirror_aug=mirror_aug,
+        mirror_p=mirror_p,
+    )
     val_ds = PoseDataset(features[split.val_idx], y_dense[split.val_idx], augment=False)
     test_ds = PoseDataset(features[split.test_idx], y_dense[split.test_idx], augment=False)
     return train_ds, val_ds, test_ds

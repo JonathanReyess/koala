@@ -34,6 +34,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import transforms
 from dataset import (
     build_datasets,
     load_legacy_pkl,
@@ -96,9 +97,18 @@ def train_one_fold(
     args: argparse.Namespace,
     fold_dir: Path,
     device: torch.device,
+    mask: np.ndarray | None = None,
 ) -> dict:
     fold_dir.mkdir(parents=True, exist_ok=True)
-    train_ds, val_ds, test_ds = build_datasets(features, labels, split, augment_train=True)
+    train_ds, val_ds, test_ds = build_datasets(
+        features,
+        labels,
+        split,
+        mask=mask,
+        augment_train=True,
+        mirror_aug=args.mirror_aug,
+        mirror_p=0.5,
+    )
 
     # drop_last=True: BatchNorm1d in the classifier head raises if a training
     # batch has exactly 1 sample (can happen on the last batch of an epoch
@@ -179,6 +189,10 @@ def train_one_fold(
         "seed": args.seed,
         "split_mode": args.split_mode,
         "min_hand_frac": args.min_hand_frac,
+        "mirror_aug": args.mirror_aug,
+        "normalize_body": args.normalize_body,
+        "trim_idle": args.trim_idle,
+        "trim_idle_motion_threshold": args.trim_idle_motion_threshold,
         "best_val_acc": best_val_acc,
         "train_signers": sorted(split.train_signers) if split.train_signers else None,
         "val_signers": sorted(split.val_signers) if split.val_signers else None,
@@ -199,7 +213,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     data = p.add_argument_group("data")
     data.add_argument("--pkl", type=str, default=None, help="Legacy data/KSL77_joint_stream_47pt.pkl (random split only)")
     data.add_argument("--features", type=str, default=None, help="features.npy from extract_landmarks.py")
-    data.add_argument("--mask", type=str, default=None, help="mask.npy from extract_landmarks.py (unused by training, kept for parity)")
+    data.add_argument("--mask", type=str, default=None, help="mask.npy from extract_landmarks.py (used for --mirror-aug/--normalize-body/--trim-idle)")
     data.add_argument("--manifest", type=str, default=None, help="manifest.csv from extract_landmarks.py")
     data.add_argument(
         "--min-hand-frac",
@@ -225,6 +239,38 @@ def build_arg_parser() -> argparse.ArgumentParser:
     hp.add_argument("--epochs", type=int, default=60)
     hp.add_argument("--batch-size", type=int, default=32)
     hp.add_argument("--patience", type=int, default=15, help="early stop after N epochs with no val improvement; 0 disables")
+
+    tf = p.add_argument_group("feature transforms (see transforms.py; all off by default)")
+    tf.add_argument(
+        "--mirror-aug",
+        action="store_true",
+        help="Train only. With p=0.5 per sample per epoch, left/right-mirror the clip "
+        "(transforms.mirror_clip) as a training-time augmentation. Pair with --tta-mirror "
+        "in evaluate.py for test-time averaging (not required -- independent flags).",
+    )
+    tf.add_argument(
+        "--normalize-body",
+        action="store_true",
+        help="Deterministic, applied to every sample (train/val/test) identically: subtract "
+        "the clip's mean mid-shoulder point and divide by mean shoulder width "
+        "(transforms.normalize_body). evaluate.py must use the same setting -- it reads this "
+        "back from config.json automatically.",
+    )
+    tf.add_argument(
+        "--trim-idle",
+        action="store_true",
+        help="Deterministic, applied to every sample (train/val/test) identically: crop to the "
+        "first/last frame where either hand is detected and moving, then resample back to the "
+        "original frame count (transforms.trim_idle). evaluate.py reads this back from "
+        "config.json automatically.",
+    )
+    tf.add_argument(
+        "--trim-idle-motion-threshold",
+        type=float,
+        default=transforms.DEFAULT_TRIM_MOTION_THRESHOLD,
+        help="Only used with --trim-idle: minimum frame-to-frame wrist displacement "
+        "(normalized units) to count as 'moving'.",
+    )
     return p
 
 
@@ -238,15 +284,25 @@ def main(argv=None) -> int:
     if args.pkl:
         features, labels = load_legacy_pkl(args.pkl)
         signer_ids = None
+        mask = None  # legacy .pkl has no mask; transforms fall back to inferring one
     else:
         if not (args.features and args.mask and args.manifest):
             print("Provide either --pkl, or all of --features/--mask/--manifest", file=sys.stderr)
             return 2
-        features, _mask, manifest = load_manifest_dataset(
+        features, mask, manifest = load_manifest_dataset(
             args.features, args.mask, args.manifest, min_hand_frac=args.min_hand_frac
         )
         labels = manifest["class_id"].to_numpy()
         signer_ids = manifest["signer_id"].to_numpy()
+
+    if args.normalize_body:
+        print("Applying --normalize-body to all samples...")
+        features = transforms.normalize_body_bulk(features, mask)
+    if args.trim_idle:
+        print(f"Applying --trim-idle (motion threshold={args.trim_idle_motion_threshold}) to all samples...")
+        features, mask = transforms.trim_idle_bulk(
+            features, mask, motion_threshold=args.trim_idle_motion_threshold
+        )
 
     if args.split_mode == "random":
         splits = [random_split(labels, seed=args.seed)]
@@ -262,7 +318,7 @@ def main(argv=None) -> int:
         fold_idx = split.fold if split.fold is not None else 0
         fold_dir = out_dir / f"fold_{fold_idx}"
         print(f"=== fold {fold_idx} ({len(splits)} total) ===")
-        fold_configs.append(train_one_fold(features, labels, split, args, fold_dir, device))
+        fold_configs.append(train_one_fold(features, labels, split, args, fold_dir, device, mask=mask))
 
     with open(out_dir / "run_config.json", "w") as f:
         json.dump({"folds": fold_configs, "elapsed_sec": time.time() - t0}, f, indent=2)

@@ -27,9 +27,11 @@ from pathlib import Path
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from sklearn.metrics import classification_report, f1_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import transforms
 from dataset import (
     Split,
     check_signer_partition,
@@ -39,12 +41,6 @@ from dataset import (
     signer_kfold_splits,
 )
 from models import PoseCNN_LSTM_Attn
-
-
-def top_k_accuracy(logits: torch.Tensor, y: torch.Tensor, k: int) -> float:
-    topk = logits.topk(k, dim=1).indices
-    hit = (topk == y.unsqueeze(1)).any(dim=1)
-    return hit.float().mean().item()
 
 
 def load_fold(fold_dir: Path) -> tuple[dict, dict, torch.nn.Module]:
@@ -67,19 +63,48 @@ def load_fold(fold_dir: Path) -> tuple[dict, dict, torch.nn.Module]:
     return config, {"label_map": label_map, "reverse_label_map": reverse_label_map}, model
 
 
+def _top_k_accuracy_from_probs(probs: torch.Tensor, y: torch.Tensor, k: int) -> float:
+    topk = probs.topk(k, dim=1).indices
+    hit = (topk == y.unsqueeze(1)).any(dim=1)
+    return hit.float().mean().item()
+
+
 @torch.no_grad()
 def evaluate_split(
-    model, features: np.ndarray, labels: np.ndarray, split: Split, signer_ids: np.ndarray | None
+    model,
+    features: np.ndarray,
+    labels: np.ndarray,
+    split: Split,
+    signer_ids: np.ndarray | None,
+    mask: np.ndarray | None = None,
+    tta_mirror: bool = False,
 ) -> dict:
     y_dense = np.array([split.label_map[int(l)] for l in labels], dtype=np.int64)
     X_test = torch.tensor(features[split.test_idx], dtype=torch.float32)
     y_test = torch.tensor(y_dense[split.test_idx], dtype=torch.long)
 
-    logits = model(X_test)
-    preds = logits.argmax(1)
+    probs = F.softmax(model(X_test), dim=1)
+
+    if tta_mirror:
+        test_mask = mask[split.test_idx] if mask is not None else None
+        mirrored = np.empty_like(features[split.test_idx])
+        for i, feat in enumerate(features[split.test_idx]):
+            coords = transforms.chw_to_tjc(feat)
+            m = (
+                test_mask[i].astype(bool)
+                if test_mask is not None
+                else transforms.infer_mask_from_coords(coords)
+            )
+            mirrored_coords, _ = transforms.mirror_clip(coords, m)
+            mirrored[i] = transforms.tjc_to_chw(mirrored_coords)
+        X_mirrored = torch.tensor(mirrored, dtype=torch.float32)
+        probs_mirrored = F.softmax(model(X_mirrored), dim=1)
+        probs = (probs + probs_mirrored) / 2.0
+
+    preds = probs.argmax(1)
 
     top1 = (preds == y_test).float().mean().item()
-    top3 = top_k_accuracy(logits, y_test, k=min(3, logits.shape[1]))
+    top3 = _top_k_accuracy_from_probs(probs, y_test, k=min(3, probs.shape[1]))
     macro_f1 = f1_score(y_test.numpy(), preds.numpy(), average="macro", zero_division=0)
     report = classification_report(
         y_test.numpy(), preds.numpy(), output_dict=True, zero_division=0
@@ -125,9 +150,58 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "raises an error, since it would silently evaluate against a different filtered "
         "dataset than the one the split (and thus the checkpoint's test set) was built from.",
     )
+    p.add_argument(
+        "--normalize-body",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Must match train.py's setting for this checkpoint (read back from config.json "
+        "automatically by default; passing a mismatched value here refuses to run).",
+    )
+    p.add_argument(
+        "--trim-idle",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Must match train.py's setting for this checkpoint (read back from config.json "
+        "automatically by default; passing a mismatched value here refuses to run).",
+    )
+    p.add_argument(
+        "--trim-idle-motion-threshold",
+        type=float,
+        default=None,
+        help="Must match train.py's setting for this checkpoint (read back from config.json "
+        "automatically by default; passing a mismatched value here refuses to run).",
+    )
+    p.add_argument(
+        "--tta-mirror",
+        action="store_true",
+        help="Eval-only test-time augmentation: average softmax over each test clip and its "
+        "mirror (transforms.mirror_clip). Independent of training -- works with any "
+        "checkpoint, doesn't need to match how it was trained.",
+    )
     p.add_argument("--checkpoint-dir", type=str, required=True, help="Directory train.py wrote (contains fold_*/ subdirs)")
     p.add_argument("--out", type=str, default=None, help="Optional path to write results as JSON")
     return p
+
+
+def _resolve_against_config(cli_value, config, key: str, default, fold_dir: Path):
+    """Returns config[key] (falling back to `default` for older checkpoints
+    that predate this key), or exits the process if `cli_value` was
+    explicitly passed and disagrees with it -- using a different
+    preprocessing setting than training used would silently evaluate
+    against a different dataset than the one the split was built from.
+    """
+    config_value = config.get(key, default)
+    if cli_value is not None and cli_value != config_value:
+        flag = "--" + key.replace("_", "-")
+        print(
+            f"{flag}={cli_value} was passed, but this checkpoint was trained with "
+            f"{key}={config_value} (from {fold_dir}/config.json). Using a different value here "
+            "would evaluate against a differently-preprocessed dataset than the one the split "
+            "was built from -- refusing.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+    return config_value
 
 
 def main(argv=None) -> int:
@@ -141,31 +215,39 @@ def main(argv=None) -> int:
     first_config, _, _ = load_fold(fold_dirs[0])
     split_mode = first_config["split_mode"]
     seed = first_config["seed"]
-    # Older checkpoints (trained before --min-hand-frac existed) won't have
-    # this key; 0.0 matches train.py's own default for those.
-    min_hand_frac = first_config.get("min_hand_frac", 0.0)
-    if args.min_hand_frac is not None and args.min_hand_frac != min_hand_frac:
-        print(
-            f"--min-hand-frac={args.min_hand_frac} was passed, but this checkpoint was "
-            f"trained with min_hand_frac={min_hand_frac} (from {fold_dirs[0]}/config.json). "
-            "Using a different value here would evaluate against a differently-filtered "
-            "dataset than the one the split was built from -- refusing.",
-            file=sys.stderr,
-        )
-        return 2
+    # Older checkpoints (trained before these flags existed) fall back to
+    # train.py's own defaults for each.
+    min_hand_frac = _resolve_against_config(args.min_hand_frac, first_config, "min_hand_frac", 0.0, fold_dirs[0])
+    normalize_body = _resolve_against_config(args.normalize_body, first_config, "normalize_body", False, fold_dirs[0])
+    trim_idle = _resolve_against_config(args.trim_idle, first_config, "trim_idle", False, fold_dirs[0])
+    trim_idle_motion_threshold = _resolve_against_config(
+        args.trim_idle_motion_threshold,
+        first_config,
+        "trim_idle_motion_threshold",
+        transforms.DEFAULT_TRIM_MOTION_THRESHOLD,
+        fold_dirs[0],
+    )
 
     if args.pkl:
         features, labels = load_legacy_pkl(args.pkl)
         signer_ids = None
+        mask = None
     else:
         if not (args.features and args.mask and args.manifest):
             print("Provide either --pkl, or all of --features/--mask/--manifest", file=sys.stderr)
             return 2
-        features, _mask, manifest = load_manifest_dataset(
+        features, mask, manifest = load_manifest_dataset(
             args.features, args.mask, args.manifest, min_hand_frac=min_hand_frac
         )
         labels = manifest["class_id"].to_numpy()
         signer_ids = manifest["signer_id"].to_numpy()
+
+    if normalize_body:
+        features = transforms.normalize_body_bulk(features, mask)
+    if trim_idle:
+        features, mask = transforms.trim_idle_bulk(
+            features, mask, motion_threshold=trim_idle_motion_threshold
+        )
 
     if split_mode == "random":
         splits = [random_split(labels, seed=seed)]
@@ -185,7 +267,9 @@ def main(argv=None) -> int:
             f"{fold_dir}: label_map from training doesn't match a freshly rebuilt split "
             "-- data or seed may have changed since training."
         )
-        result = evaluate_split(model, features, labels, split, signer_ids)
+        result = evaluate_split(
+            model, features, labels, split, signer_ids, mask=mask, tta_mirror=args.tta_mirror
+        )
         result["fold"] = split.fold
         per_fold_results.append(result)
         signer_note = f", n_test_signers={len(split.test_signers)}" if split.test_signers else ""
@@ -207,8 +291,17 @@ def main(argv=None) -> int:
         combined_per_signer: dict = {}
         for r in per_fold_results:
             if r["per_signer_accuracy"]:
-                combined_per_signer.update(r["per_signer_accuracy"])
+                for signer, stats in r["per_signer_accuracy"].items():
+                    combined_per_signer[signer] = {**stats, "fold": r["fold"]}
         summary["per_signer_accuracy_combined"] = combined_per_signer or None
+
+        if combined_per_signer:
+            print("\nper-signer accuracy (fold = which test fold this signer was held out in):")
+            print(f"  {'signer':<8}{'fold':<6}{'n':<6}{'accuracy':<10}")
+            for signer in sorted(combined_per_signer):
+                stats = combined_per_signer[signer]
+                acc_str = f"{stats['accuracy']:.4f}" if stats["accuracy"] is not None else "n/a"
+                print(f"  {signer:<8}{stats['fold']:<6}{stats['n']:<6}{acc_str:<10}")
     else:
         summary["top1"] = per_fold_results[0]["top1"]
         summary["top3"] = per_fold_results[0]["top3"]
