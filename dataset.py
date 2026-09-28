@@ -43,16 +43,84 @@ def load_legacy_pkl(path: str) -> tuple[np.ndarray, np.ndarray]:
 
 
 def load_manifest_dataset(
-    features_path: str, mask_path: str, manifest_path: str
+    features_path: str, mask_path: str, manifest_path: str, min_hand_frac: float = 0.0
 ) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
-    """Loads output of extract_landmarks.py -> (features, mask, manifest_df)."""
+    """Loads output of extract_landmarks.py -> (features, mask, manifest_df),
+    with drop_undetected_samples() applied so a corrupted/undecodable video
+    (e.g. "moov atom not found") never silently becomes a real training or
+    test example. See drop_undetected_samples for exactly what's dropped.
+    """
     features = np.load(features_path).astype(np.float32)
     mask = np.load(mask_path).astype(np.uint8)
     manifest = pd.read_csv(manifest_path, dtype={"signer_id": str})
     assert len(manifest) == len(features) == len(mask), (
         f"length mismatch: manifest={len(manifest)} features={len(features)} mask={len(mask)}"
     )
-    return features, mask, manifest
+    return drop_undetected_samples(features, mask, manifest, min_hand_frac=min_hand_frac)
+
+
+def drop_undetected_samples(
+    features: np.ndarray,
+    mask: np.ndarray,
+    manifest: pd.DataFrame,
+    min_hand_frac: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+    """Drops rows extract_landmarks.py effectively couldn't extract anything
+    from -- most importantly a corrupted/truncated video (e.g. cv2/ffmpeg's
+    "moov atom not found") that decodes zero frames and would otherwise be
+    trained on and tested as a legitimate, all-zero-landmark example.
+
+    Filters `features`, `mask`, and `manifest` together, in lockstep, so row
+    order/alignment is preserved, and prints exactly which video_path(s)
+    were dropped and why.
+
+    A row is dropped if any of:
+      - n_sampled_ok == 0        (nothing decoded at all -- corrupt/unreadable file)
+      - frac_frames_with_pose == 0   (MediaPipe never found a subject in any sampled frame)
+      - frac_frames_with_any_hand < min_hand_frac   (opt-in via --min-hand-frac; default 0.0 = off)
+    """
+    n = len(manifest)
+    if n == 0:
+        return features, mask, manifest
+
+    if "n_sampled_ok" in manifest.columns:
+        zero_decoded = (manifest["n_sampled_ok"] == 0).to_numpy()
+    else:
+        print(
+            "dataset.py WARNING: manifest.csv has no 'n_sampled_ok' column "
+            "(from an extract_landmarks.py run before this check existed) -- "
+            "can't detect fully-undecodable videos this way. Re-run "
+            "extract_landmarks.py against the same --out to regenerate "
+            "manifest.csv from the existing cache/ (no MediaPipe re-run "
+            "needed) and pick up this column."
+        )
+        zero_decoded = np.zeros(n, dtype=bool)
+
+    zero_pose = (manifest["frac_frames_with_pose"] == 0).to_numpy()
+
+    if min_hand_frac > 0.0 and "frac_frames_with_any_hand" in manifest.columns:
+        below_hand_frac = manifest["frac_frames_with_any_hand"].to_numpy() < min_hand_frac
+    else:
+        below_hand_frac = np.zeros(n, dtype=bool)
+
+    drop = zero_decoded | zero_pose | below_hand_frac
+    if drop.any():
+        print(f"dataset.py: dropping {int(drop.sum())} of {n} sample(s) before splitting:")
+        for i in np.where(drop)[0]:
+            reasons = []
+            if zero_decoded[i]:
+                reasons.append("n_sampled_ok == 0 (undecodable video)")
+            if zero_pose[i]:
+                reasons.append("frac_frames_with_pose == 0")
+            if below_hand_frac[i]:
+                frac = manifest["frac_frames_with_any_hand"].iloc[i]
+                reasons.append(
+                    f"frac_frames_with_any_hand={frac:.2f} < --min-hand-frac={min_hand_frac}"
+                )
+            print(f"  - {manifest['video_path'].iloc[i]}: {'; '.join(reasons)}")
+
+    keep = ~drop
+    return features[keep], mask[keep], manifest.loc[keep].reset_index(drop=True)
 
 
 # ---------------------------------------------------------------------------

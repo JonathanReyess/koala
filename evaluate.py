@@ -115,6 +115,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--features", type=str, default=None)
     p.add_argument("--mask", type=str, default=None)
     p.add_argument("--manifest", type=str, default=None)
+    p.add_argument(
+        "--min-hand-frac",
+        type=float,
+        default=None,
+        help="Manifest-mode only: must match the value train.py used for this checkpoint "
+        "(saved in config.json) -- by default this is read back from config.json "
+        "automatically so the split reproduces exactly. Passing a different value here "
+        "raises an error, since it would silently evaluate against a different filtered "
+        "dataset than the one the split (and thus the checkpoint's test set) was built from.",
+    )
     p.add_argument("--checkpoint-dir", type=str, required=True, help="Directory train.py wrote (contains fold_*/ subdirs)")
     p.add_argument("--out", type=str, default=None, help="Optional path to write results as JSON")
     return p
@@ -128,6 +138,22 @@ def main(argv=None) -> int:
         print(f"No fold_* subdirectories found under {checkpoint_dir}", file=sys.stderr)
         return 1
 
+    first_config, _, _ = load_fold(fold_dirs[0])
+    split_mode = first_config["split_mode"]
+    seed = first_config["seed"]
+    # Older checkpoints (trained before --min-hand-frac existed) won't have
+    # this key; 0.0 matches train.py's own default for those.
+    min_hand_frac = first_config.get("min_hand_frac", 0.0)
+    if args.min_hand_frac is not None and args.min_hand_frac != min_hand_frac:
+        print(
+            f"--min-hand-frac={args.min_hand_frac} was passed, but this checkpoint was "
+            f"trained with min_hand_frac={min_hand_frac} (from {fold_dirs[0]}/config.json). "
+            "Using a different value here would evaluate against a differently-filtered "
+            "dataset than the one the split was built from -- refusing.",
+            file=sys.stderr,
+        )
+        return 2
+
     if args.pkl:
         features, labels = load_legacy_pkl(args.pkl)
         signer_ids = None
@@ -135,13 +161,11 @@ def main(argv=None) -> int:
         if not (args.features and args.mask and args.manifest):
             print("Provide either --pkl, or all of --features/--mask/--manifest", file=sys.stderr)
             return 2
-        features, _mask, manifest = load_manifest_dataset(args.features, args.mask, args.manifest)
+        features, _mask, manifest = load_manifest_dataset(
+            args.features, args.mask, args.manifest, min_hand_frac=min_hand_frac
+        )
         labels = manifest["class_id"].to_numpy()
         signer_ids = manifest["signer_id"].to_numpy()
-
-    first_config, _, _ = load_fold(fold_dirs[0])
-    split_mode = first_config["split_mode"]
-    seed = first_config["seed"]
 
     if split_mode == "random":
         splits = [random_split(labels, seed=seed)]

@@ -47,8 +47,44 @@ from `runs/c_signer_kfold/eval.json` as a follow-up table if any signer stands
 out as much worse than the rest — that's the actual generalization signal
 this whole exercise is for.
 
+## Known real-world data issue: corrupted videos
+
+The full Colab extraction run hit at least one raw video that fails to
+decode at all ("moov atom not found" — a truncated/corrupted MP4).
+`extract_landmarks.py` still writes a row for it (all-zero features,
+`n_sampled_ok = 0`, `frac_frames_with_pose = 0`), since dropping it silently
+at extraction time would make `manifest.csv` not account for every
+discovered video. **`dataset.py` now drops these rows before any split**
+(`drop_undetected_samples`, called from `load_manifest_dataset`), so a
+corrupted file can never end up as a real training or test example. It
+drops a row if `n_sampled_ok == 0`, `frac_frames_with_pose == 0`, or (opt-in
+via `--min-hand-frac`, default `0.0` = off) `frac_frames_with_any_hand` is
+below a threshold — printing which `video_path`s were dropped and why, and
+filtering `features`/`mask`/`manifest` together so row alignment is never
+broken. `manifest.csv` also now includes `n_sampled_ok`,
+`frac_frames_with_left_hand`, and `frac_frames_with_right_hand` (previously
+only computed internally, not written out) so this — and any future
+threshold tuning — doesn't require re-running MediaPipe, just re-reading the
+existing cache.
+
+`train.py` records `min_hand_frac` in each fold's `config.json`; `evaluate.py`
+reads it back automatically so it reconstructs the *exact* same filtered
+dataset the checkpoint's split was built from, and refuses to run if you
+pass a `--min-hand-frac` that doesn't match what training used (that would
+silently evaluate against a different sample set than the one the split
+indices actually correspond to).
+
 ## What's been verified so far (this environment, no raw videos/Drive access)
 
+- Verified end-to-end with a synthetic manifest containing a deliberately
+  corrupted row (`n_sampled_ok=0`) and a deliberately pose-less row
+  (`frac_frames_with_pose=0`): both are dropped, `features`/`mask`/`manifest`
+  stay aligned afterward, and `--min-hand-frac` correctly becomes an opt-in
+  extra filter. `train.py` + `evaluate.py` were re-run end-to-end against
+  this dataset too: training skips the corrupted row, and `evaluate.py`
+  automatically reconstructs the identical filtered split from
+  `config.json` and correctly refuses a mismatched `--min-hand-frac`
+  override.
 - `dataset.random_split(seed=42)` reproduces the notebook's own split and
   `src/backend/best_model.pt`'s exact reported 88.21% test accuracy — see
   row (a) above, and AUDIT.md §8.

@@ -178,6 +178,7 @@ def train_one_fold(
         "batch_size": args.batch_size,
         "seed": args.seed,
         "split_mode": args.split_mode,
+        "min_hand_frac": args.min_hand_frac,
         "best_val_acc": best_val_acc,
         "train_signers": sorted(split.train_signers) if split.train_signers else None,
         "val_signers": sorted(split.val_signers) if split.val_signers else None,
@@ -200,6 +201,14 @@ def build_arg_parser() -> argparse.ArgumentParser:
     data.add_argument("--features", type=str, default=None, help="features.npy from extract_landmarks.py")
     data.add_argument("--mask", type=str, default=None, help="mask.npy from extract_landmarks.py (unused by training, kept for parity)")
     data.add_argument("--manifest", type=str, default=None, help="manifest.csv from extract_landmarks.py")
+    data.add_argument(
+        "--min-hand-frac",
+        type=float,
+        default=0.0,
+        help="Manifest-mode only: drop samples with frac_frames_with_any_hand below this "
+        "(in addition to always dropping n_sampled_ok==0 / frac_frames_with_pose==0 rows). "
+        "Default 0.0 disables this extra filter.",
+    )
 
     p.add_argument("--split-mode", choices=["random", "signer_kfold"], default="random")
     p.add_argument("--n-splits", type=int, default=5, help="signer_kfold only")
@@ -233,7 +242,9 @@ def main(argv=None) -> int:
         if not (args.features and args.mask and args.manifest):
             print("Provide either --pkl, or all of --features/--mask/--manifest", file=sys.stderr)
             return 2
-        features, _mask, manifest = load_manifest_dataset(args.features, args.mask, args.manifest)
+        features, _mask, manifest = load_manifest_dataset(
+            args.features, args.mask, args.manifest, min_hand_frac=args.min_hand_frac
+        )
         labels = manifest["class_id"].to_numpy()
         signer_ids = manifest["signer_id"].to_numpy()
 

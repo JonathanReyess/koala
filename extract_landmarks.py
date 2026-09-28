@@ -13,7 +13,15 @@ Output (written to <out>/):
     features.npy   float32 (N, 3, 32, 47)  -- same layout src/backend/app.py uses
     mask.npy        uint8  (N, 32, 47)      -- 1 = joint detected, 0 = missing
     manifest.csv    idx, video_path, class_id, signer_id, n_frames,
-                     frac_frames_with_pose, frac_frames_with_any_hand
+                     n_sampled_ok, frac_frames_with_pose,
+                     frac_frames_with_left_hand, frac_frames_with_right_hand,
+                     frac_frames_with_any_hand
+                     (n_sampled_ok == 0 means the video failed to decode at
+                     all, e.g. a truncated/corrupted file -- "moov atom not
+                     found" and similar cv2/ffmpeg errors leave every sampled
+                     frame unread, so frac_frames_with_pose is also 0 for
+                     these. dataset.py drops such rows before splitting;
+                     see its --min-hand-frac / drop_undetected_samples.)
     mismatches.csv  video_path, folder_class_id, filename_class_id
                      (written whenever a filename's embedded class id disagrees
                      with the folder it's found in; see --strict)
@@ -553,7 +561,10 @@ def main(argv: Optional[list[str]] = None) -> int:
                     "class_id": item.class_id,
                     "signer_id": item.signer_id,
                     "n_frames": stats["n_frames"],
+                    "n_sampled_ok": stats["n_sampled_ok"],
                     "frac_frames_with_pose": stats["frac_frames_with_pose"],
+                    "frac_frames_with_left_hand": stats["frac_frames_with_left_hand"],
+                    "frac_frames_with_right_hand": stats["frac_frames_with_right_hand"],
                     "frac_frames_with_any_hand": stats["frac_frames_with_any_hand"],
                 }
             )
@@ -583,7 +594,10 @@ def main(argv: Optional[list[str]] = None) -> int:
                 "class_id",
                 "signer_id",
                 "n_frames",
+                "n_sampled_ok",
                 "frac_frames_with_pose",
+                "frac_frames_with_left_hand",
+                "frac_frames_with_right_hand",
                 "frac_frames_with_any_hand",
             ],
         )
