@@ -7,11 +7,17 @@ Output: "logits", float32, (N, num_classes) -- raw logits, not softmax
         (softmax/top-k/TTA-mirror averaging are inference-time concerns,
         not part of the exported graph).
 
-Always runs a PyTorch-vs-onnxruntime parity check after exporting (on a
-random-noise input and a "real-shaped" input in the actual normalized
-coordinate range, both with more than one batch element to also exercise
-the dynamic batch axis) and refuses to leave a mismatched model.onnx in
-place if the check fails.
+Uses the TorchScript exporter (dynamo=False), not PyTorch's newer
+dynamo=True default (as of PyTorch 2.9) -- the dynamo exporter needs the
+optional `onnxscript` package, which isn't in requirements.txt, and our
+LSTM + dynamic batch axis export fine under the TorchScript path (see the
+parity check below).
+
+Always runs a PyTorch-vs-onnxruntime parity check after exporting, at
+batch sizes 1, 2, and 4 (random-noise and "real-shaped" [0,1]-uniform
+inputs) so the dynamic batch axis is actually exercised, not just assumed
+to work, and refuses to leave a mismatched model.onnx in place if the
+check fails.
 
 Usage:
     python export_onnx.py --checkpoint-dir runs/full_model --out runs/full_model/model.onnx
@@ -27,6 +33,8 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import onnx
+import onnxruntime as ort
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -81,12 +89,19 @@ def export(model: torch.nn.Module, out_path: Path) -> None:
         output_names=["logits"],
         dynamic_axes={"input": {0: "batch"}, "logits": {0: "batch"}},
         opset_version=OPSET,
+        # As of PyTorch 2.9, torch.onnx.export defaults to the dynamo=True
+        # exporter, which requires the optional `onnxscript` package (not in
+        # requirements.txt) and fails with "ModuleNotFoundError: No module
+        # named 'onnxscript'" if it's missing. Pin explicitly to the
+        # TorchScript exporter (dynamo=False) instead of adding that
+        # dependency -- it handles our LSTM + dynamic batch axis fine (see
+        # the parity check below) and every PyTorch version we care about
+        # here (this repo's local torch and Colab's) supports this kwarg.
+        dynamo=False,
     )
 
 
 def parity_check(model: torch.nn.Module, onnx_path: Path) -> bool:
-    import onnxruntime as ort
-
     session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
     all_ok = True
 
@@ -133,12 +148,17 @@ def main(argv=None) -> int:
         return 2
     out_path = Path(args.out) if args.out else fold_dir / "model.onnx"
 
+    print(f"torch version: {torch.__version__}")
+    print(f"onnx version: {onnx.__version__}")
+    print(f"onnxruntime version: {ort.__version__}")
+
     model, config, _label_map_json = load_checkpoint(fold_dir)
     print(f"Loaded checkpoint from {fold_dir} (split_mode={config['split_mode']}, "
           f"cnn_hidden={config['cnn_hidden']}, lstm_hidden={config['lstm_hidden']})")
 
     export(model, out_path)
-    print(f"Exported ONNX (opset {OPSET}) -> {out_path}")
+    size_mb = out_path.stat().st_size / (1024 * 1024)
+    print(f"Exported ONNX (opset {OPSET}) -> {out_path} ({size_mb:.2f} MB)")
 
     print("Running PyTorch-vs-onnxruntime parity check...")
     ok = parity_check(model, out_path)
