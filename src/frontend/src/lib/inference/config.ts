@@ -31,14 +31,18 @@ export const INFERENCE_CONFIG = {
     minAnyHandFrac: 0.3,
     /** "close" if the target is within the top-K (and CLOSE_MIN is met) but not accepted as correct. */
     closeTopK: 3,
-    // Confidence gates on the averaged (TTA) softmax probabilities. PLACEHOLDERS — calibrate with
-    // scripts/calibrate_thresholds.py on held-out signers before trusting them.
+    // Confidence gates on the averaged (TTA) softmax probabilities. Calibrated on 3,684 held-out predictions
+    // (15 config-f signer_kfold folds, TTA mirror) with scripts/calibrate_thresholds.py; sweep tables and reasoning
+    // in RESULTS.md ("Grading thresholds"). The calibration script suggested CORRECT 0.50 / CLOSE 0.05 /
+    // CONFUSION 0.75; CLOSE_MIN was raised to 0.10 by hand (false-close 0.8% vs 1.2%) so random movement doesn't
+    // easily reach "Almost". Genuine attempts with the suggested values: correct 79.2%, close 13.9%, wrongly
+    // named 1.9%, not quite 5.0% (with the values below: 79.2 / 12.4 / 2.5 / 5.9). Fluent held-out signers only.
     /** correct: target is top-1 AND its probability >= this. */
-    CORRECT_MIN: 0.4,
+    CORRECT_MIN: 0.5,
     /** close: target in top-K AND its probability >= this. */
-    CLOSE_MIN: 0.15,
+    CLOSE_MIN: 0.1,
     /** confident confusion: top-1 != target AND top-1 probability >= this -> we name the word. */
-    CONFUSION_MIN: 0.6,
+    CONFUSION_MIN: 0.75,
   },
 
   // --- Live framing checks (hints only; never block recording) ------------
@@ -60,4 +64,5 @@ export const INFERENCE_CONFIG = {
   uploadAssumedFps: 30,
 } as const;
 
-export type GradingConfig = typeof INFERENCE_CONFIG.grading;
+/** Widened to `number` so callers/tests can supply their own thresholds. */
+export type GradingConfig = { [K in keyof typeof INFERENCE_CONFIG.grading]: number };

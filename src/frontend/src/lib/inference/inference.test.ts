@@ -161,43 +161,54 @@ describe("landmark layout + grading", () => {
   };
   const ok = { pose: 1, anyHand: 1, leftHand: 1, rightHand: 1 };
   const G = INFERENCE_CONFIG.grading;
+  /** Fixed thresholds so the boundary cases below don't move when the calibrated config changes. */
+  const TEST_CFG = { ...G, CORRECT_MIN: 0.4, CLOSE_MIN: 0.15, CONFUSION_MIN: 0.6 };
 
-  it("thresholds live in config with the agreed starting values", () => {
-    expect([G.CORRECT_MIN, G.CLOSE_MIN, G.CONFUSION_MIN]).toEqual([0.4, 0.15, 0.6]);
+  it("thresholds live in config with the calibrated values", () => {
+    expect([G.CORRECT_MIN, G.CLOSE_MIN, G.CONFUSION_MIN]).toEqual([0.5, 0.1, 0.75]);
     expect(INFERENCE_CONFIG.landmarkerDelegate).toBe("CPU");
   });
 
+  it("calibrated defaults: boundaries at 0.50 / 0.10 / 0.75", () => {
+    const g = (e: Record<number, number>) => gradePrediction(P(e), d2o, 101, ok).status;
+    expect(g({ 1: 0.5 })).toBe("correct");
+    expect(g({ 1: 0.49 })).toBe("close");
+    expect(g({ 2: 0.6, 3: 0.2, 1: 0.1 })).toBe("close");
+    expect(g({ 2: 0.6, 3: 0.2, 4: 0.09, 1: 0.05 })).toBe("incorrect");
+    expect(g({ 2: 0.75, 1: 0.02 })).toBe("confused");
+  });
+
   it("not_detected when pose <60% or any-hand <30% (with the reason); not an attempt", () => {
-    const pose = gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, pose: 0.59 });
+    const pose = gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, pose: 0.59 }, TEST_CFG);
     expect(pose).toMatchObject({ status: "not_detected", reason: "pose", countsAsAttempt: false, countsAsMiss: false });
-    const hands = gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, anyHand: 0.29 });
+    const hands = gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, anyHand: 0.29 }, TEST_CFG);
     expect(hands).toMatchObject({ status: "not_detected", reason: "hands", countsAsAttempt: false });
-    expect(gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, pose: 0.6, anyHand: 0.3 }).status).toBe("correct");
+    expect(gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, pose: 0.6, anyHand: 0.3 }, TEST_CFG).status).toBe("correct");
   });
 
   it("correct needs top-1 AND probability >= CORRECT_MIN", () => {
-    expect(gradePrediction(P({ 1: 0.4 }), d2o, 101, ok).status).toBe("correct");
+    expect(gradePrediction(P({ 1: 0.4 }), d2o, 101, ok, TEST_CFG).status).toBe("correct");
     // top-1 but under CORRECT_MIN (0.39): falls to close (>= CLOSE_MIN)
-    expect(gradePrediction(P({ 1: 0.39 }), d2o, 101, ok).status).toBe("close");
+    expect(gradePrediction(P({ 1: 0.39 }), d2o, 101, ok, TEST_CFG).status).toBe("close");
   });
 
   it("close: target in top-3 and p >= CLOSE_MIN, not a miss", () => {
-    const g = gradePrediction(P({ 2: 0.5, 3: 0.2, 1: 0.15 }), d2o, 101, ok);
+    const g = gradePrediction(P({ 2: 0.5, 3: 0.2, 1: 0.15 }), d2o, 101, ok, TEST_CFG);
     expect(g).toMatchObject({ status: "close", top1: 102, countsAsMiss: false, countsAsAttempt: true });
     // in top-3 but too improbable -> not close
-    expect(gradePrediction(P({ 2: 0.5, 3: 0.3, 1: 0.14 }), d2o, 101, ok).status).not.toBe("close");
+    expect(gradePrediction(P({ 2: 0.5, 3: 0.3, 1: 0.14 }), d2o, 101, ok, TEST_CFG).status).not.toBe("close");
     // p >= CLOSE_MIN but outside the top-3 -> not close
-    expect(gradePrediction(P({ 2: 0.3, 3: 0.25, 4: 0.2, 1: 0.16 }), d2o, 101, ok).status).not.toBe("close");
+    expect(gradePrediction(P({ 2: 0.3, 3: 0.25, 4: 0.2, 1: 0.16 }), d2o, 101, ok, TEST_CFG).status).not.toBe("close");
   });
 
   it("confused: wrong top-1 with p >= CONFUSION_MIN names the word and is a miss", () => {
-    const g = gradePrediction(P({ 2: 0.6, 1: 0.05 }), d2o, 101, ok);
+    const g = gradePrediction(P({ 2: 0.6, 1: 0.05 }), d2o, 101, ok, TEST_CFG);
     expect(g).toMatchObject({ status: "confused", top1: 102, countsAsMiss: true });
-    expect(gradePrediction(P({ 2: 0.59, 1: 0.05 }), d2o, 101, ok).status).toBe("incorrect");
+    expect(gradePrediction(P({ 2: 0.59, 1: 0.05 }), d2o, 101, ok, TEST_CFG).status).toBe("incorrect");
   });
 
   it("incorrect otherwise: counts as a miss, no word named", () => {
-    const g = gradePrediction(P({ 2: 0.3, 3: 0.2, 4: 0.15, 1: 0.01 }), d2o, 101, ok);
+    const g = gradePrediction(P({ 2: 0.3, 3: 0.2, 4: 0.15, 1: 0.01 }), d2o, 101, ok, TEST_CFG);
     expect(g).toMatchObject({ status: "incorrect", countsAsMiss: true, countsAsAttempt: true });
     const word = (id: number) => `word${id}`;
     expect(feedbackMessage(g, word, 101)).toBe("Not quite — watch the example and try again.");
@@ -205,7 +216,7 @@ describe("landmark layout + grading", () => {
   });
 
   it("order of checks follows the spec: close beats confused when the target is in the top-3", () => {
-    expect(gradePrediction(P({ 2: 0.7, 1: 0.2 }), d2o, 101, ok).status).toBe("close");
+    expect(gradePrediction(P({ 2: 0.7, 1: 0.2 }), d2o, 101, ok, TEST_CFG).status).toBe("close");
   });
 
   it("messages", () => {
