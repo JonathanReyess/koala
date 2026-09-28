@@ -1,0 +1,30 @@
+# Requirements for the offline pipeline: extract_landmarks.py, dataset.py,
+# train.py, evaluate.py, scripts/smoke_test_colab.py.
+#
+# This is separate from src/backend/requirements.txt (the FastAPI deployment,
+# which pins an older torch/mediapipe combo for its own CPU inference box).
+#
+# mediapipe is pinned to the exact version verified working end-to-end on
+# Colab (Python 3.13) via scripts/smoke_test_colab.py: HolisticLandmarker
+# loaded, result fields matched result_to_47pt()'s assumptions
+# (left_hand_landmarks / right_hand_landmarks / pose_landmarks etc.), and
+# features/mask came out as (3, 32, 47) / (32, 47) with no NaNs.
+#
+# IMPORTANT: PR 3's browser-side extraction (@mediapipe/tasks-vision) must
+# use the *same* HolisticLandmarker model/version as this pin, or the
+# features the model sees at inference time (browser) won't match what it
+# was trained on (this file). If you bump this, bump PR 3's
+# @mediapipe/tasks-vision version to match and re-run
+# scripts/smoke_test_colab.py before re-extracting.
+mediapipe==0.10.35
+
+torch>=2.3
+numpy
+pandas
+scikit-learn
+opencv-python
+tqdm
+
+# export_onnx.py
+onnx
+onnxruntime

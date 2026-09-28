@@ -1,0 +1,108 @@
+{
+  "$comment": "Machine-readable preprocessing spec for the TypeScript/browser port (PR 3). Human-readable companion: docs/PREPROCESSING.md. Python reference implementation: extract_landmarks.py (landmark extraction, frame sampling) + transforms.py (normalize_body, mirror_clip). Golden test vectors generated against this spec by scripts/generate_golden_vectors.py.",
+  "spec_version": "1.0.0",
+  "production_recipe": "config f",
+  "model": {
+    "input_name": "input",
+    "input_shape": [ "batch", 3, 32, 47 ],
+    "input_dtype": "float32",
+    "input_channel_order": [ "x", "y", "z" ],
+    "output_name": "logits",
+    "output_shape": [ "batch", "num_classes" ],
+    "output_is_raw_logits_not_softmax": true,
+    "opset": 17,
+    "note": "num_classes and the dense-index <-> original-class-id mapping come from that checkpoint's label_map.json, not from this spec -- they depend on which classes were in the training data, not on the preprocessing steps below."
+  },
+  "landmark_layout": {
+    "total_joints": 47,
+    "groups": [
+      {
+        "name": "left_hand",
+        "indices": [0, 20],
+        "indices_inclusive": true,
+        "count": 21,
+        "source": "MediaPipe Hand landmarks, in MediaPipe's own landmark order (0 = wrist)",
+        "wrist_index_within_group": 0
+      },
+      {
+        "name": "right_hand",
+        "indices": [21, 41],
+        "indices_inclusive": true,
+        "count": 21,
+        "source": "MediaPipe Hand landmarks, in MediaPipe's own landmark order (0 = wrist)",
+        "wrist_index_within_group": 0
+      },
+      {
+        "name": "pose",
+        "indices": [42, 46],
+        "indices_inclusive": true,
+        "count": 5,
+        "source": "5 selected MediaPipe Pose (BlazePose, 33-point) landmarks",
+        "joints": [
+          { "index": 42, "blazepose_index": 0, "name": "nose" },
+          { "index": 43, "blazepose_index": 11, "name": "left_shoulder" },
+          { "index": 44, "blazepose_index": 12, "name": "right_shoulder" },
+          { "index": 45, "blazepose_index": 13, "name": "left_elbow" },
+          { "index": 46, "blazepose_index": 14, "name": "right_elbow" }
+        ]
+      }
+    ],
+    "coordinate_units": "MediaPipe's own normalized landmark coordinates: x, y in [0, 1] relative to the input frame's width/height; z roughly on the same scale, relative depth (MediaPipe's own convention, hip-depth-relative for Pose/Holistic) -- NOT re-normalized to a fixed physical unit before normalize_body is applied."
+  },
+  "frame_sampling": {
+    "sequence_length": 32,
+    "method": "evenly spaced sample indices across the whole clip, from the first to the last frame inclusive",
+    "formula": "index[i] = floor( i * (total_frames - 1) / (sequence_length - 1) )  for i = 0 .. sequence_length - 1",
+    "rounding": "truncate toward zero (NOT round-to-nearest). Verified against numpy: np.linspace(0, total_frames - 1, sequence_length, dtype=int) truncates the float linspace result, e.g. np.linspace(0, 2, 5, dtype=int) == [0, 0, 1, 1, 2], not [0, 1, 1, 2, 2].",
+    "edge_case_total_frames_le_0": "if total_frames <= 0, sample list is empty (extract_landmarks.py returns an all-zero/all-missing clip in this case; shouldn't occur for a real recorded clip)."
+  },
+  "mask_semantics": {
+    "shape": [32, 47],
+    "dtype": "uint8 (0 or 1)",
+    "meaning": "1 = this joint was detected by MediaPipe in this sampled frame; 0 = not detected (and that joint's x/y/z are written as exactly 0.0 in the raw landmarks array for that frame -- the mask is what distinguishes 'detected at the origin' from 'not detected', not the coordinate value itself).",
+    "granularity": "left_hand and right_hand are each set as a whole 21-joint block per frame (MediaPipe's hand detector either finds a whole hand or it doesn't -- there's no partial-hand detection in this pipeline). The 5 pose joints are likewise all set together per frame, since they all come from the same single pose-detection result."
+  },
+  "normalize_body": {
+    "applied": "always, as part of the production recipe (config f) -- deterministic, not random, applied identically to every clip (train/val/test/inference), BEFORE any augmentation/TTA step below.",
+    "reference_frames": "only frames where BOTH left_shoulder (index 43) and right_shoulder (index 44) are detected (mask == 1 for both) contribute to the two statistics below. If NO frame in the clip has both shoulders detected, normalize_body is a no-op (the clip's raw landmarks pass through unchanged) -- there's no body frame to normalize into.",
+    "mid_shoulder_point": {
+      "definition": "mean, over reference frames only, of ((left_shoulder_xyz + right_shoulder_xyz) / 2) -- a single (x, y, z) 3-vector for the whole clip, not per-frame.",
+      "applied_as": "subtracted from every joint's (x, y, z) in every frame of the clip (not just reference frames)."
+    },
+    "shoulder_width": {
+      "definition": "mean, over reference frames only, of the 3D Euclidean distance between left_shoulder and right_shoulder in that frame -- a single scalar for the whole clip.",
+      "applied_as": "every joint's (x, y, z), after subtracting mid_shoulder_point, is divided by this scalar (all three axes divided by the same scalar -- this is NOT independently normalizing x, y, z ranges).",
+      "epsilon_guard": "max(shoulder_width, 1e-6) -- guards against division by (near-)zero if the clip's shoulders are degenerate."
+    },
+    "missing_joint_handling": "after normalizing, any (frame, joint) with mask == 0 is forced to exactly (0.0, 0.0, 0.0) -- NOT left at '-mid_shoulder_point / shoulder_width' (which would make a missing joint look like a detected joint sitting exactly at the body center). The mask itself is unchanged by normalize_body.",
+    "python_reference": "transforms.normalize_body()"
+  },
+  "mirror_tta": {
+    "when_used": "inference-time test-time augmentation only (the production recipe's --tta-mirror). NOT used during training data augmentation in the exported model's forward pass -- mirror-aug at train time uses the identical transform but is a stochastic (p=0.5 per sample) training augmentation, not something the browser needs to implement at all for inference.",
+    "order_relative_to_normalize_body": "mirroring is applied AFTER normalize_body, to the already-normalized coordinates -- not to the raw landmarks.",
+    "transform": {
+      "reflect_axis": "x only (y and z are left unchanged)",
+      "reflect_point_per_frame": {
+        "primary": "if both shoulders (indices 43, 44) are detected in this frame: (left_shoulder_x + right_shoulder_x) / 2, computed for that frame alone.",
+        "fallback_1": "if not: the clip's mean of that same per-frame value, averaged over whichever frames in the clip DO have both shoulders detected.",
+        "fallback_2": "if NO frame in the clip has both shoulders detected: 0.5 (reflect about the frame's own horizontal center -- a least-assumption fallback; note this is in NORMALIZED-BODY coordinate space at this point, not raw [0,1] pixel space, since mirroring happens after normalize_body)."
+      },
+      "reflection_formula": "mirrored_x = 2 * reflect_point_x - original_x, applied per-frame using that frame's own reflect_point_x from the fallback chain above."
+    },
+    "slot_swaps_after_reflecting": [
+      { "swap": ["left_hand block (indices 0-20)", "right_hand block (indices 21-41)"], "note": "whole 21-joint blocks, coordinates AND mask both swapped together" },
+      { "swap": ["left_shoulder (43)", "right_shoulder (44)"], "note": "coordinates AND mask both swapped" },
+      { "swap": ["left_elbow (45)", "right_elbow (46)"], "note": "coordinates AND mask both swapped" }
+    ],
+    "unchanged": ["nose (42) -- a single joint, not paired, so it only gets reflected in x, never swapped with anything"],
+    "idempotent": "mirroring twice returns the exact original clip (verified in test_transforms.py) -- useful as a self-check when porting.",
+    "inference_combination": {
+      "rule": "run the model on BOTH the normalized original input AND the normalized+mirrored input, take softmax of each output separately, then AVERAGE THE TWO SOFTMAX PROBABILITY VECTORS (not the raw logits) -- then argmax/top-k on that averaged probability vector.",
+      "why_softmax_not_logits": "averaging raw logits from two different forward passes has no principled interpretation as a combined confidence; averaging probabilities does (it's the mixture-of-two-views prediction)."
+    },
+    "python_reference": "transforms.mirror_clip() for the transform; evaluate.py's evaluate_split(tta_mirror=True) for the inference-time combination."
+  },
+  "not_part_of_production_recipe": {
+    "trim_idle": "implemented in transforms.py and available via train.py/evaluate.py's --trim-idle flag, but explicitly dropped from the production recipe (config f) -- see RESULTS.md's Decisions section (no measured gain, made one diagnosed-outlier signer worse, extra complexity with no payoff). The browser/PR 3 does NOT need to implement idle-frame trimming."
+  }
+}
