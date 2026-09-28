@@ -18,6 +18,8 @@ import {
 import { loadModels, createHolisticLandmarker, LoadedModels } from "@/lib/inference/loader";
 import { gradeClip } from "@/lib/inference/pipeline";
 import { Grade } from "@/lib/inference/grading";
+import { feedbackMessage } from "@/lib/inference/messages";
+import { Switch } from "@/components/ui/switch";
 import { buildClip } from "@/lib/inference/preprocess";
 import { classIdToWord, isClassInModel, wordToClassId } from "@/lib/inference/labels";
 import { extractVideoMode, loadVideoElement } from "@/lib/inference/extract";
@@ -34,6 +36,7 @@ type FeedbackState =
   | "idle"
   | "correct"
   | "close"
+  | "confused"
   | "incorrect"
   | "processing"
   | "not_detected"
@@ -141,6 +144,8 @@ export const LearningCard = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Display-only: toggles a CSS flip on the preview (and skeleton canvas). MediaPipe and MediaRecorder read the
+  // unflipped camera pixels, so landmarks are identical either way (verified: nose x unchanged when toggling).
   const [isMirrored, setIsMirrored] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [models, setModels] = useState<LoadedModels | null>(null);
@@ -148,6 +153,24 @@ export const LearningCard = ({
   const [grade, setGrade] = useState<Grade | null>(null);
   const [cameraOn, setCameraOn] = useState(false);
   const [clipSource, setClipSource] = useState<"recorded" | "upload" | null>(null);
+  const debug = new URLSearchParams(location.search).get("debug") === "1";
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  // Skeleton overlay is opt-in; the choice is remembered per browser.
+  const [showTracking, setShowTracking] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("koala.showTracking") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const toggleTracking = (on: boolean) => {
+    setShowTracking(on);
+    try {
+      localStorage.setItem("koala.showTracking", on ? "1" : "0");
+    } catch {
+      /* storage unavailable: preference just isn't remembered */
+    }
+  };
   const showPerf = import.meta.env.DEV || new URLSearchParams(location.search).has("perf");
 
   const tracker = useLandmarkTracker({
@@ -156,7 +179,10 @@ export const LearningCard = ({
     landmarker: models?.landmarker ?? null,
     active: cameraOn && !videoFile,
     recording: isRecording,
+    drawOverlay: showTracking,
   });
+
+  const feedbackText = grade ? feedbackMessage(grade, (id) => classIdToWord(WORD_TO_ID_MAP, id), wordToClassId(WORD_TO_ID_MAP, word.toLowerCase())) : "";
 
   const ID_TO_WORD_MAP: { [id: string]: string } = Object.fromEntries(
     Object.entries(WORD_TO_ID_MAP).map(([word, id]) => [id, word])
@@ -214,6 +240,7 @@ export const LearningCard = ({
     setIsReadyToSubmit(false);
     setCountdown(null);
     setGrade(null);
+    setDebugInfo(null);
     setClipSource(null);
   };
 
@@ -230,14 +257,26 @@ export const LearningCard = ({
       return;
     }
     try {
-      const result = await gradeClip(models, clip, targetId);
+      const result = await gradeClip(models, clip, targetId, { alwaysPredict: debug });
       const g = result.grade;
       setGrade(g);
+      if (debug) {
+        const pct = (x: number) => `${(x * 100).toFixed(0)}%`;
+        const f = result.fractions;
+        const text =
+          `top 5: ` +
+          result.top5.map((r) => `${classIdToWord(WORD_TO_ID_MAP, r.classId)} ${(r.prob * 100).toFixed(1)}%`).join(", ") +
+          `\nframes with pose ${pct(f.pose)}, any hand ${pct(f.anyHand)} (left ${pct(f.leftHand)}, right ${pct(f.rightHand)})` +
+          `\ngrade: ${g.status}${g.reason ? ` (${g.reason})` : ""}, target p=${g.targetProb?.toFixed(3) ?? "—"}`;
+        setDebugInfo(text);
+        console.log("[koala:debug]", { grade: g, top5: result.top5, fractions: f });
+      }
       // not_detected: not the user's fault, no attempt. close: neutral (neither miss nor credit).
       if (g.status === "not_detected") setFeedback("not_detected");
       else if (g.status === "close") setFeedback("close");
       else {
         setFeedback(g.status);
+        // correct -> credit; confused/incorrect -> miss.
         if (onFeedback) onFeedback(word, g.status === "correct");
       }
       const total = performance.now() - startedAt;
@@ -373,7 +412,15 @@ export const LearningCard = ({
             }`}
           />
 
-          {/* Live framing hint, before and during recording */}
+          {/* Tracking overlay toggle (off by default, remembered) */}
+          {modelStatus === "ready" && !videoFile && (
+            <label className="absolute top-3 right-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow text-xs font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
+              <Switch checked={showTracking} onCheckedChange={toggleTracking} aria-label="Show tracking" />
+              Show tracking
+            </label>
+          )}
+
+          {/* Live framing hint, before and during recording (body only; never about hands) */}
           {cameraOn && !videoFile && modelStatus === "ready" && feedback === "idle" && countdown === null && (
             <div className="absolute top-3 inset-x-3 flex justify-center pointer-events-none">
               <div
@@ -397,7 +444,7 @@ export const LearningCard = ({
                     ? isRecording
                       ? "Looking good — keep signing."
                       : "You're all set — press Start Recording."
-                    : "Get set: both shoulders and a hand in view.")}
+                    : "Getting a good look at you…")}
               </div>
             </div>
           )}
@@ -443,15 +490,11 @@ export const LearningCard = ({
             </div>
           )}
 
-          {feedback === "incorrect" && (
+          {(feedback === "incorrect" || feedback === "confused") && (
             <div className="absolute inset-0 flex items-center justify-center bg-red-500/20 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4">
-                <XCircle className="w-12 h-12 text-red-600" />
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  {grade?.top1 !== undefined
-                    ? `That looked like “${classIdToWord(WORD_TO_ID_MAP, grade.top1)}”. Try again!`
-                    : "Try again!"}
-                </span>
+              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
+                <XCircle className="w-12 h-12 text-red-600 shrink-0" />
+                <span className="text-xl font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
               </div>
             </div>
           )}
@@ -460,9 +503,7 @@ export const LearningCard = ({
             <div className="absolute inset-0 flex items-center justify-center bg-green-500/20 backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4">
                 <CheckCircle className="w-12 h-12 text-green-600" />
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">
-                  Perfect!
-                </span>
+                <span className="text-2xl font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
               </div>
             </div>
           )}
@@ -471,10 +512,7 @@ export const LearningCard = ({
             <div className="absolute inset-0 flex items-center justify-center bg-amber-500/20 backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
                 <CircleAlert className="w-12 h-12 text-amber-500 shrink-0" />
-                <span className="text-xl font-semibold text-gray-900 dark:text-white">
-                  Almost — it looked a bit like “
-                  {grade?.top1 !== undefined ? classIdToWord(WORD_TO_ID_MAP, grade.top1) : "another sign"}”.
-                </span>
+                <span className="text-xl font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
               </div>
             </div>
           )}
@@ -483,10 +521,7 @@ export const LearningCard = ({
             <div className="absolute inset-0 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm">
               <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
                 <AlertTriangle className="w-12 h-12 text-yellow-600 shrink-0" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Make sure both hands and shoulders are in frame, then try
-                  again.
-                </span>
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
               </div>
             </div>
           )}
@@ -525,6 +560,12 @@ export const LearningCard = ({
             </svg>
           </button>
         </div>
+
+        {debug && debugInfo && (
+          <pre className="text-xs bg-gray-100 dark:bg-gray-800 rounded-lg p-3 whitespace-pre-wrap font-mono">
+            {debugInfo}
+          </pre>
+        )}
 
         <div className="space-y-3">
           {!isRecording && !isReadyToSubmit && (
@@ -587,6 +628,7 @@ export const LearningCard = ({
                   setVideoFile(null);
                   setFeedback("idle");
                   setGrade(null);
+                  setDebugInfo(null);
                   setClipSource(null);
                   setIsReadyToSubmit(false);
                   startCamera();

@@ -13,6 +13,8 @@ interface Options {
   active: boolean;
   /** Frames are appended to the recording buffer while this is true. */
   recording: boolean;
+  /** Draw the skeleton overlay (tracking + framing checks run regardless). */
+  drawOverlay: boolean;
 }
 
 export interface TrackerState {
@@ -26,10 +28,12 @@ export interface TrackerState {
  * Runs HolisticLandmarker in VIDEO mode on the live camera, draws the skeleton
  * overlay, evaluates framing, and buffers per-frame 47-point landmarks while recording.
  */
-export function useLandmarkTracker({ videoRef, canvasRef, landmarker, active, recording }: Options) {
+export function useLandmarkTracker({ videoRef, canvasRef, landmarker, active, recording, drawOverlay }: Options) {
   const recordedRef = useRef<FrameLandmarks[]>([]);
   const recordingRef = useRef(recording);
   recordingRef.current = recording;
+  const drawOverlayRef = useRef(drawOverlay);
+  drawOverlayRef.current = drawOverlay;
   const [state, setState] = useState<TrackerState>({ hint: null, framingOk: false, fps: 0 });
 
   const startRecording = useCallback(() => {
@@ -96,7 +100,13 @@ export function useLandmarkTracker({ videoRef, canvasRef, landmarker, active, re
       else if (now - issueSince.at >= INFERENCE_CONFIG.framing.hintDebounceMs) shownHint = FRAMING_HINTS[top];
 
       if (canvas) {
-        drawSkeleton(canvas, frame, video.videoWidth, video.videoHeight, framing.ok ? "#22c55e" : "#f59e0b");
+        drawSkeleton(
+          canvas,
+          drawOverlayRef.current ? frame : null,
+          video.videoWidth,
+          video.videoHeight,
+          framing.ok ? "#22c55e" : "#f59e0b",
+        );
       }
       if (now - lastUiUpdate > 250) {
         lastUiUpdate = now;

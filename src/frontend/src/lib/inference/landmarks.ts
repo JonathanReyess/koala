@@ -43,7 +43,8 @@ export function resultTo47(result: HolisticResultLike): FrameLandmarks {
 
 // --- Live framing checks -----------------------------------------------------
 
-export type FramingIssue = "no_body" | "shoulders" | "no_hands" | "too_small";
+/** Live issues only cover the body (never hands — see config.framing). */
+export type FramingIssue = "no_body" | "shoulders" | "face" | "too_small";
 
 export interface FramingStatus {
   ok: boolean;
@@ -53,12 +54,12 @@ export interface FramingStatus {
 export const FRAMING_HINTS: Record<FramingIssue, string> = {
   no_body: "We can't see you yet — step into the frame.",
   shoulders: "Move back a little so both shoulders are in view.",
-  no_hands: "Raise your hand(s) into the frame.",
-  too_small: "Move a bit closer to the camera.",
+  face: "Make sure your face is in view.",
+  too_small: "You look a bit far away — move closer to the camera.",
 };
 
 /** Priority order: the first issue is the one shown as the hint. */
-const ISSUE_ORDER: FramingIssue[] = ["no_body", "shoulders", "too_small", "no_hands"];
+const ISSUE_ORDER: FramingIssue[] = ["no_body", "shoulders", "face", "too_small"];
 
 export function checkFraming(frame: FrameLandmarks): FramingStatus {
   const { minShoulderWidth, edgeMargin } = INFERENCE_CONFIG.framing;
@@ -72,16 +73,16 @@ export function checkFraming(frame: FrameLandmarks): FramingStatus {
 
   if (!has(NOSE) && !has(LEFT_SHOULDER) && !has(RIGHT_SHOULDER)) {
     issues.add("no_body");
-  } else if (!(has(LEFT_SHOULDER) && has(RIGHT_SHOULDER) && inFrame(LEFT_SHOULDER) && inFrame(RIGHT_SHOULDER))) {
-    issues.add("shoulders");
   } else {
-    const dx = frame.coords[LEFT_SHOULDER * 3] - frame.coords[RIGHT_SHOULDER * 3];
-    const dy = frame.coords[LEFT_SHOULDER * 3 + 1] - frame.coords[RIGHT_SHOULDER * 3 + 1];
-    if (Math.hypot(dx, dy) < minShoulderWidth) issues.add("too_small");
+    const shouldersOk = has(LEFT_SHOULDER) && has(RIGHT_SHOULDER) && inFrame(LEFT_SHOULDER) && inFrame(RIGHT_SHOULDER);
+    if (!shouldersOk) issues.add("shoulders");
+    else {
+      const dx = frame.coords[LEFT_SHOULDER * 3] - frame.coords[RIGHT_SHOULDER * 3];
+      const dy = frame.coords[LEFT_SHOULDER * 3 + 1] - frame.coords[RIGHT_SHOULDER * 3 + 1];
+      if (Math.hypot(dx, dy) < minShoulderWidth) issues.add("too_small");
+    }
+    if (!has(NOSE) || !inFrame(NOSE)) issues.add("face");
   }
-  let anyHand = false;
-  for (let j = 0; j < 42; j++) if (frame.mask[j]) { anyHand = true; break; }
-  if (!anyHand) issues.add("no_hands");
 
   const ordered = ISSUE_ORDER.filter((i) => issues.has(i));
   return { ok: ordered.length === 0, issues: ordered };
@@ -90,19 +91,27 @@ export function checkFraming(frame: FrameLandmarks): FramingStatus {
 export interface DetectionFractions {
   pose: number;
   anyHand: number;
+  leftHand: number;
+  rightHand: number;
 }
 
 /** Fractions over the (already sampled) clip frames — same stats as manifest.csv. */
 export function detectionFractions(mask: Uint8Array, frames: number): DetectionFractions {
   let pose = 0;
+  let left = 0;
+  let right = 0;
   let hand = 0;
   for (let t = 0; t < frames; t++) {
-    let p = 0;
-    let h = 0;
-    for (let j = 0; j < 42; j++) if (mask[t * J + j]) { h = 1; break; }
-    for (let j = 42; j < J; j++) if (mask[t * J + j]) { p = 1; break; }
+    const row = t * J;
+    const p = mask.subarray(row + 42, row + J).some((m) => m) ? 1 : 0;
+    const lh = mask.subarray(row, row + 21).some((m) => m) ? 1 : 0;
+    const rh = mask.subarray(row + 21, row + 42).some((m) => m) ? 1 : 0;
     pose += p;
-    hand += h;
+    left += lh;
+    right += rh;
+    hand += lh || rh ? 1 : 0;
   }
-  return frames ? { pose: pose / frames, anyHand: hand / frames } : { pose: 0, anyHand: 0 };
+  return frames
+    ? { pose: pose / frames, anyHand: hand / frames, leftHand: left / frames, rightHand: right / frames }
+    : { pose: 0, anyHand: 0, leftHand: 0, rightHand: 0 };
 }

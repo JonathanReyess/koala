@@ -13,7 +13,9 @@ import {
 } from "./preprocess";
 import { runTta, softmax } from "./model";
 import { gradePrediction } from "./grading";
-import { detectionFractions, resultTo47 } from "./landmarks";
+import { checkFraming, detectionFractions, resultTo47 } from "./landmarks";
+import { feedbackMessage } from "./messages";
+import { INFERENCE_CONFIG } from "./config";
 
 const root = resolve(__dirname, "../../..");
 const golden = JSON.parse(readFileSync(resolve(root, "src/test/fixtures/golden_vectors.json"), "utf8"));
@@ -148,32 +150,108 @@ describe("landmark layout + grading", () => {
   });
 
   const d2o = (d: number) => d + 100;
-  const probs = (order: number[]) => {
-    const p = new Float64Array(10).fill(0.01);
-    order.forEach((d, r) => (p[d] = 0.5 - r * 0.1));
+  /** 10-class prob vector with the given (dense idx -> prob) entries; the rest share what's left. */
+  const P = (entries: Record<number, number>) => {
+    const p = new Float64Array(10);
+    const used = Object.values(entries).reduce((a, b) => a + b, 0);
+    const rest = 10 - Object.keys(entries).length;
+    p.fill((1 - used) / rest);
+    for (const [d, v] of Object.entries(entries)) p[Number(d)] = v;
     return p;
   };
-  const ok = { pose: 1, anyHand: 1 };
-  it("not_detected when pose <60% or any-hand <30%; not an attempt", () => {
-    for (const fr of [{ pose: 0.59, anyHand: 1 }, { pose: 1, anyHand: 0.29 }]) {
-      const g = gradePrediction(probs([1, 2, 3]), d2o, 101, fr);
-      expect(g.status).toBe("not_detected");
-      expect(g.countsAsAttempt).toBe(false);
+  const ok = { pose: 1, anyHand: 1, leftHand: 1, rightHand: 1 };
+  const G = INFERENCE_CONFIG.grading;
+
+  it("thresholds live in config with the agreed starting values", () => {
+    expect([G.CORRECT_MIN, G.CLOSE_MIN, G.CONFUSION_MIN]).toEqual([0.4, 0.15, 0.6]);
+    expect(INFERENCE_CONFIG.landmarkerDelegate).toBe("CPU");
+  });
+
+  it("not_detected when pose <60% or any-hand <30% (with the reason); not an attempt", () => {
+    const pose = gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, pose: 0.59 });
+    expect(pose).toMatchObject({ status: "not_detected", reason: "pose", countsAsAttempt: false, countsAsMiss: false });
+    const hands = gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, anyHand: 0.29 });
+    expect(hands).toMatchObject({ status: "not_detected", reason: "hands", countsAsAttempt: false });
+    expect(gradePrediction(P({ 1: 0.9 }), d2o, 101, { ...ok, pose: 0.6, anyHand: 0.3 }).status).toBe("correct");
+  });
+
+  it("correct needs top-1 AND probability >= CORRECT_MIN", () => {
+    expect(gradePrediction(P({ 1: 0.4 }), d2o, 101, ok).status).toBe("correct");
+    // top-1 but under CORRECT_MIN (0.39): falls to close (>= CLOSE_MIN)
+    expect(gradePrediction(P({ 1: 0.39 }), d2o, 101, ok).status).toBe("close");
+  });
+
+  it("close: target in top-3 and p >= CLOSE_MIN, not a miss", () => {
+    const g = gradePrediction(P({ 2: 0.5, 3: 0.2, 1: 0.15 }), d2o, 101, ok);
+    expect(g).toMatchObject({ status: "close", top1: 102, countsAsMiss: false, countsAsAttempt: true });
+    // in top-3 but too improbable -> not close
+    expect(gradePrediction(P({ 2: 0.5, 3: 0.3, 1: 0.14 }), d2o, 101, ok).status).not.toBe("close");
+    // p >= CLOSE_MIN but outside the top-3 -> not close
+    expect(gradePrediction(P({ 2: 0.3, 3: 0.25, 4: 0.2, 1: 0.16 }), d2o, 101, ok).status).not.toBe("close");
+  });
+
+  it("confused: wrong top-1 with p >= CONFUSION_MIN names the word and is a miss", () => {
+    const g = gradePrediction(P({ 2: 0.6, 1: 0.05 }), d2o, 101, ok);
+    expect(g).toMatchObject({ status: "confused", top1: 102, countsAsMiss: true });
+    expect(gradePrediction(P({ 2: 0.59, 1: 0.05 }), d2o, 101, ok).status).toBe("incorrect");
+  });
+
+  it("incorrect otherwise: counts as a miss, no word named", () => {
+    const g = gradePrediction(P({ 2: 0.3, 3: 0.2, 4: 0.15, 1: 0.01 }), d2o, 101, ok);
+    expect(g).toMatchObject({ status: "incorrect", countsAsMiss: true, countsAsAttempt: true });
+    const word = (id: number) => `word${id}`;
+    expect(feedbackMessage(g, word, 101)).toBe("Not quite — watch the example and try again.");
+    expect(feedbackMessage(g, word, 101)).not.toMatch(/word/);
+  });
+
+  it("order of checks follows the spec: close beats confused when the target is in the top-3", () => {
+    expect(gradePrediction(P({ 2: 0.7, 1: 0.2 }), d2o, 101, ok).status).toBe("close");
+  });
+
+  it("messages", () => {
+    const word = (id: number) => `word${id}`;
+    const g = (over: object) => ({ countsAsAttempt: true, countsAsMiss: false, ...over }) as never;
+    expect(feedbackMessage(g({ status: "confused", top1: 102 }), word, 101)).toBe("That looked like “word102”.");
+    expect(feedbackMessage(g({ status: "close", top1: 102 }), word, 101)).toBe("Almost — it looked a bit like “word102”.");
+    expect(feedbackMessage(g({ status: "close", top1: 101 }), word, 101)).not.toMatch(/word/);
+    expect(feedbackMessage(g({ status: "not_detected", reason: "hands" }), word)).toBe(
+      "I couldn't see your hands much — keep them in view while signing.",
+    );
+  });
+
+  it("live framing never warns about hands", () => {
+    const frame = (mask: number[], coords: Record<number, [number, number]>) => {
+      const m = new Uint8Array(J);
+      const c = new Float32Array(J * 3);
+      mask.forEach((j) => (m[j] = 1));
+      for (const [j, [x, y]] of Object.entries(coords)) {
+        c[Number(j) * 3] = x;
+        c[Number(j) * 3 + 1] = y;
+      }
+      return { coords: c, mask: m };
+    };
+    const body = { 42: [0.5, 0.3], 43: [0.6, 0.6], 44: [0.4, 0.6] } as Record<number, [number, number]>;
+    // no hands at all -> fine
+    expect(checkFraming(frame([42, 43, 44], body))).toEqual({ ok: true, issues: [] });
+    // too far away (shoulders 0.05 apart)
+    expect(checkFraming(frame([42, 43, 44], { ...body, 43: [0.525, 0.6], 44: [0.475, 0.6] })).issues).toEqual(["too_small"]);
+    // face missing
+    expect(checkFraming(frame([43, 44], body)).issues).toEqual(["face"]);
+    // shoulders missing
+    expect(checkFraming(frame([42], body)).issues).toContain("shoulders");
+    // nothing
+    expect(checkFraming(frame([], {})).issues).toEqual(["no_body"]);
+    for (const f of [frame([42, 43, 44], body), frame([], {}), frame([43, 44], body)]) {
+      expect(checkFraming(f).issues.join()).not.toMatch(/hand/);
     }
-    expect(gradePrediction(probs([1]), d2o, 101, { pose: 0.6, anyHand: 0.3 }).status).toBe("correct");
   });
-  it("correct / close / incorrect, with no class masking", () => {
-    expect(gradePrediction(probs([1, 2, 3]), d2o, 101, ok).status).toBe("correct");
-    const close = gradePrediction(probs([2, 3, 1]), d2o, 101, ok);
-    expect(close).toMatchObject({ status: "close", top1: 102, countsAsMiss: false });
-    const bad = gradePrediction(probs([2, 3, 4, 1]), d2o, 101, ok);
-    expect(bad).toMatchObject({ status: "incorrect", top1: 102, countsAsMiss: true });
-  });
-  it("detectionFractions counts frames with pose / any hand", () => {
+
+  it("detectionFractions counts frames with pose / any hand / each hand", () => {
     const mask = new Uint8Array(32 * J);
     for (let t = 0; t < 16; t++) mask[t * J + 43] = 1;
-    for (let t = 0; t < 8; t++) mask[t * J + 30] = 1;
-    expect(detectionFractions(mask, 32)).toEqual({ pose: 0.5, anyHand: 0.25 });
+    for (let t = 0; t < 8; t++) mask[t * J + 30] = 1; // right hand
+    for (let t = 4; t < 12; t++) mask[t * J + 3] = 1; // left hand
+    expect(detectionFractions(mask, 32)).toEqual({ pose: 0.5, anyHand: 12 / 32, leftHand: 0.25, rightHand: 0.25 });
     expect(softmax([0, 0]).reduce((a, b) => a + b)).toBeCloseTo(1);
   });
 });
