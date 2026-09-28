@@ -20,6 +20,8 @@ export const INFERENCE_CONFIG = {
 
   // --- Landmarker options (extract_landmarks.py default is 0.5) -----------
   minDetectionConfidence: 0.5,
+  /** Preferred MediaPipe delegate for the landmarker; falls back to CPU if GPU is unavailable. Override with ?delegate=gpu|cpu. */
+  landmarkerDelegate: "GPU" as "CPU" | "GPU",
 
   // --- Grading -------------------------------------------------------------
   grading: {

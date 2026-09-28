@@ -87,7 +87,9 @@ export async function extractVideoMode(
   const frames: FrameLandmarks[] = [];
   for (let k = 0; k < total; k++) {
     await seekTo(video, Math.min(k / fps, Math.max(0, video.duration - 1e-3)));
-    frames.push(resultTo47(landmarker.detectForVideo(video, Math.round((k * 1000) / fps))));
+    // +1: timestamps must be strictly increasing and a GPU warm-up probe may already have used 0.
+    const ts = Math.round((k * 1000) / fps) + 1;
+    frames.push(resultTo47(landmarker.detectForVideo(video, ts)));
   }
   return buildClip(frames);
 }

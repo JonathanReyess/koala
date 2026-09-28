@@ -13,6 +13,8 @@ export interface LoadTimings {
   landmarkerMs: number;
   totalMs: number;
   backend: string;
+  /** MediaPipe delegate actually in use for the live landmarker. */
+  delegate?: string;
 }
 
 export interface LoadedModels {
@@ -47,22 +49,56 @@ async function loadModel() {
   return { ort, session, labels, backend: providers[0] };
 }
 
-export async function createHolisticLandmarker(runningMode: "VIDEO" | "IMAGE") {
+export type Delegate = "GPU" | "CPU";
+
+/** `?delegate=gpu|cpu` overrides the config default (used for benchmarking). */
+export function preferredDelegate(): Delegate {
+  const q = new URLSearchParams(location.search).get("delegate")?.toLowerCase();
+  if (q === "gpu") return "GPU";
+  if (q === "cpu") return "CPU";
+  return INFERENCE_CONFIG.landmarkerDelegate;
+}
+
+/**
+ * Creates a HolisticLandmarker with the preferred delegate. If the GPU delegate is unavailable
+ * (creation throws, or a warm-up detection on a blank frame throws) it falls back to CPU (XNNPACK, the
+ * delegate Python extraction used). Returns which delegate is actually in use.
+ */
+export async function createHolisticLandmarker(
+  runningMode: "VIDEO" | "IMAGE",
+  delegate: Delegate = preferredDelegate(),
+): Promise<HolisticLandmarker & { delegateUsed?: Delegate }> {
   const { FilesetResolver, HolisticLandmarker } = await import("@mediapipe/tasks-vision");
   const fileset = await FilesetResolver.forVisionTasks(INFERENCE_CONFIG.mediapipeWasmDir);
   const conf = INFERENCE_CONFIG.minDetectionConfidence;
-  const make = (delegate: "GPU" | "CPU") =>
-    HolisticLandmarker.createFromOptions(fileset, {
-      baseOptions: { modelAssetPath: INFERENCE_CONFIG.holisticTaskUrl, delegate },
+  const make = async (d: Delegate) => {
+    const lm: HolisticLandmarker & { delegateUsed?: Delegate } = await HolisticLandmarker.createFromOptions(fileset, {
+      baseOptions: { modelAssetPath: INFERENCE_CONFIG.holisticTaskUrl, delegate: d },
       runningMode,
       minPoseDetectionConfidence: conf,
       minHandLandmarksConfidence: conf,
     });
-  // CPU (XNNPACK) delegate matches Python's Delegate.CPU; GPU only as a fallback if CPU init fails.
+    if (d === "GPU") {
+      // Creation can "succeed" on machines where the first inference then fails; probe once.
+      const probe = document.createElement("canvas");
+      probe.width = probe.height = 64;
+      try {
+        if (runningMode === "VIDEO") lm.detectForVideo(probe, 0);
+        else lm.detect(probe);
+      } catch (e) {
+        lm.close();
+        throw e;
+      }
+    }
+    lm.delegateUsed = d;
+    return lm;
+  };
+  if (delegate === "CPU") return make("CPU");
   try {
-    return await make("CPU");
-  } catch {
-    return make("GPU");
+    return await make("GPU");
+  } catch (e) {
+    console.warn("[koala] GPU delegate unavailable, falling back to CPU", e);
+    return make("CPU");
   }
 }
 
@@ -87,6 +123,7 @@ export function loadModels(): Promise<LoadedModels> {
         landmarkerMs: landmarker.ms,
         totalMs: performance.now() - t0,
         backend: m.backend,
+        delegate: landmarker.r.delegateUsed,
       };
       console.info("[koala] models loaded", timings);
       return { ort: m.ort, session: m.session, labels: m.labels, landmarker: landmarker.r, timings };
