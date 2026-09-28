@@ -10,6 +10,8 @@ import {
   Play,
   Pause,
   Loader,
+  AlertTriangle,
+  WifiOff,
 } from "lucide-react";
 
 interface LearningCardProps {
@@ -19,12 +21,28 @@ interface LearningCardProps {
   onFeedback?: (word: string, correct: boolean) => void;
 }
 
-type FeedbackState = "idle" | "correct" | "incorrect" | "processing";
+type FeedbackState =
+  | "idle"
+  | "correct"
+  | "incorrect"
+  | "processing"
+  | "not_detected"
+  | "error";
 
 interface VideoFile {
   blob: Blob;
   url: string;
 }
+
+const getApiUrl = (): string => {
+  const url = import.meta.env.VITE_API_URL;
+  if (!url) {
+    throw new Error(
+      "VITE_API_URL is not set. Create a .env file with VITE_API_URL=http://localhost:8000 (see .env.development) before running the app.",
+    );
+  }
+  return url;
+};
 
 export const getWordToIdMap = () => ({
   hi: "1",
@@ -136,10 +154,9 @@ export const LearningCard = ({
 
   useEffect(() => {
     const wakeUpBackend = async () => {
+      const apiUrl = getApiUrl();
       try {
-        const API_URL =
-          import.meta.env.VITE_API_URL || "http://34.239.230.9:8000";
-        await fetch(`${API_URL}/`);
+        await fetch(`${apiUrl}/`);
       } catch {
         console.log("Waking up backend...");
       }
@@ -189,22 +206,40 @@ export const LearningCard = ({
     try {
       const formData = new FormData();
       formData.append("video", videoBlob, "sign_video.webm");
-      const API_URL =
-        import.meta.env.VITE_API_URL || "http://34.239.230.9:8000";
 
-      const response = await fetch(`${API_URL}/predict`, {
+      const response = await fetch(`${getApiUrl()}/predict`, {
         method: "POST",
         body: formData,
       });
 
+      if (!response.ok) {
+        setFeedback("error");
+        return;
+      }
+
       const result = await response.json();
+
+      if (result.success === false && result.reason === "not_detected") {
+        // Not the user's fault for signing incorrectly — the camera/framing
+        // failed, so this must not count as a wrong attempt.
+        setFeedback("not_detected");
+        return;
+      }
+
+      if (result.success === false) {
+        setFeedback("error");
+        return;
+      }
+
       const predictedClassLabel = String(result.predicted_class);
       const isCorrect = predictedClassLabel === expectedClassLabel;
 
       setFeedback(isCorrect ? "correct" : "incorrect");
       if (onFeedback) onFeedback(word, isCorrect);
     } catch (error) {
-      setFeedback("incorrect");
+      // Network/server failure — this isn't a signing mistake, so don't
+      // record it as an incorrect attempt in the spaced-repetition logic.
+      setFeedback("error");
     }
   };
 
@@ -319,6 +354,29 @@ export const LearningCard = ({
                 <CheckCircle className="w-12 h-12 text-green-600" />
                 <span className="text-2xl font-semibold text-gray-900 dark:text-white">
                   Perfect!
+                </span>
+              </div>
+            </div>
+          )}
+
+          {feedback === "not_detected" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm">
+              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
+                <AlertTriangle className="w-12 h-12 text-yellow-600 shrink-0" />
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Make sure both hands and shoulders are in frame, then try
+                  again.
+                </span>
+              </div>
+            </div>
+          )}
+
+          {feedback === "error" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-500/20 backdrop-blur-sm">
+              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
+                <WifiOff className="w-12 h-12 text-gray-600 shrink-0" />
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Couldn't reach the server — this isn't your signing.
                 </span>
               </div>
             </div>

@@ -8,7 +8,7 @@ This is the repository for the Koala (코아라), a full-stack application that 
 
 Koala addresses the need for accessible KSL learning tools by utilizing a vision-based approach. The system extracts 47 3D joint coordinates from video frames using MediaPipe Holistic and feeds this sequence data into a specialized CNN-LSTM-Attention model.
 
-This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words. The system is deployed as a user-friendly web application with a FastAPI backend serving the PyTorch model and a React/TypeScript frontend for recording and displaying AI-driven results.
+This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). Of those 67, the web app currently lets you practice **31** words — the subset the model classifies with perfect precision/recall on its (small) test set. The system is deployed as a user-friendly web application with a FastAPI backend serving the PyTorch model and a React/TypeScript frontend for recording and displaying AI-driven results.
 
 ---
 
@@ -81,7 +81,7 @@ This guide explains how to run the full-stack Koala application locally.
 
 ## Evaluation
 
-The model was trained and evaluated on the KSL77 dataset (67 classes) by [Yangseung/KSL](https://github.com/Yangseung/KSL)
+The model was trained and evaluated on the KSL77 dataset (67 classes, drawn from the 77-slot raw KSL-Videos folder numbering — not all 77 folders had video) by [Yangseung/KSL](https://github.com/Yangseung/KSL)
 
 ### Training Data
 
@@ -99,6 +99,8 @@ The model was trained and evaluated on the KSL77 dataset (67 classes) by [Yangse
 | **F1-Score (Macro Avg)**  | 0.88                                                                                          |
 | **Framework**             | PyTorch                                                                                       |
 | **Best Hyperparameters**  | `lr`: 0.00034, `cnn_hidden`: 64, `lstm_hidden`: 256, `dropout_rate`: 0.222, `optimizer`: Adam |
+
+> **A note on that 88.21%:** the test split is a plain random per-video split (stratified by class only), not grouped by signer — and the dataset has only 3–4 test samples per class. The feature-extraction pipeline doesn't retain signer identity at all, so it's not possible to confirm from this data whether the same signer appears in both the train and test sets. If they do (plausible, given how few samples exist per class), this number is likely optimistic relative to how the model performs on a genuinely unseen signer. Treat 88.21% as an upper bound, not a generalization guarantee.
 
 ### Model Architecture (`PoseCNN_LSTM_Attn`)
 
@@ -157,6 +159,8 @@ This accessibility constraint prevents our system from being trained on a richer
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project's source code is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+**This does not cover the data.** The trained model weights (`src/backend/best_model.pt`), the extracted feature file (`data/KSL77_joint_stream_47pt.pkl`), and the example videos under `src/frontend/public/videos/` are all derived from the KSL-77 dataset, which is licensed **CC BY-NC 4.0** (non-commercial, attribution required) — see [`data/DATA_README.md`](data/DATA_README.md) and [`ATTRIBUTION.md`](ATTRIBUTION.md). They are not MIT-licensed and are not cleared for commercial use.
 
 ---

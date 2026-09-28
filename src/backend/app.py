@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import torch
+import torch.nn.functional as F
 import numpy as np
 import cv2
 import tempfile
@@ -13,6 +14,14 @@ holistic = mp.solutions.holistic
 NUM_JOINTS = 47
 SEQUENCE_LENGTH = 32
 POSE_INDICES = [0, 11, 12, 13, 14]
+
+# Minimum fraction of sampled frames that must have a detected pose AND at
+# least one detected hand before we trust the model's prediction at all.
+MIN_DETECTION_RATIO = 0.6
+
+# How many top candidates (with softmax probabilities) to return alongside
+# the top-1 prediction, for a successful /predict response.
+TOP_K = 3
 perfect_mapped_classes = [
     0, 2, 4, 6, 10, 12, 14, 16, 17, 18, 19, 
     20, 22, 24, 33, 37, 39, 40, 41, 42, 46, 
@@ -91,11 +100,15 @@ def preprocess_video(video_path):
             break
         frames.append(frame)
     cap.release()
-    
+
     if not frames:
         raise ValueError("Video file contained no frames.")
 
     joint_seq = []
+    pose_frames = 0
+    left_hand_frames = 0
+    right_hand_frames = 0
+    any_hand_frames = 0
     indices = np.linspace(0, len(frames) - 1, SEQUENCE_LENGTH, dtype=int)
     for idx in indices:
         img = cv2.cvtColor(frames[idx], cv2.COLOR_BGR2RGB)
@@ -103,9 +116,35 @@ def preprocess_video(video_path):
         results = holistic_model.process(img)
         coords = extract_landmarks_from_frame(results)
         joint_seq.append(coords)
-    
+
+        has_pose = results.pose_landmarks is not None
+        has_left_hand = results.left_hand_landmarks is not None
+        has_right_hand = results.right_hand_landmarks is not None
+        pose_frames += int(has_pose)
+        left_hand_frames += int(has_left_hand)
+        right_hand_frames += int(has_right_hand)
+        any_hand_frames += int(has_left_hand or has_right_hand)
+
     joint_seq = np.array(joint_seq, dtype=np.float32).transpose(2, 0, 1)
-    return torch.tensor(joint_seq, dtype=torch.float32).unsqueeze(0).to(device)
+    tensor = torch.tensor(joint_seq, dtype=torch.float32).unsqueeze(0).to(device)
+
+    detection = {
+        "total_frames": len(indices),
+        "pose_frames": pose_frames,
+        "left_hand_frames": left_hand_frames,
+        "right_hand_frames": right_hand_frames,
+        "any_hand_frames": any_hand_frames,
+    }
+    return tensor, detection
+
+
+def is_detection_sufficient(detection: dict) -> bool:
+    total = detection["total_frames"]
+    if total == 0:
+        return False
+    pose_ratio = detection["pose_frames"] / total
+    hand_ratio = detection["any_hand_frames"] / total
+    return pose_ratio >= MIN_DETECTION_RATIO and hand_ratio >= MIN_DETECTION_RATIO
 
 # --- Routes ---
 @app.get("/")
@@ -122,16 +161,40 @@ async def predict(video: UploadFile = File(...)):
             tmp_file.write(contents)
             tmp_path = tmp_file.name
         
-        # Preprocess and predict
-        x = preprocess_video(tmp_path)
+        # Preprocess and check whether MediaPipe actually saw a signer
+        x, detection = preprocess_video(tmp_path)
+        if not is_detection_sufficient(detection):
+            return {
+                "success": False,
+                "reason": "not_detected",
+                "detection": detection,
+            }
+
+        # Predict
         with torch.no_grad():
             output = model(x)
             mask = torch.full_like(output, float("-inf"), device=device)
             mask[0, perfect_mapped_classes] = output[0, perfect_mapped_classes]
             pred_idx = int(torch.argmax(mask, dim=1).item())
             label = reverse_label_map.get(pred_idx, "unknown")
-        
-        return {"success": True, "predicted_class": label, "class_id": pred_idx}
+
+            probabilities = F.softmax(mask, dim=1)[0]
+            top_probs, top_indices = torch.topk(probabilities, k=TOP_K, dim=0)
+            top3 = [
+                {
+                    "class_id": int(idx.item()),
+                    "predicted_class": reverse_label_map.get(int(idx.item()), "unknown"),
+                    "probability": float(prob.item()),
+                }
+                for prob, idx in zip(top_probs, top_indices)
+            ]
+
+        return {
+            "success": True,
+            "predicted_class": label,
+            "class_id": pred_idx,
+            "top3": top3,
+        }
     
     except Exception as e:
         error_message = f"Prediction failed: {type(e).__name__} - {str(e)}"

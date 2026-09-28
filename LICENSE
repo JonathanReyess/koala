@@ -19,3 +19,15 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+NOTE ON DATA-DERIVED ARTIFACTS: The above MIT license covers this
+repository's original source code only. It does NOT cover the trained model
+weights (`src/backend/best_model.pt`), the extracted feature file
+(`data/KSL77_joint_stream_47pt.pkl`), or the example videos under
+`src/frontend/public/videos/`. Those are all derived from the KSL-77 dataset
+(Yang et al., "The Korean Sign Language Dataset for Action Recognition,"
+MMSys/MMM 2020), which is licensed CC BY-NC 4.0 (non-commercial, attribution
+required). See `data/DATA_README.md` and `ATTRIBUTION.md` for details before
+reusing those files.
