@@ -1,12 +1,23 @@
 # Results
 
+**Headline: config f (`--mirror-aug --normalize-body`, `--tta-mirror` at
+eval), 3-seed mean on signer-out 5-fold: 83.2% top-1 / 94.1% top-3 on
+unseen signers.** This is the production recipe (see "Decisions" below).
+Everything below builds up to that number: first the (a)/(b)/(c) baseline
+comparison that established signer-out (c) as the metric that matters, then
+the per-signer diagnosis that motivated `transforms.py`, then the ablation
+sweep and seed check that produced config f.
+
+## Baseline: does the split matter?
+
 Comparison of the model across three conditions, run on Colab (T4) against
 the real KSL-77 raw videos. **(c) — signer-out 5-fold — is the headline
-number.** It's the only row that actually answers "does the model work on a
-signer it has never seen," which was the open question from AUDIT.md §4. (a)
-and (b) are useful context (they isolate what changed between the old and
-new feature-extraction pipelines on a matched, non-signer-grouped split) but
-neither one tells you anything about signer generalization by itself.
+number** of *this section*. It's the only row that actually answers "does
+the model work on a signer it has never seen," which was the open question
+from AUDIT.md §4. (a) and (b) are useful context (they isolate what changed
+between the old and new feature-extraction pipelines on a matched,
+non-signer-grouped split) but neither one tells you anything about signer
+generalization by itself.
 
 **No number below is described as an improvement over another unless it is
 verified on row (c).** In particular: (b)'s top-1 (83.74%) is *lower* than
@@ -24,7 +35,10 @@ approach actually generalize" is (c).
 | (a) Old checkpoint, random split | `data/KSL77_joint_stream_47pt.pkl` (legacy notebook extraction, silent zero-fill for missing landmarks) | `random` (stratified 80/10/10, seed 42, **not** signer-grouped) | 88.21% | 95.53% | 0.8806 | Reproduced directly from `src/backend/best_model.pt` via `dataset.random_split(seed=42)` + `evaluate.py`; matches `notebook/KSL.ipynb` Cell 9's own reported 88.21% exactly (see AUDIT.md §8). Test set is only 246 samples (3-4/class) — high variance. |
 | (b) Retrained, new Tasks features, random split | `extract_landmarks.py` output (Tasks API, explicit per-joint mask) | `random` (same split *mode* as (a), not the same indices — see caveat above) | 83.74% | 93.90% | 0.8367 | Run on Colab (T4). Not comparable to (a) as an "improvement/regression" — different underlying features and dataset (see caveat above). Useful only as (b) vs (c)'s own gap, below. |
 | **(c) Retrained, new Tasks features, signer-out 5-fold** ← headline | same features as (b) | `signer_kfold` (`GroupKFold` by `signer_id`, 5 folds; see `dataset.py`) | **78.22% ± 7.56%** | **90.51% ± 7.89%** | **0.7850 ± 0.0704** | Run on Colab (T4). Per-fold top-1: 0.691, 0.697, 0.835, 0.879, 0.810 — the fold-to-fold spread itself (±7.6 points) is the headline finding: which 4 signers land in the held-out fold matters more than run-to-run noise would suggest. **The (b)→(c) gap (83.74% → 78.22%, about 5.5 points) is the actual cost of the random split's signer leakage** that AUDIT.md §4 flagged as an unmeasurable risk — now measured. |
-| (b'), (c') Same as (b)/(c), + `--mirror-aug`/`--normalize-body`/`--trim-idle` | *pending* | *pending* | *pending* | *pending* | *pending* | Not run yet. Placeholder rows for the ablations enabled by `transforms.py` (see below) — fill in once run, and remember the "no improvement claim without (c)" rule applies to these too: an ablation only counts as a real improvement if it improves the **signer-out** number, not the random-split one. |
+
+All rows below this one are `signer_kfold` (5 folds) only — the random
+split (a)/(b) already served its purpose (motivating why signer-out is the
+metric that matters) and isn't re-run per ablation.
 
 ## Per-signer diagnosis (from (c)'s combined out-of-fold per-signer accuracy)
 
@@ -35,30 +49,61 @@ Three signers account for most of (c)'s fold-to-fold spread:
 - **Signer 18 — 58% accuracy.** Smallest mean shoulder width (0.158 — farthest from the camera of any signer) and unusually short clips (mean 35 frames vs. 50–145 for everyone else), i.e. tightly trimmed with no idle frames before/after the sign — the 32-frame `np.linspace` sampling has much less margin to work with here than on a typically-padded clip.
 - **Excluding signer 08 alone, signer-out top-1 rises from 78.22% to ~81%** — one atypical (possibly mirrored/left-handed) signer is disproportionately responsible for (c)'s worst-case spread, not a general failure to generalize across signers.
 
-This is direct motivation for the ablations above: `--mirror-aug`/`--tta-mirror` target signer 08's case specifically (handedness/mirroring shouldn't matter if the model sees both orientations during training and/or is evaluated on both), `--normalize-body` targets signer 18's case (distance-from-camera shouldn't change the normalized geometry), and `--trim-idle` targets signer 18's short-clip case from a different angle (recovering the active window regardless of how much idle padding surrounds it).
+This is direct motivation for the ablations below: `--mirror-aug`/`--tta-mirror` target signer 08's case specifically (handedness/mirroring shouldn't matter if the model sees both orientations during training and/or is evaluated on both), `--normalize-body` targets signer 18's case (distance-from-camera shouldn't change the normalized geometry), and `--trim-idle` targets signer 18's short-clip case from a different angle (recovering the active window regardless of how much idle padding surrounds it).
 
-## How to fill in (b'), (c')
+Hand-detection check ([`scripts/compare_hand_detection.py`](scripts/compare_hand_detection.py), old legacy `.pkl` vs. the real Colab `mask.npy`): any-hand detected in 66.3% of frames (legacy) vs. 65.5% (new Tasks API) — **the new Tasks-API extraction is not finding hands less often than the old legacy one**; the (b) vs (a) gap earlier is not explained by worse hand detection.
+
+## Ablation sweep (all `signer_kfold`, 5 folds; runs d–g evaluated with `--tta-mirror`)
+
+| run | flags | top-1 | top-3 | macro-F1 | signer 08 | signer 14 | signer 18 |
+|---|---|---|---|---|---|---|---|
+| c (baseline) | none | 0.782 ± 0.076 | 0.905 ± 0.079 | 0.785 | 0.25 | 0.55 | 0.58 |
+| c + TTA only | eval `--tta-mirror`, no mirror-training | 0.715 ± 0.056 | 0.887 ± 0.066 | 0.737 | 0.46 | 0.53 | 0.48 |
+| d | `--mirror-aug` | 0.782 ± 0.070 | 0.915 ± 0.046 | 0.776 | 0.67 | 0.52 | 0.45 |
+| e | `--normalize-body` | 0.803 ± 0.030 | 0.918 ± 0.031 | 0.800 | 0.81 | 0.66 | 0.64 |
+| **f** | `--mirror-aug --normalize-body` | **0.835 ± 0.057** | **0.949 ± 0.031** | **0.826** | 0.87 | 0.63 | 0.69 |
+| g | f + `--trim-idle` | 0.837 ± 0.059 | 0.947 ± 0.032 | 0.832 | 0.86 | 0.56 | 0.70 |
+
+## Seed check for config f (`--mirror-aug --normalize-body`, same folds, different seeds)
+
+| seed | top-1 | top-3 | macro-F1 |
+|---|---|---|---|
+| 0 | 0.835 ± 0.057 | 0.949 ± 0.031 | 0.826 |
+| 1 | 0.826 ± 0.073 | 0.936 ± 0.043 | 0.821 |
+| 2 | 0.836 ± 0.068 | 0.938 ± 0.043 | 0.831 |
+| **mean of 3 seeds** | **0.832** | **0.941** | **0.826** |
+
+**Headline metric: 3-seed mean for config f — 83.2% top-1 / 94.1% top-3 on unseen signers.**
+
+## Decisions
+
+- **Config f (`--mirror-aug --normalize-body` at train, `--tta-mirror` at eval) is the production recipe.** It's the best top-1/top-3/macro-F1 of the sweep, and the gain over baseline (c) (78.2% → 83.2%, ~5 points) holds up across all 3 seeds, not just the one that happened to be reported first.
+- **`--trim-idle` is dropped from the production recipe (run g, not f).** Adding it to f produced no gain outside the noise floor (0.837 vs 0.835 top-1, well within f's own ±0.057 fold-to-fold std), it made signer 14 specifically *worse* (0.63 → 0.56 — the opposite of e/f's trend on that signer), and it's extra logic that would need to be ported to the browser for PR 3 with no measured benefit to justify that cost.
+- **TTA-only (no mirror training) hurts, and that's expected, not a bug.** Averaging softmax over a clip and its mirror only helps if the model has actually learned to recognize the *mirrored* orientation of a sign — a model trained without `--mirror-aug` has never seen a mirrored clip, so mirroring its input at eval time just feeds it out-of-distribution data half the time, dragging every metric down (0.782 → 0.715 top-1) rather than up. `--mirror-aug` and `--tta-mirror` are a pair; using one without the other is not a meaningful configuration to compare against baseline.
+- **Config f was selected by looking at CV results across 6 configs (c, c+TTA, d, e, f, g).** That means 83.2% carries some optimism from having picked the best-looking option out of several after seeing all of their signer-out numbers — the 3-seed check reduces (but does not eliminate) the risk that f specifically got a lucky draw of folds/initialization; it does not protect against having chosen the transform combination itself based on the same 5 folds it's being reported on. Treat 83.2% as a reasonable estimate, not a guaranteed number on a genuinely fresh signer.
+
+## Next: produce the deployment checkpoint (Colab commands)
+
+`--stop-epoch 34` = the median best epoch across the 15 config-f CV folds (3 seeds × 5 folds each) was epoch 33 (zero-indexed) → 34 epochs.
 
 ```bash
 # On Colab, after `git clone` + `pip install -r requirements.txt`:
 FEATS=/content/drive/MyDrive/KSL_Project/features_v2
 
-python scripts/compare_hand_detection.py --old-pkl data/KSL77_joint_stream_47pt.pkl --new-mask $FEATS/mask.npy
-
+# 1. Full training: config f (--mirror-aug --normalize-body), all 20 signers, --stop-epoch 34
 python train.py --features $FEATS/features.npy --mask $FEATS/mask.npy --manifest $FEATS/manifest.csv \
-  --split-mode random --out-dir runs/b_prime_random --mirror-aug --normalize-body --trim-idle
-python evaluate.py --features $FEATS/features.npy --mask $FEATS/mask.npy --manifest $FEATS/manifest.csv \
-  --checkpoint-dir runs/b_prime_random --tta-mirror --out runs/b_prime_random/eval.json
+  --split-mode full --stop-epoch 34 --mirror-aug --normalize-body --out-dir runs/full_model
 
-python train.py --features $FEATS/features.npy --mask $FEATS/mask.npy --manifest $FEATS/manifest.csv \
-  --split-mode signer_kfold --out-dir runs/c_prime_signer_kfold --mirror-aug --normalize-body --trim-idle
-python evaluate.py --features $FEATS/features.npy --mask $FEATS/mask.npy --manifest $FEATS/manifest.csv \
-  --checkpoint-dir runs/c_prime_signer_kfold --tta-mirror --out runs/c_prime_signer_kfold/eval.json
+# 2. ONNX export (opset 17, dynamic batch) + PyTorch-vs-onnxruntime parity check
+python export_onnx.py --checkpoint-dir runs/full_model --out runs/full_model/fold_0/model.onnx
+
+# 3. Golden vectors for PR 3's TypeScript port to test against (see docs/PREPROCESSING.md)
+python scripts/generate_golden_vectors.py --checkpoint-dir runs/full_model \
+  --features $FEATS/features.npy --mask $FEATS/mask.npy --manifest $FEATS/manifest.csv \
+  --out golden_vectors.json
 ```
 
-Then replace the *pending* cells above with `evaluate.py`'s printed
-top1/top3/macro_f1 (mean ± std for row (c')), and only call it an
-improvement if (c') > (c) — not if (b') > (b).
+Note `--tta-mirror` is not passed to `train.py` above -- it's an eval-only flag (`evaluate.py`/`generate_golden_vectors.py` apply it themselves at inference time; nothing to pass at training time for it).
 
 ## Known real-world data issue: corrupted videos
 
@@ -89,6 +134,25 @@ indices actually correspond to).
 
 ## What's been verified so far (this environment, no raw videos/Drive access)
 
+- `train.py --split-mode full --stop-epoch N` and `export_onnx.py` both have
+  a dedicated test file, `test_train_full_and_export.py` (5 tests, all
+  passing, tiny synthetic data): `full` mode requires `--stop-epoch`, trains
+  exactly `N` epochs while `config.json`'s `scheduler_t_max` still equals
+  `--epochs` (confirming `--stop-epoch` doesn't change the cosine
+  schedule's shape, only when training stops), the resulting checkpoint
+  reloads with no shape mismatch, and `best_epoch` is recorded correctly
+  for the pre-existing `random`/`signer_kfold` modes too. `export_onnx.py`'s
+  PyTorch-vs-onnxruntime parity check was run for real (not just via CLI
+  exit code, but calling `parity_check()` directly): max abs diff on the
+  order of `1e-7`–`1e-8` across random-noise, `[0,1]`-uniform, and
+  varying-batch-size (1/2/4) inputs, all well under the `1e-4` tolerance;
+  the ambiguous-multi-fold-checkpoint-dir error path was also verified.
+  `scripts/generate_golden_vectors.py` was run against a toy checkpoint on
+  both the legacy-`.pkl`-with-inferred-mask path and the
+  manifest-with-real-mask path — correct shapes, and `probs_tta_averaged`
+  summing to 1.0 as expected for a proper softmax average. (Real golden
+  numbers require the actual config-f production checkpoint — see the
+  Colab commands below.)
 - `transforms.py` (`mirror_clip`, `normalize_body`, `trim_idle`) has a
   dedicated unit test suite, `test_transforms.py` (`python -m unittest
   test_transforms.py`, 9 tests, all passing): mirroring twice returns the

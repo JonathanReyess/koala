@@ -24,3 +24,7 @@ pandas
 scikit-learn
 opencv-python
 tqdm
+
+# export_onnx.py
+onnx
+onnxruntime
