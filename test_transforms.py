@@ -127,6 +127,21 @@ class TestNormalizeBody(unittest.TestCase):
         np.testing.assert_array_equal(normalized, coords)
 
 
+    def test_uint8_mask_matches_bool_mask(self):
+        """Regression: a uint8 mask used to make normalize_body use only
+        frames 0/1 as reference frames (integer fancy-indexing)."""
+        rng = np.random.default_rng(7)
+        coords, mask = make_clip(rng)
+        # Vary shoulders per frame so a wrong reference set changes the output.
+        coords[:, LEFT_SHOULDER] += rng.normal(0, 0.05, size=(T, 3)).astype(np.float32)
+        mask[:, LEFT_SHOULDER] = 1
+        mask[:, RIGHT_SHOULDER] = 1
+        np.testing.assert_array_equal(
+            normalize_body(coords, mask.astype(np.uint8)),
+            normalize_body(coords, mask.astype(bool)),
+        )
+
+
 class TestTrimIdle(unittest.TestCase):
     def test_recovers_active_window_from_idle_padded_clip(self):
         T_local = 32

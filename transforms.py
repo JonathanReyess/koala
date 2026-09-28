@@ -164,6 +164,11 @@ def normalize_body(coords: np.ndarray, mask: np.ndarray, eps: float = 1e-6) -> n
     If no frame has both shoulders detected, returns coords unchanged (can't
     define a body frame for this clip).
     """
+    # Must be bool: with a uint8 (0/1) mask, `&` stays uint8 and indexing with
+    # it below becomes integer fancy-indexing (rows 0/1), silently using frame
+    # 0/1 as the only "reference frame". (This is what corrupted the first
+    # golden_vectors.json, which passed a uint8 mask.)
+    mask = mask.astype(bool)
     both_shoulders = mask[:, LEFT_SHOULDER] & mask[:, RIGHT_SHOULDER]
     if not both_shoulders.any():
         return coords.copy()
