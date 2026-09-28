@@ -26,7 +26,7 @@ T = 32
 
 def make_clip(rng: np.random.Generator, all_shoulders_detected: bool = True):
     coords = rng.uniform(0.0, 1.0, size=(T, NUM_JOINTS, 3)).astype(np.float32)
-    mask = rng.integers(0, 2, size=(T, NUM_JOINTS)).astype(np.uint8)
+    mask = rng.integers(0, 2, size=(T, NUM_JOINTS)).astype(bool)
     if all_shoulders_detected:
         mask[:, LEFT_SHOULDER] = 1
         mask[:, RIGHT_SHOULDER] = 1
@@ -68,7 +68,7 @@ class TestMirror(unittest.TestCase):
 
     def test_mirror_swaps_hand_blocks_and_shoulder_elbow_pairs(self):
         coords = np.zeros((1, NUM_JOINTS, 3), dtype=np.float32)
-        mask = np.zeros((1, NUM_JOINTS), dtype=np.uint8)
+        mask = np.zeros((1, NUM_JOINTS), dtype=bool)
         coords[0, LEFT_SHOULDER] = [0.4, 0.5, 0.0]
         coords[0, RIGHT_SHOULDER] = [0.6, 0.5, 0.0]
         mask[0, LEFT_SHOULDER] = 1
@@ -125,6 +125,34 @@ class TestNormalizeBody(unittest.TestCase):
         mask[:, RIGHT_SHOULDER] = 0
         normalized = normalize_body(coords, mask)
         np.testing.assert_array_equal(normalized, coords)
+
+
+    def test_non_bool_mask_raises(self):
+        """Regression: a uint8 mask used to make normalize_body silently use
+        only frames 0/1 as reference frames (integer fancy-indexing); it (and
+        mirror_clip) must now refuse non-bool masks."""
+        rng = np.random.default_rng(7)
+        coords, mask = make_clip(rng)
+        for bad in (mask.astype(np.uint8), mask.astype(int), mask.astype(np.float32)):
+            with self.assertRaisesRegex(TypeError, "mask must be a numpy bool array"):
+                normalize_body(coords, bad)
+            with self.assertRaisesRegex(TypeError, "mask must be a numpy bool array"):
+                mirror_clip(coords, bad)
+        normalize_body(coords, mask)  # bool is fine
+        mirror_clip(coords, mask)
+
+    def test_bool_mask_uses_all_shoulder_frames(self):
+        """Reference frames must be *all* frames with both shoulders, not frames 0/1."""
+        rng = np.random.default_rng(8)
+        coords, mask = make_clip(rng)
+        coords[:, LEFT_SHOULDER] += rng.normal(0, 0.05, size=(T, 3)).astype(np.float32)
+        out = normalize_body(coords, mask)
+        left = coords[:, LEFT_SHOULDER].astype(np.float64)
+        right = coords[:, RIGHT_SHOULDER].astype(np.float64)
+        width = np.linalg.norm(left - right, axis=1).mean()
+        mid = ((left + right) / 2).mean(0)
+        expected = (coords[:, LEFT_SHOULDER] - mid) / width
+        np.testing.assert_allclose(out[:, LEFT_SHOULDER], expected, atol=1e-4)
 
 
 class TestTrimIdle(unittest.TestCase):

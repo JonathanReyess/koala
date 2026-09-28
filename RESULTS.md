@@ -75,6 +75,135 @@ Hand-detection check ([`scripts/compare_hand_detection.py`](scripts/compare_hand
 
 **Headline metric: 3-seed mean for config f — 83.2% top-1 / 94.1% top-3 on unseen signers.**
 
+## Grading thresholds (confidence gates for the browser)
+
+The browser grades on the averaged (TTA mirror) softmax probabilities of the deployed config-f model
+(`src/frontend/src/lib/inference/config.ts`, logic in `grading.ts`), in this order:
+
+1. **correct** — target is top-1 **and** p(target) ≥ `CORRECT_MIN`
+2. **close** — target in the top 3 **and** p(target) ≥ `CLOSE_MIN` ("Almost — …"; not a miss for spaced repetition)
+3. **confused** — top-1 ≠ target **and** p(top-1) ≥ `CONFUSION_MIN` → "That looked like <word>." (a miss)
+4. otherwise **incorrect** → "Not quite — watch the example and try again." (a miss; never names a word)
+
+**Calibration data:** `scripts/calibrate_thresholds.py --tta-mirror` on the 15 config-f `signer_kfold` folds
+(`runs/f_mirror_norm`, `f_seed1`, `f_seed2`): **3,684 held-out predictions**, 67 classes, pooled top-1 **83.25%**,
+top-3 **94.06%**. Raw output: `predictions.csv` + `probs.npz` on Drive (`KSL_Project/runs/calibration/`); the tables below
+regenerate with `python scripts/calibrate_thresholds.py --from-npz probs.npz`.
+
+> **Scope caveat:** every clip here is a *fluent signer* doing the *correct* sign, held out by signer. It says nothing
+> about **learners** (who sign imperfectly) or about **random movement / non-signs**. "Impostor" rows below are a
+> stand-in (a fluent clip of word A graded against target B ≠ A), not real learner mistakes. Re-calibrate (and
+> especially re-check CLOSE_MIN) once real learner attempts are available.
+
+### How to read the sweeps
+- **CORRECT_MIN** — *correct accepted*: share of correct top-1 predictions that still pass the gate. *False accept*:
+  share of (clip × wrong target) attempts that would be graded "correct" ("Perfect!" for the wrong sign).
+- **CLOSE_MIN** — *close kept*: share of genuine near-misses (target in top 3 but not top 1) still called "close".
+  *False close*: share of (clip × wrong target) attempts that would be called "close".
+- **CONFUSION_MIN** — *wrong shown*: share of the model's wrong predictions that would be shown as "That looked like X"
+  (each is a correctly signed clip we would mis-name). *Naming precision*: among clips where a word would be named, the
+  share where the named word is the word actually signed. *Coverage*: share of all clips that get a name at all.
+
+### CORRECT_MIN sweep
+
+| t | correct accepted | false accept |
+|---|---|---|
+| 0.05 | 100.0% | 0.3% |
+| 0.10 | 100.0% | 0.3% |
+| 0.15 | 100.0% | 0.3% |
+| 0.20 | 99.9% | 0.3% |
+| 0.25 | 99.8% | 0.2% |
+| 0.30 | 99.5% | 0.2% |
+| 0.35 | 99.1% | 0.2% |
+| 0.40 | 98.2% | 0.2% |
+| 0.45 | 96.8% | 0.2% |
+| 0.50 | 95.1% | 0.1% |
+| 0.55 | 92.7% | 0.1% |
+| 0.60 | 90.3% | 0.1% |
+| 0.65 | 87.8% | 0.1% |
+| 0.70 | 84.4% | 0.1% |
+| 0.75 | 80.9% | 0.0% |
+| 0.80 | 77.0% | 0.0% |
+| 0.85 | 72.0% | 0.0% |
+| 0.90 | 65.2% | 0.0% |
+| 0.95 | 52.0% | 0.0% |
+
+### CLOSE_MIN sweep
+
+| t | close kept | false close |
+|---|---|---|
+| 0.05 | 91.0% | 1.2% |
+| 0.10 | 77.4% | 0.8% |
+| 0.15 | 64.6% | 0.6% |
+| 0.20 | 48.5% | 0.5% |
+| 0.25 | 37.9% | 0.4% |
+| 0.30 | 27.4% | 0.3% |
+| 0.35 | 15.1% | 0.2% |
+| 0.40 | 7.5% | 0.2% |
+| 0.45 | 2.8% | 0.2% |
+| 0.50 | 0.0% | 0.1% |
+| 0.55 | 0.0% | 0.1% |
+| 0.60 | 0.0% | 0.1% |
+| 0.65 | 0.0% | 0.1% |
+| 0.70 | 0.0% | 0.1% |
+| 0.75 | 0.0% | 0.0% |
+| 0.80 | 0.0% | 0.0% |
+| 0.85 | 0.0% | 0.0% |
+| 0.90 | 0.0% | 0.0% |
+| 0.95 | 0.0% | 0.0% |
+
+### CONFUSION_MIN sweep
+
+| t | wrong shown | of all clips | naming precision | coverage |
+|---|---|---|---|---|
+| 0.05 | 100.0% | 16.7% | 83.3% | 100.0% |
+| 0.10 | 100.0% | 16.7% | 83.3% | 100.0% |
+| 0.15 | 99.8% | 16.7% | 83.3% | 100.0% |
+| 0.20 | 98.5% | 16.5% | 83.4% | 99.7% |
+| 0.25 | 95.5% | 16.0% | 83.9% | 99.1% |
+| 0.30 | 91.1% | 15.3% | 84.4% | 98.1% |
+| 0.35 | 82.7% | 13.8% | 85.6% | 96.3% |
+| 0.40 | 74.4% | 12.5% | 86.8% | 94.2% |
+| 0.45 | 63.7% | 10.7% | 88.3% | 91.3% |
+| 0.50 | 51.4% | 8.6% | 90.2% | 87.8% |
+| 0.55 | 43.1% | 7.2% | 91.4% | 84.4% |
+| 0.60 | 35.0% | 5.9% | 92.8% | 81.0% |
+| 0.65 | 29.7% | 5.0% | 93.6% | 78.1% |
+| 0.70 | 24.1% | 4.0% | 94.6% | 74.3% |
+| 0.75 | 18.8% | 3.1% | 95.5% | 70.5% |
+| 0.80 | 14.1% | 2.4% | 96.4% | 66.4% |
+| 0.85 | 9.7% | 1.6% | 97.4% | 61.6% |
+| 0.90 | 6.0% | 1.0% | 98.2% | 55.3% |
+| 0.95 | 2.3% | 0.4% | 99.1% | 43.7% |
+
+### Outcome mix
+
+Share of each grade. *Genuine* = the signer signed the target word (all held-out clips, target = true label). *Impostor* = every clip × every wrong target.
+
+| Thresholds (CORRECT / CLOSE / CONFUSION) | Genuine: correct | close | wrongly named | not quite | Impostor: "Perfect!" | close | named | not quite |
+|---|---|---|---|---|---|---|---|---|
+| Placeholders (0.40 / 0.15 / 0.60) | 81.8% | 8.5% | 4.3% | 5.5% | 0.2% | 0.4% | 80.8% | 18.6% |
+| Suggested by the script (0.50 / 0.05 / 0.75) | 79.2% | 13.9% | 1.9% | 5.0% | 0.1% | 1.0% | 70.2% | 28.7% |
+| **Chosen (shipped)** (0.50 / 0.10 / 0.75) | 79.2% | 12.4% | 2.5% | 5.9% | 0.1% | 0.7% | 70.4% | 28.8% |
+
+("Wrongly named" = a correctly signed clip shown "That looked like <other word>"; "named" for impostors is mostly a
+*correct* naming of the word actually signed, since the top-1 is usually the true sign.)
+
+### Chosen values and why
+
+| | value | basis |
+|---|---|---|
+| `CORRECT_MIN` | **0.50** | Script suggestion: the highest t that still accepts ≥ 95% of correct predictions. |
+| `CONFUSION_MIN` | **0.75** | Script suggestion: the lowest t with naming precision ≥ 95%. Wrongly named genuine attempts drop from 4.3% (placeholder 0.60) to 1.9–2.5%. |
+| `CLOSE_MIN` | **0.10** | Script suggested 0.05 (lowest t with false-close ≤ 2%). Raised to 0.10 by hand: false-close falls from 1.2% to 0.8% (a third fewer accidental "Almost" results), at the cost of keeping 77% instead of 91% of genuine near-misses. The intent is that random or unrelated movement shouldn't easily earn an "Almost" — a wrong call that flatters non-signing is worse than a missed "Almost" for a real near-miss, which just becomes "Not quite". |
+
+Side effect of 0.10 vs 0.05 on genuine attempts (because "close" is checked before "confused"): close 13.9% → 12.4%,
+wrongly named 1.9% → 2.5%, not quite 5.0% → 5.9%; correct is unchanged at 79.2%.
+
+These are calibrated on fluent held-out signers only. Nothing here was measured on random movement or on learners;
+treat CLOSE_MIN in particular as a starting point to revisit with real usage data.
+
+
 ## Decisions
 
 - **Config f (`--mirror-aug --normalize-body` at train, `--tta-mirror` at eval) is the production recipe.** It's the best top-1/top-3/macro-F1 of the sweep, and the gain over baseline (c) (78.2% → 83.2%, ~5 points) holds up across all 3 seeds, not just the one that happened to be reported first.

@@ -1,5 +1,10 @@
 # 🇰🇷 Koala (코아라) - Korean Sign Language (KSL) Recognition System
 
+> **⚠️ `src/backend/` is deprecated.** The FastAPI server has been replaced by
+> in-browser inference in PR 3 (MediaPipe landmark extraction + the ONNX model,
+> both running client-side with `onnxruntime-web`). The frontend makes no
+> network calls to any API. The backend is kept in the repo for history only.
+
 This is the repository for the Koala (코아라), a full-stack application that uses a deep learning model to classify dynamic Korean Sign Language (KSL) words from user video input. The system provides real-time AI feedback to help users practice KSL signs.
 
 ---
@@ -8,7 +13,7 @@ This is the repository for the Koala (코아라), a full-stack application that 
 
 Koala addresses the need for accessible KSL learning tools by utilizing a vision-based approach. The system extracts 47 3D joint coordinates from video frames using MediaPipe Holistic and feeds this sequence data into a specialized CNN-LSTM-Attention model.
 
-This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). Of those 67, the web app currently lets you practice **31** words — the subset the model classifies with perfect precision/recall on its (small) test set. The system is deployed as a user-friendly web application with a FastAPI backend serving the PyTorch model and a React/TypeScript frontend for recording and displaying AI-driven results.
+This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). Of those 67, the web app currently lets you practice **31** words — the subset the model classifies with perfect precision/recall on its (small) test set. The system is deployed as a user-friendly web application with a React/TypeScript frontend that runs MediaPipe and the exported ONNX model entirely in the browser (no server).
 
 ---
 
@@ -18,64 +23,29 @@ This guide explains how to run the full-stack Koala application locally.
 
 ### Prerequisites
 
-- Python 3.9+
-- Node.js / npm
-- The trained model file (`best_model.pt`) is required in the `backend/` directory.
+- Node.js / npm. That's all — inference runs in the browser, so there is no backend to start.
 
-### 1. Backend Setup (FastAPI)
+### Frontend Setup (React)
 
-1. **Clone the repository and navigate to the backend:**
+1. **Install Node dependencies** (also copies the MediaPipe/ONNX WASM runtimes into `public/wasm/`):
 
    ```bash
-   git clone https://github.com/JonathanReyess/koala-sign-learn.git
-   cd koala-sign-learn/backend
-   ```
-
-2. **Create and activate a virtual environment:**
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. **Install Python dependencies:**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the API server:**
-   ```bash
-   uvicorn app:app --reload --host 0.0.0.0 --port 8000
-   ```
-   The API will be available at `http://localhost:8000`.
-
-### 2. Frontend Setup (React)
-
-1. **Navigate to the frontend directory:**
-
-   ```bash
-   cd ../frontend
-   ```
-
-2. **Install Node dependencies:**
-
-   ```bash
+   cd src/frontend
    npm install
    ```
 
-3. **Configure API URL:**
+2. **Run the web application:**
 
-   ```bash
-   # Create .env file in frontend/
-   echo "VITE_API_URL=http://localhost:8000" > .env
-   ```
-
-4. **Run the web application:**
    ```bash
    npm run dev
    ```
-   The web application will typically open in your browser at `http://localhost:5173`.
+   The app is served at `http://localhost:8080`. Open **Learn** and allow camera access.
+
+3. **Run the tests** (preprocessing + ONNX golden-vector gate):
+
+   ```bash
+   npm test
+   ```
 
 ---
 

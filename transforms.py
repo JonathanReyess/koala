@@ -44,6 +44,24 @@ def tjc_to_chw(x: np.ndarray) -> np.ndarray:
     return np.transpose(x, (2, 0, 1))
 
 
+def _require_bool_mask(mask: np.ndarray, fn_name: str) -> None:
+    """Raises TypeError unless `mask` is a numpy bool array.
+
+    A uint8 (0/1) mask is *not* interchangeable with bool here: `mask[:, a] &
+    mask[:, b]` stays uint8, and using that as an index does integer
+    fancy-indexing (rows 0/1) instead of boolean selection -- silently
+    normalizing with the wrong reference frames. That is exactly what corrupted
+    the first golden_vectors.json, so fail loudly instead.
+    """
+    if not isinstance(mask, np.ndarray) or mask.dtype != np.bool_:
+        dtype = getattr(mask, "dtype", type(mask).__name__)
+        raise TypeError(
+            f"{fn_name}: mask must be a numpy bool array, got dtype {dtype}. "
+            "Convert explicitly with mask.astype(bool) (uint8 0/1 masks are NOT "
+            "treated as boolean by numpy indexing)."
+        )
+
+
 def infer_mask_from_coords(coords: np.ndarray) -> np.ndarray:
     """coords: (..., 3) -> boolean mask (...): True where NOT exactly (0,0,0).
 
@@ -103,6 +121,7 @@ def mirror_clip(coords: np.ndarray, mask: np.ndarray) -> tuple[np.ndarray, np.nd
     in the two shoulders (so it's unchanged by swapping them), and swapping
     a pair of slots twice is the identity.
     """
+    _require_bool_mask(mask, "mirror_clip")
     T = coords.shape[0]
     mid_shoulder_x = np.where(
         mask[:, LEFT_SHOULDER] & mask[:, RIGHT_SHOULDER],
@@ -164,6 +183,7 @@ def normalize_body(coords: np.ndarray, mask: np.ndarray, eps: float = 1e-6) -> n
     If no frame has both shoulders detected, returns coords unchanged (can't
     define a body frame for this clip).
     """
+    _require_bool_mask(mask, "normalize_body")
     both_shoulders = mask[:, LEFT_SHOULDER] & mask[:, RIGHT_SHOULDER]
     if not both_shoulders.any():
         return coords.copy()

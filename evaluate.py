@@ -70,6 +70,42 @@ def _top_k_accuracy_from_probs(probs: torch.Tensor, y: torch.Tensor, k: int) -> 
 
 
 @torch.no_grad()
+def predict_probs(
+    model,
+    features: np.ndarray,
+    idx: np.ndarray,
+    mask: np.ndarray | None = None,
+    tta_mirror: bool = False,
+) -> torch.Tensor:
+    """Softmax probabilities (len(idx), num_classes) for features[idx].
+
+    With tta_mirror, averages the softmax of each clip and of its mirror
+    (transforms.mirror_clip) -- the same rule the browser uses. `features` must
+    already be preprocessed (e.g. normalize_body_bulk) the way the checkpoint
+    was trained.
+    """
+    X = torch.tensor(features[idx], dtype=torch.float32)
+    probs = F.softmax(model(X), dim=1)
+
+    if tta_mirror:
+        sel_mask = mask[idx] if mask is not None else None
+        mirrored = np.empty_like(features[idx])
+        for i, feat in enumerate(features[idx]):
+            coords = transforms.chw_to_tjc(feat)
+            m = (
+                sel_mask[i].astype(bool)
+                if sel_mask is not None
+                else transforms.infer_mask_from_coords(coords)
+            )
+            mirrored_coords, _ = transforms.mirror_clip(coords, m)
+            mirrored[i] = transforms.tjc_to_chw(mirrored_coords)
+        X_mirrored = torch.tensor(mirrored, dtype=torch.float32)
+        probs_mirrored = F.softmax(model(X_mirrored), dim=1)
+        probs = (probs + probs_mirrored) / 2.0
+    return probs
+
+
+@torch.no_grad()
 def evaluate_split(
     model,
     features: np.ndarray,
@@ -80,26 +116,9 @@ def evaluate_split(
     tta_mirror: bool = False,
 ) -> dict:
     y_dense = np.array([split.label_map[int(l)] for l in labels], dtype=np.int64)
-    X_test = torch.tensor(features[split.test_idx], dtype=torch.float32)
     y_test = torch.tensor(y_dense[split.test_idx], dtype=torch.long)
 
-    probs = F.softmax(model(X_test), dim=1)
-
-    if tta_mirror:
-        test_mask = mask[split.test_idx] if mask is not None else None
-        mirrored = np.empty_like(features[split.test_idx])
-        for i, feat in enumerate(features[split.test_idx]):
-            coords = transforms.chw_to_tjc(feat)
-            m = (
-                test_mask[i].astype(bool)
-                if test_mask is not None
-                else transforms.infer_mask_from_coords(coords)
-            )
-            mirrored_coords, _ = transforms.mirror_clip(coords, m)
-            mirrored[i] = transforms.tjc_to_chw(mirrored_coords)
-        X_mirrored = torch.tensor(mirrored, dtype=torch.float32)
-        probs_mirrored = F.softmax(model(X_mirrored), dim=1)
-        probs = (probs + probs_mirrored) / 2.0
+    probs = predict_probs(model, features, split.test_idx, mask=mask, tta_mirror=tta_mirror)
 
     preds = probs.argmax(1)
 

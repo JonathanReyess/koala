@@ -1,5 +1,7 @@
 # Setup and Installation Guide 
 
+> **⚠️ Out of date:** the FastAPI backend / AWS Lightsail deployment described below has been retired and replaced by in-browser inference (PR 3). See the top of [README.md](README.md) for current run instructions. Sections about the backend are kept for history.
+
 This document provides instructions for accessing the deployed version of the project, hosting the application locally, and replicating the original study.
 
 ---
