@@ -26,3 +26,6 @@ dist-ssr
 
 # Environment variables
 .env*.local
+
+# copied from node_modules by scripts/copy-wasm.mjs
+public/wasm
