@@ -79,10 +79,12 @@ def load_checkpoint(fold_dir: Path):
 def generate_vector(model, features_chw: np.ndarray, mask_tj: np.ndarray | None, label_map_json: dict) -> dict:
     """features_chw: (3, T, J) raw (unnormalized) landmarks for one clip."""
     raw_coords = transforms.chw_to_tjc(features_chw)  # (T, J, 3)
+    # bool, not uint8: transforms.normalize_body/mirror_clip reject other dtypes
+    # (a uint8 mask used to silently pick frames 0/1 as the reference frames).
     raw_mask = (
-        mask_tj.astype(np.uint8)
+        mask_tj.astype(bool)
         if mask_tj is not None
-        else transforms.infer_mask_from_coords(raw_coords).astype(np.uint8)
+        else transforms.infer_mask_from_coords(raw_coords)
     )
 
     normalized_coords = transforms.normalize_body(raw_coords, raw_mask)
