@@ -35,6 +35,7 @@ export async function loadVideoElement(blob: Blob): Promise<{ video: HTMLVideoEl
 
 export function seekTo(video: HTMLVideoElement, t: number): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (Math.abs(video.currentTime - t) < 1e-6) return resolve();
     const done = () => {
       video.removeEventListener("seeked", done);
       resolve();
@@ -73,8 +74,9 @@ export async function extractImageMode(
 
 /**
  * VIDEO mode (tracking) over every frame in order, then spec-sample 32 of the
- * recorded frames — mirrors what the live camera path does. Pass a FRESH
- * VIDEO-mode landmarker so no tracking state leaks in from earlier runs.
+ * recorded frames — the same thing the live camera path does, so uploads and
+ * live recordings go through one pipeline. Pass a FRESH VIDEO-mode landmarker
+ * so no tracking state leaks in from earlier runs.
  */
 export async function extractVideoMode(
   video: HTMLVideoElement,
