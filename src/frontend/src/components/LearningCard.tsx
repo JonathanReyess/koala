@@ -29,7 +29,8 @@ import {
 } from "@/lib/inference/attemptLog";
 import { Switch } from "@/components/ui/switch";
 import { buildClip } from "@/lib/inference/preprocess";
-import { classIdToWord, isClassInModel, wordToClassId } from "@/lib/inference/labels";
+import { isClassInModel } from "@/lib/inference/labels";
+import { classIdForWord, wordForClassId } from "@/data/words";
 import { extractVideoMode, loadVideoElement } from "@/lib/inference/extract";
 import { useLandmarkTracker } from "@/hooks/useLandmarkTracker";
 
@@ -55,86 +56,6 @@ interface VideoFile {
   url: string;
 }
 
-export const getWordToIdMap = () => ({
-  hi: "1",
-  what: "2",
-  meet: "3",
-  "bi bim rice": "4",
-  glad: "5",
-  hobby: "6",
-  me: "7",
-  movie: "8",
-  face: "9",
-  see: "10",
-  name: "11",
-  read: "12",
-  thank: "13",
-  equal: "14",
-  sorry: "15",
-  eat: "16",
-  fine: "17",
-  "do effort": "18",
-  next: "19",
-  age: "20",
-  again: "21",
-  "how many": "22",
-  day: "23",
-  "good, nice": "24",
-  when: "25",
-  we: "26",
-  subway: "27",
-  "be friendly": "28",
-  bus: "29",
-  ride: "30",
-  "cell phone": "31",
-  where: "32",
-  number: "33",
-  location: "34",
-  guide: "35",
-  responsibility: "36",
-  who: "37",
-  arrive: "38",
-  family: "39",
-  time: "40",
-  introduction: "41",
-  receive: "42",
-  "please?": "43",
-  walk: "44",
-  parents: "45",
-  "10 minutes": "46",
-  sister: "47",
-  study: "48",
-  human: "49",
-  now: "50",
-  special: "51",
-  yesterday: "52",
-  education: "53",
-  test: "54",
-  end: "55",
-  you: "56",
-  worried_about: "57",
-  marry: "58",
-  effort: "59",
-  no: "60",
-  sweat: "61",
-  yet: "62",
-  finally: "63",
-  born: "64",
-  success: "65",
-  favor: "66",
-  Seoul: "67",
-  dinner: "68",
-  experience: "69",
-  invite: "70",
-  food: "71",
-  want: "72",
-  visit: "73",
-  "one hour": "74",
-  far: "75",
-  good: "76",
-  care: "77",
-});
-
 export const LearningCard = ({
   word,
   onNext,
@@ -147,7 +68,6 @@ export const LearningCard = ({
   const [isReadyToSubmit, setIsReadyToSubmit] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const WORD_TO_ID_MAP = getWordToIdMap();
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -201,11 +121,7 @@ export const LearningCard = ({
     URL.revokeObjectURL(url);
   };
 
-  const feedbackText = grade ? feedbackMessage(grade, (id) => classIdToWord(WORD_TO_ID_MAP, id)) : "";
-
-  const ID_TO_WORD_MAP: { [id: string]: string } = Object.fromEntries(
-    Object.entries(WORD_TO_ID_MAP).map(([word, id]) => [id, word])
-  );
+  const feedbackText = grade ? feedbackMessage(grade, (id) => wordForClassId(id)) : "";
 
   useEffect(() => {
     startCamera();
@@ -274,7 +190,7 @@ export const LearningCard = ({
     startedAt: number,
     source: "recorded" | "upload",
   ) => {
-    const targetId = wordToClassId(WORD_TO_ID_MAP, word.toLowerCase());
+    const targetId = classIdForWord(word);
     if (!models || targetId === undefined || !isClassInModel(models.labels, targetId)) {
       setFeedback("error");
       return;
@@ -288,7 +204,7 @@ export const LearningCard = ({
         const f = result.fractions;
         const text =
           `top 5: ` +
-          result.top5.map((r) => `${classIdToWord(WORD_TO_ID_MAP, r.classId)} ${(r.prob * 100).toFixed(1)}%`).join(", ") +
+          result.top5.map((r) => `${wordForClassId(r.classId)} ${(r.prob * 100).toFixed(1)}%`).join(", ") +
           `\nframes with pose ${pct(f.pose)}, any hand ${pct(f.anyHand)} (left ${pct(f.leftHand)}, right ${pct(f.rightHand)})` +
           `\ngrade: ${g.status}${g.reason ? ` (${g.reason})` : ""}, target p=${g.targetProb?.toFixed(3) ?? "—"}`;
         setDebugInfo(text);
@@ -301,7 +217,7 @@ export const LearningCard = ({
             top5: result.top5,
             grade: g,
             fractions: f,
-            wordFor: (id) => classIdToWord(WORD_TO_ID_MAP, id),
+            wordFor: (id) => wordForClassId(id),
             delegate: models.timings.delegate,
             backend: models.timings.backend,
             liveFps: source === "recorded" ? tracker.fps : null,

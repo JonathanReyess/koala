@@ -1,0 +1,9 @@
+These demo clips are trimmed and re-encoded from videos of the Korean Sign Language (KSL-77)
+dataset:
+
+  Yang, S., Jung, S., Kang, H., & Kim, C. (2020). The Korean Sign Language Dataset for Action Recognition.
+  In MultiMedia Modeling (MMM 2020), Springer, Cham. https://doi.org/10.1007/978-3-030-37731-1_43
+
+Licence: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) — attribution required,
+non-commercial use only. Changes made: trimmed idle frames at the start/end, downscaled and re-encoded
+(H.264, no audio). See ATTRIBUTION.md in the repository.

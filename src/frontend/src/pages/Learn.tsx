@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { LearningCard } from "@/components/LearningCard";
 import { VideoExampleCard } from "@/components/VideoExampleCard";
@@ -14,7 +14,33 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { RotateCcw, Shuffle, ChevronLeft, ChevronRight } from "lucide-react";
+import { CompareDialog } from "@/components/CompareDialog";
+import {
+  calculateNextReview,
+  newWordProgress,
+  sanitizeProgress,
+  type WordProgress,
+} from "@/lib/spacedRepetition";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ALL_WORDS,
+  AVAILABLE_WORDS,
+  availableDecks,
+  compareCandidates,
+  heldOutAccuracy,
+  isDeckChoice,
+  isTricky,
+  wordEntry,
+  wordsInDeck,
+  type DeckChoice,
+} from "@/data/words";
+import { RotateCcw, Shuffle, ChevronLeft, ChevronRight, GitCompare, Flame } from "lucide-react";
 
 // =============================================================================
 // Constants
@@ -22,62 +48,26 @@ import { RotateCcw, Shuffle, ChevronLeft, ChevronRight } from "lucide-react";
 
 const MASTERY_CORRECT_THRESHOLD = 3;
 const MASTERY_INTERVAL_DAYS = 7;
-const INITIAL_EASE_FACTOR = 2.5;
-const MIN_EASE_FACTOR = 1.3;
-const EASE_FACTOR_DECREMENT = 0.2;
 
-// Word list with Korean translations
-const WORD_LIST = [
-  { english: "hi", korean: "안녕" },
-  { english: "meet", korean: "만나다" },
-  { english: "glad", korean: "기쁘다" },
-  { english: "me", korean: "나" },
-  { english: "name", korean: "이름" },
-  { english: "equal", korean: "같다" },
-  { english: "eat", korean: "먹다" },
-  { english: "do effort", korean: "노력하다" },
-  { english: "age", korean: "나이" },
-  { english: "again", korean: "다시" },
-  { english: "how many", korean: "얼마나" },
-  { english: "day", korean: "날" },
-  { english: "when", korean: "언제" },
-  { english: "subway", korean: "지하철" },
-  { english: "family", korean: "가족" },
-  { english: "please", korean: "부탁하다" },
-  { english: "sister", korean: "언니/누나" },
-  { english: "study", korean: "공부하다" },
-  { english: "human", korean: "사람" },
-  { english: "now", korean: "지금" },
-  { english: "end", korean: "끝" },
-  { english: "you", korean: "당신" },
-  { english: "worried", korean: "걱정하다" },
-  { english: "marry", korean: "결혼하다" },
-  { english: "no", korean: "아니요" },
-  { english: "sweat", korean: "땀" },
-  { english: "yet", korean: "아직" },
-  { english: "born", korean: "태어나다" },
-  { english: "Seoul", korean: "서울" },
-  { english: "dinner", korean: "저녁" },
-  { english: "food", korean: "음식" },
-] as const;
+// Words, decks and Korean text live in src/data (vocab.json + words.ts). Only words whose two demo
+// clips exist in public/videos are offered (AVAILABLE_WORDS).
+export const getWords = () => AVAILABLE_WORDS.map((w) => w.english);
 
-// Derived constant to avoid repeated mapping
-const ENGLISH_WORDS = WORD_LIST.map((w) => w.english);
+const DECK_STORAGE_KEY = "koala.deck";
 
-export const getWords = () => [...ENGLISH_WORDS];
+const loadDeckChoice = (): DeckChoice => {
+  try {
+    const saved = localStorage.getItem(DECK_STORAGE_KEY);
+    if (isDeckChoice(saved) && wordsInDeck(saved).length > 0) return saved;
+  } catch {
+    /* storage unavailable */
+  }
+  return "all";
+};
 
 // =============================================================================
 // Types
 // =============================================================================
-
-interface WordProgress {
-  word: string;
-  correctCount: number;
-  incorrectCount: number;
-  lastSeen: number;
-  interval: number;
-  easeFactor: number;
-}
 
 // =============================================================================
 // Utility Functions
@@ -92,73 +82,23 @@ const shuffleArray = <T,>(array: readonly T[]): T[] => {
   return newArray;
 };
 
-const createInitialProgress = (): Map<string, WordProgress> => {
-  const progress = new Map<string, WordProgress>();
-  WORD_LIST.forEach(({ english }) => {
-    progress.set(english, {
-      word: english,
-      correctCount: 0,
-      incorrectCount: 0,
-      lastSeen: 0,
-      interval: 0,
-      easeFactor: INITIAL_EASE_FACTOR,
-    });
-  });
-  return progress;
-};
+const createInitialProgress = (): Map<string, WordProgress> =>
+  new Map(ALL_WORDS.map(({ english }) => [english, newWordProgress(english)]));
 
 const loadProgressFromStorage = (): Map<string, WordProgress> => {
   const saved = localStorage.getItem("wordProgress");
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return new Map(Object.entries(parsed));
+      // Repair values saved by the old (buggy) ease-factor update.
+      return new Map(
+        Object.entries(parsed as Record<string, WordProgress>).map(([w, p]) => [w, sanitizeProgress(p)] as const),
+      );
     } catch {
       // If parsing fails, initialize fresh
     }
   }
   return createInitialProgress();
-};
-
-/**
- * SM-2 Spaced Repetition Algorithm
- * Updates the ease factor and interval based on response quality
- */
-const calculateNextReview = (
-  current: WordProgress,
-  correct: boolean,
-): WordProgress => {
-  const updated = { ...current, lastSeen: Date.now() };
-
-  if (correct) {
-    updated.correctCount += 1;
-
-    // SM-2: Quality of 4 (correct with hesitation)
-    const quality = 4;
-    updated.easeFactor = Math.max(
-      MIN_EASE_FACTOR,
-      current.easeFactor +
-        (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)),
-    );
-
-    // Calculate next interval
-    if (current.interval === 0) {
-      updated.interval = 1;
-    } else if (current.interval === 1) {
-      updated.interval = 6;
-    } else {
-      updated.interval = Math.round(current.interval * updated.easeFactor);
-    }
-  } else {
-    updated.incorrectCount += 1;
-    updated.interval = 0;
-    updated.easeFactor = Math.max(
-      MIN_EASE_FACTOR,
-      current.easeFactor - EASE_FACTOR_DECREMENT,
-    );
-  }
-
-  return updated;
 };
 
 // =============================================================================
@@ -219,6 +159,9 @@ const ProgressStats = ({
 interface WordDisplayProps {
   english: string;
   korean: string;
+  tricky?: boolean;
+  accuracy?: number;
+  onCompare?: () => void;
   onPrevious: () => void;
   onNext: () => void;
   canGoPrevious: boolean;
@@ -227,6 +170,9 @@ interface WordDisplayProps {
 const WordDisplay = ({
   english,
   korean,
+  tricky,
+  accuracy,
+  onCompare,
   onPrevious,
   onNext,
   canGoPrevious,
@@ -251,6 +197,29 @@ const WordDisplay = ({
       <p className="text-2xl md:text-4xl font-semibold text-primary" lang="ko">
         {korean}
       </p>
+      {(tricky || onCompare) && (
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+          {tricky && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-3 py-1 text-xs font-medium"
+              title={
+                accuracy !== undefined
+                  ? `Fluent signers were recognised ${Math.round(accuracy * 100)}% of the time on this sign.`
+                  : undefined
+              }
+            >
+              <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+              tricky sign
+            </span>
+          )}
+          {onCompare && (
+            <Button size="sm" variant="outline" className="rounded-full h-7 text-xs" onClick={onCompare}>
+              <GitCompare className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+              Compare with…
+            </Button>
+          )}
+        </div>
+      )}
     </div>
 
     <button
@@ -312,8 +281,13 @@ const Learn = () => {
     loadProgressFromStorage,
   );
 
+  const [deck, setDeck] = useState<DeckChoice>(loadDeckChoice);
+  const decks = useMemo(() => availableDecks(), []);
+  const deckWords = useMemo(() => wordsInDeck(deck).map((w) => w.english), [deck]);
+  const [compareOpen, setCompareOpen] = useState(false);
+
   const [practiceQueue, setPracticeQueue] = useState<string[]>(() =>
-    shuffleArray(ENGLISH_WORDS),
+    shuffleArray(wordsInDeck(loadDeckChoice()).map((w) => w.english)),
   );
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -359,14 +333,19 @@ const Learn = () => {
 
   // Derived state
   const currentWord = practiceQueue[currentIndex];
-  const currentWordData = WORD_LIST.find((w) => w.english === currentWord);
-  const totalWords = WORD_LIST.length;
+  const currentWordData = wordEntry(currentWord);
+  const totalWords = deckWords.length;
+  const compareWith = currentWord ? compareCandidates(currentWord) : [];
 
-  const practicedWords = Array.from(wordProgress.values()).filter(
+  // Progress stats are scoped to the selected deck (spaced-repetition state itself is per word).
+  const deckProgress = deckWords
+    .map((w) => wordProgress.get(w))
+    .filter((p): p is WordProgress => p !== undefined);
+  const practicedWords = deckProgress.filter(
     (p) => p.correctCount > 0 || p.incorrectCount > 0,
   ).length;
 
-  const masteredWords = Array.from(wordProgress.values()).filter(
+  const masteredWords = deckProgress.filter(
     (p) =>
       p.correctCount >= MASTERY_CORRECT_THRESHOLD &&
       p.interval >= MASTERY_INTERVAL_DAYS,
@@ -377,10 +356,10 @@ const Learn = () => {
     if (currentIndex < practiceQueue.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      setPracticeQueue(shuffleArray(ENGLISH_WORDS));
+      setPracticeQueue(shuffleArray(deckWords));
       setCurrentIndex(0);
     }
-  }, [currentIndex, practiceQueue.length]);
+  }, [currentIndex, practiceQueue.length, deckWords]);
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -389,7 +368,19 @@ const Learn = () => {
   }, [currentIndex]);
 
   const handleShuffle = useCallback(() => {
-    setPracticeQueue(shuffleArray(ENGLISH_WORDS));
+    setPracticeQueue(shuffleArray(deckWords));
+    setCurrentIndex(0);
+  }, [deckWords]);
+
+  const handleDeckChange = useCallback((value: string) => {
+    if (!isDeckChoice(value)) return;
+    setDeck(value);
+    try {
+      localStorage.setItem(DECK_STORAGE_KEY, value);
+    } catch {
+      /* preference just isn't remembered */
+    }
+    setPracticeQueue(shuffleArray(wordsInDeck(value).map((w) => w.english)));
     setCurrentIndex(0);
   }, []);
 
@@ -402,14 +393,7 @@ const Learn = () => {
   const updateProgress = useCallback((word: string, correct: boolean) => {
     setWordProgress((prev) => {
       const newProgress = new Map(prev);
-      const current = newProgress.get(word) || {
-        word,
-        correctCount: 0,
-        incorrectCount: 0,
-        lastSeen: 0,
-        interval: 0,
-        easeFactor: INITIAL_EASE_FACTOR,
-      };
+      const current = newProgress.get(word) || newWordProgress(word);
 
       newProgress.set(word, calculateNextReview(current, correct));
       return newProgress;
@@ -434,6 +418,19 @@ const Learn = () => {
             />
 
             <div className="flex items-center gap-2">
+              <Select value={deck} onValueChange={handleDeckChange}>
+                <SelectTrigger className="w-[190px] md:w-[240px] h-9 rounded-full" aria-label="Choose a deck">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All words ({AVAILABLE_WORDS.length})</SelectItem>
+                  {decks.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label} ({d.count})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <Button
                 size="sm"
                 variant="ghost"
@@ -498,6 +495,9 @@ const Learn = () => {
             <WordDisplay
               english={currentWordData.english}
               korean={currentWordData.korean}
+              tricky={isTricky(currentWordData.english)}
+              accuracy={heldOutAccuracy(currentWordData.english)}
+              onCompare={compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
               onPrevious={handlePrevious}
               onNext={handleNext}
               canGoPrevious={currentIndex > 0}
@@ -513,6 +513,15 @@ const Learn = () => {
           />
         </div>
       </main>
+
+      {currentWord && compareWith.length > 0 && (
+        <CompareDialog
+          word={currentWord}
+          others={compareWith}
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+        />
+      )}
     </div>
   );
 };

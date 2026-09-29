@@ -8,9 +8,9 @@
 import { useState } from "react";
 import { createHolisticLandmarker, loadImageLandmarker, loadModels } from "@/lib/inference/loader";
 import { runTta } from "@/lib/inference/model";
-import { classIdToWord, denseToOriginal } from "@/lib/inference/labels";
+import { denseToOriginal } from "@/lib/inference/labels";
+import { wordForClassId } from "@/data/words";
 import { topKIndices } from "@/lib/inference/grading";
-import { getWordToIdMap } from "@/components/LearningCard";
 import { extractImageMode, extractVideoMode, loadVideoElement } from "@/lib/inference/extract";
 import { Clip, J, normalizeBody } from "@/lib/inference/preprocess";
 
@@ -79,8 +79,7 @@ async function topPrediction(clip: Clip) {
   const m = await loadModels();
   const pred = await runTta(m.ort, m.session, clip);
   const d2o = denseToOriginal(m.labels);
-  const ids = getWordToIdMap();
-  return topKIndices(pred.probs, 3).map((d) => `${classIdToWord(ids, d2o(d))} ${(pred.probs[d] * 100).toFixed(0)}%`);
+  return topKIndices(pred.probs, 3).map((d) => `${wordForClassId(d2o(d))} ${(pred.probs[d] * 100).toFixed(0)}%`);
 }
 
 export default function DebugParity() {

@@ -4,17 +4,18 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "postinstall": "node scripts/copy-wasm.mjs",
-    "predev": "node scripts/copy-wasm.mjs",
+    "postinstall": "node scripts/copy-wasm.mjs && node scripts/build-video-manifest.mjs",
+    "predev": "node scripts/copy-wasm.mjs && node scripts/build-video-manifest.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/check-videos.mjs && node scripts/copy-wasm.mjs",
+    "prebuild": "node scripts/build-video-manifest.mjs && node scripts/check-videos.mjs && node scripts/copy-wasm.mjs",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
     "check:videos": "node scripts/check-videos.mjs",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "pretest": "node scripts/build-video-manifest.mjs"
   },
   "dependencies": {
     "@gradio/client": "^2.0.0-dev.1",
