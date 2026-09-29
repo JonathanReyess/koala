@@ -13,7 +13,7 @@ This is the repository for the Koala (코아라), a full-stack application that 
 
 Koala addresses the need for accessible KSL learning tools by utilizing a vision-based approach. The system extracts 47 3D joint coordinates from video frames using MediaPipe Holistic and feeds this sequence data into a specialized CNN-LSTM-Attention model.
 
-This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). All 67 are in the practice vocabulary, grouped into themed decks; a word is offered as soon as its two demo clips are in `src/frontend/public/videos` (49 today; `scripts/make_demo_clips.py` produces the rest). Held-out accuracy varies by sign (RESULTS.md), and the weakest are tagged "tricky" in the app. The system is deployed as a user-friendly web application with a React/TypeScript frontend that runs MediaPipe and the exported ONNX model entirely in the browser (no server).
+This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). All 67 are in the practice vocabulary, grouped into themed decks; a word is offered as soon as its two demo clips are in `src/frontend/public/videos` (all 67 have them; `scripts/make_demo_clips.py` generates them). Held-out accuracy varies by sign (RESULTS.md), and the weakest are tagged "tricky" in the app. The system is deployed as a user-friendly web application with a React/TypeScript frontend that runs MediaPipe and the exported ONNX model entirely in the browser (no server).
 
 ---
 
@@ -132,5 +132,7 @@ This accessibility constraint prevents our system from being trained on a richer
 This project's source code is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 **This does not cover the data.** The trained model weights (`src/backend/best_model.pt`), the extracted feature file (`data/KSL77_joint_stream_47pt.pkl`), and the example videos under `src/frontend/public/videos/` are all derived from the KSL-77 dataset, which is licensed **CC BY-NC 4.0** (non-commercial, attribution required) — see [`data/DATA_README.md`](data/DATA_README.md) and [`ATTRIBUTION.md`](ATTRIBUTION.md). They are not MIT-licensed and are not cleared for commercial use.
+
+**Demo clips and signers:** the demo clips exclude signers 05 and 06 (minors) and 08 (left-handed), and show one male- and one female-presenting signer per word where available (`data/signers.csv`). All signers' landmarks are still used for training and evaluation; only the videos displayed in the app are filtered.
 
 ---

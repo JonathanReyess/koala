@@ -25,6 +25,8 @@ clear examples from different signers, trims idle frames at the start/end, and r
 downscaled). The script writes an `ATTRIBUTION.txt` and a provenance table (`demo_clips_manifest.csv`: source video,
 signer, trim window) alongside the clips. The app keeps the on-page attribution to Yang et al. (MMM 2020).
 
+**Signer selection.** The demo clips exclude signers 05 and 06 (minors) and 08 (left-handed), and show one male- and one female-presenting signer per word where available (`data/signers.csv`). This only affects which clips are *displayed*: the landmarks of all signers are still used for training and evaluation.
+
 ---
 
 ## 2. Methodology and Model Architecture

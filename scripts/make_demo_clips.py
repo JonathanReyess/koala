@@ -69,6 +69,11 @@ dataset:
 Licence: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) — attribution required,
 non-commercial use only. Changes made: trimmed idle frames at the start/end, downscaled and re-encoded
 (H.264, no audio). See ATTRIBUTION.md in the repository.
+
+Signer selection: the demo clips deliberately exclude signers 05 and 06 (minors) and 08 (left-handed).
+Each word shows one male-presenting and one female-presenting signer where available.
+This applies only to the demo clips shown in the app: the landmarks of ALL signers are still
+used for training and evaluation. (Signer table: data/signers.csv.)
 """
 
 
