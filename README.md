@@ -13,7 +13,7 @@ This is the repository for the Koala (코아라), a full-stack application that 
 
 Koala addresses the need for accessible KSL learning tools by utilizing a vision-based approach. The system extracts 47 3D joint coordinates from video frames using MediaPipe Holistic and feeds this sequence data into a specialized CNN-LSTM-Attention model.
 
-This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). Of those 67, the web app currently lets you practice **31** words — the subset the model classifies with perfect precision/recall on its (small) test set. The system is deployed as a user-friendly web application with a React/TypeScript frontend that runs MediaPipe and the exported ONNX model entirely in the browser (no server).
+This model analyzes the spatial and temporal patterns of the signs to classify them against 67 distinct KSL words (the raw KSL-77 dataset has 77 folder IDs, but only 67 have training videos — see below). All 67 are in the practice vocabulary, grouped into themed decks; a word is offered as soon as its two demo clips are in `src/frontend/public/videos` (49 today; `scripts/make_demo_clips.py` produces the rest). Held-out accuracy varies by sign (RESULTS.md), and the weakest are tagged "tricky" in the app. The system is deployed as a user-friendly web application with a React/TypeScript frontend that runs MediaPipe and the exported ONNX model entirely in the browser (no server).
 
 ---
 

@@ -1,62 +1,48 @@
 #!/usr/bin/env node
-// Verifies every video VideoExampleCard/Learn.tsx can request actually exists
-// in public/videos, with exact-case filenames (the frontend always requests
-// lowercase `.mp4`, and case-sensitive hosts like Vercel/Linux won't fall
-// back to a differently-cased file the way a case-insensitive dev machine does).
+// Verifies public/videos against src/data/vocab.json:
+//  - every clip is named <english>_example1.mp4 / _example2.mp4 for a known vocab word, with exact-case
+//    names and a lowercase .mp4 (case-sensitive hosts like Vercel/Linux won't fall back the way a
+//    case-insensitive dev machine does), and each word has BOTH clips;
+//  - src/data/video-manifest.json is up to date (regenerate with scripts/build-video-manifest.mjs).
+// Words without clips are fine (they're simply not offered yet); they're listed for information.
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-const root = path.dirname(fileURLToPath(import.meta.url));
-const learnPath = path.join(root, "..", "src", "pages", "Learn.tsx");
-const videosDir = path.join(root, "..", "public", "videos");
+const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
+const vocab = JSON.parse(readFileSync(path.join(root, "src", "data", "vocab.json"), "utf8")).words;
+const manifest = JSON.parse(readFileSync(path.join(root, "src", "data", "video-manifest.json"), "utf8")).words;
+const files = readdirSync(path.join(root, "public", "videos")).filter((f) => !f.startsWith("."));
+const fileSet = new Set(files);
+const english = new Set(vocab.map((w) => w.english));
+const problems = [];
 
-const learnSrc = readFileSync(learnPath, "utf8");
-const wordListMatch = learnSrc.match(
-  /const WORD_LIST = \[([\s\S]*?)\] as const;/,
-);
-if (!wordListMatch) {
-  console.error("Could not find WORD_LIST in Learn.tsx");
-  process.exit(1);
-}
-
-const englishWords = [
-  ...wordListMatch[1].matchAll(/english:\s*"([^"]+)"/g),
-].map((m) => m[1]);
-
-if (englishWords.length === 0) {
-  console.error("Parsed WORD_LIST but found no english words");
-  process.exit(1);
-}
-
-const actualFiles = new Set(readdirSync(videosDir));
-const missing = [];
-
-for (const word of englishWords) {
-  for (const example of [1, 2]) {
-    const expected = `${word}_example${example}.mp4`;
-    if (!actualFiles.has(expected)) {
-      // Case-insensitive fallback lookup so we can report "wrong case" vs "missing".
-      const caseInsensitiveHit = [...actualFiles].find(
-        (f) => f.toLowerCase() === expected.toLowerCase(),
-      );
-      missing.push(
-        caseInsensitiveHit
-          ? `${expected}  (found as "${caseInsensitiveHit}" — case mismatch)`
-          : `${expected}  (not found)`,
-      );
-    }
+for (const f of files) {
+  const m = f.match(/^(.*)_example([12])\.mp4$/);
+  if (!m) {
+    const ci = f.toLowerCase().match(/^(.*)_example[12]\.mp4$/);
+    problems.push(`${f}: not named <word>_example1/2.mp4${ci ? " (extension/case mismatch)" : ""}`);
+    continue;
+  }
+  if (!english.has(m[1])) {
+    const near = [...english].find((w) => w.toLowerCase() === m[1].toLowerCase());
+    problems.push(`${f}: no vocab word "${m[1]}"${near ? ` (case mismatch with "${near}")` : ""}`);
   }
 }
-
-if (missing.length > 0) {
-  console.error(
-    `check-videos: ${missing.length} practiceable word(s) reference a missing/mismatched video:\n`,
-  );
-  for (const m of missing) console.error(`  - ${m}`);
-  process.exit(1);
+const stems = new Set(files.map((f) => f.match(/^(.*)_example[12]\.mp4$/)?.[1]).filter(Boolean));
+for (const w of stems) {
+  for (const n of [1, 2]) if (!fileSet.has(`${w}_example${n}.mp4`)) problems.push(`${w}_example${n}.mp4 is missing (only one clip found)`);
+}
+const expected = [...stems].filter((w) => fileSet.has(`${w}_example1.mp4`) && fileSet.has(`${w}_example2.mp4`)).sort();
+if (JSON.stringify(expected) !== JSON.stringify(manifest)) {
+  problems.push("src/data/video-manifest.json is stale — run: node scripts/build-video-manifest.mjs");
 }
 
-console.log(
-  `check-videos: OK — all ${englishWords.length} practiceable words have example1/example2 videos with matching case.`,
-);
+if (problems.length) {
+  console.error(`check-videos: ${problems.length} problem(s):\n`);
+  for (const p of problems) console.error(`  - ${p}`);
+  process.exit(1);
+}
+const missing = vocab.filter((w) => !manifest.includes(w.english)).map((w) => w.english);
+console.log(`check-videos: OK — ${manifest.length}/${vocab.length} words have both clips.`);
+if (missing.length) console.log(`  not yet practiceable (no clips): ${missing.join(", ")}`);

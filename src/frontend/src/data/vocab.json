@@ -1,0 +1,474 @@
+{
+ "_comment": "Single source of truth for practice vocabulary (read by the frontend and scripts/make_demo_clips.py). 'english' is also the demo-video filename stem: public/videos/<english>_example1.mp4 / _example2.mp4. Entries with koreanVerified:false are UNVERIFIED TRANSLATIONS and need native-speaker review before they are treated as reliable.",
+ "words": [
+  {
+   "english": "hi",
+   "korean": "안녕",
+   "classId": 1,
+   "deck": "greetings",
+   "koreanVerified": true
+  },
+  {
+   "english": "meet",
+   "korean": "만나다",
+   "classId": 3,
+   "deck": "greetings",
+   "koreanVerified": true
+  },
+  {
+   "english": "glad",
+   "korean": "기쁘다",
+   "classId": 5,
+   "deck": "greetings",
+   "koreanVerified": true
+  },
+  {
+   "english": "thank",
+   "korean": "고맙다",
+   "classId": 13,
+   "deck": "greetings",
+   "koreanVerified": false
+  },
+  {
+   "english": "sorry",
+   "korean": "미안하다",
+   "classId": 15,
+   "deck": "greetings",
+   "koreanVerified": false
+  },
+  {
+   "english": "please",
+   "korean": "부탁하다",
+   "classId": 43,
+   "deck": "greetings",
+   "koreanVerified": true
+  },
+  {
+   "english": "fine",
+   "korean": "괜찮다",
+   "classId": 17,
+   "deck": "greetings",
+   "koreanVerified": false
+  },
+  {
+   "english": "name",
+   "korean": "이름",
+   "classId": 11,
+   "deck": "greetings",
+   "koreanVerified": true
+  },
+  {
+   "english": "introduction",
+   "korean": "소개",
+   "classId": 41,
+   "deck": "greetings",
+   "koreanVerified": false
+  },
+  {
+   "english": "invite",
+   "korean": "초대하다",
+   "classId": 70,
+   "deck": "greetings",
+   "koreanVerified": false
+  },
+  {
+   "english": "favor",
+   "korean": "호의",
+   "classId": 66,
+   "deck": "greetings",
+   "koreanVerified": false
+  },
+  {
+   "english": "no",
+   "korean": "아니요",
+   "classId": 60,
+   "deck": "greetings",
+   "koreanVerified": true
+  },
+  {
+   "english": "me",
+   "korean": "나",
+   "classId": 7,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "you",
+   "korean": "당신",
+   "classId": 56,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "we",
+   "korean": "우리",
+   "classId": 26,
+   "deck": "people",
+   "koreanVerified": false
+  },
+  {
+   "english": "who",
+   "korean": "누구",
+   "classId": 37,
+   "deck": "people",
+   "koreanVerified": false
+  },
+  {
+   "english": "human",
+   "korean": "사람",
+   "classId": 49,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "family",
+   "korean": "가족",
+   "classId": 39,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "sister",
+   "korean": "언니/누나",
+   "classId": 47,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "age",
+   "korean": "나이",
+   "classId": 20,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "marry",
+   "korean": "결혼하다",
+   "classId": 58,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "born",
+   "korean": "태어나다",
+   "classId": 64,
+   "deck": "people",
+   "koreanVerified": true
+  },
+  {
+   "english": "face",
+   "korean": "얼굴",
+   "classId": 9,
+   "deck": "people",
+   "koreanVerified": false
+  },
+  {
+   "english": "eat",
+   "korean": "먹다",
+   "classId": 16,
+   "deck": "food",
+   "koreanVerified": true
+  },
+  {
+   "english": "food",
+   "korean": "음식",
+   "classId": 71,
+   "deck": "food",
+   "koreanVerified": true
+  },
+  {
+   "english": "dinner",
+   "korean": "저녁",
+   "classId": 68,
+   "deck": "food",
+   "koreanVerified": true
+  },
+  {
+   "english": "bi bim rice",
+   "korean": "비빔밥",
+   "classId": 4,
+   "deck": "food",
+   "koreanVerified": false
+  },
+  {
+   "english": "now",
+   "korean": "지금",
+   "classId": 50,
+   "deck": "time",
+   "koreanVerified": true
+  },
+  {
+   "english": "day",
+   "korean": "날",
+   "classId": 23,
+   "deck": "time",
+   "koreanVerified": true
+  },
+  {
+   "english": "yesterday",
+   "korean": "어제",
+   "classId": 52,
+   "deck": "time",
+   "koreanVerified": false
+  },
+  {
+   "english": "when",
+   "korean": "언제",
+   "classId": 25,
+   "deck": "time",
+   "koreanVerified": true
+  },
+  {
+   "english": "time",
+   "korean": "시간",
+   "classId": 40,
+   "deck": "time",
+   "koreanVerified": false
+  },
+  {
+   "english": "one hour",
+   "korean": "한 시간",
+   "classId": 74,
+   "deck": "time",
+   "koreanVerified": false
+  },
+  {
+   "english": "yet",
+   "korean": "아직",
+   "classId": 62,
+   "deck": "time",
+   "koreanVerified": true
+  },
+  {
+   "english": "finally",
+   "korean": "마침내",
+   "classId": 63,
+   "deck": "time",
+   "koreanVerified": false
+  },
+  {
+   "english": "again",
+   "korean": "다시",
+   "classId": 21,
+   "deck": "time",
+   "koreanVerified": true
+  },
+  {
+   "english": "end",
+   "korean": "끝",
+   "classId": 55,
+   "deck": "time",
+   "koreanVerified": true
+  },
+  {
+   "english": "subway",
+   "korean": "지하철",
+   "classId": 27,
+   "deck": "getting-around",
+   "koreanVerified": true
+  },
+  {
+   "english": "bus",
+   "korean": "버스",
+   "classId": 29,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "ride",
+   "korean": "타다",
+   "classId": 30,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "arrive",
+   "korean": "도착하다",
+   "classId": 38,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "walk",
+   "korean": "걷다",
+   "classId": 44,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "location",
+   "korean": "위치",
+   "classId": 34,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "where",
+   "korean": "어디",
+   "classId": 32,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "Seoul",
+   "korean": "서울",
+   "classId": 67,
+   "deck": "getting-around",
+   "koreanVerified": true
+  },
+  {
+   "english": "cell phone",
+   "korean": "휴대전화",
+   "classId": 31,
+   "deck": "getting-around",
+   "koreanVerified": false
+  },
+  {
+   "english": "worried",
+   "korean": "걱정하다",
+   "classId": 57,
+   "deck": "feelings",
+   "koreanVerified": true
+  },
+  {
+   "english": "care",
+   "korean": "돌보다",
+   "classId": 77,
+   "deck": "feelings",
+   "koreanVerified": false
+  },
+  {
+   "english": "want",
+   "korean": "원하다",
+   "classId": 72,
+   "deck": "feelings",
+   "koreanVerified": false
+  },
+  {
+   "english": "good",
+   "korean": "좋다",
+   "classId": 76,
+   "deck": "feelings",
+   "koreanVerified": false
+  },
+  {
+   "english": "nice",
+   "korean": "멋지다",
+   "classId": 24,
+   "deck": "feelings",
+   "koreanVerified": false
+  },
+  {
+   "english": "special",
+   "korean": "특별하다",
+   "classId": 51,
+   "deck": "feelings",
+   "koreanVerified": false
+  },
+  {
+   "english": "equal",
+   "korean": "같다",
+   "classId": 14,
+   "deck": "feelings",
+   "koreanVerified": true
+  },
+  {
+   "english": "sweat",
+   "korean": "땀",
+   "classId": 61,
+   "deck": "feelings",
+   "koreanVerified": true
+  },
+  {
+   "english": "study",
+   "korean": "공부하다",
+   "classId": 48,
+   "deck": "learning",
+   "koreanVerified": true
+  },
+  {
+   "english": "test",
+   "korean": "시험",
+   "classId": 54,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "do effort",
+   "korean": "노력하다",
+   "classId": 18,
+   "deck": "learning",
+   "koreanVerified": true
+  },
+  {
+   "english": "effort",
+   "korean": "노력",
+   "classId": 59,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "experience",
+   "korean": "경험",
+   "classId": 69,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "success",
+   "korean": "성공",
+   "classId": 65,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "hobby",
+   "korean": "취미",
+   "classId": 6,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "movie",
+   "korean": "영화",
+   "classId": 8,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "see",
+   "korean": "보다",
+   "classId": 10,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "receive",
+   "korean": "받다",
+   "classId": 42,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "responsibility",
+   "korean": "책임",
+   "classId": 36,
+   "deck": "learning",
+   "koreanVerified": false
+  },
+  {
+   "english": "what",
+   "korean": "무엇",
+   "classId": 2,
+   "deck": "questions",
+   "koreanVerified": false
+  },
+  {
+   "english": "how many",
+   "korean": "얼마나",
+   "classId": 22,
+   "deck": "questions",
+   "koreanVerified": true
+  }
+ ]
+}
