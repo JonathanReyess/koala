@@ -82,7 +82,7 @@ export const wordForClassId = (classId: number): string => byClassId.get(classId
 // --- Difficulty ---------------------------------------------------------------
 
 /** Signs whose held-out accuracy (fluent signers, signer-out folds) is below this get a "tricky sign" tag. */
-export const TRICKY_ACCURACY_THRESHOLD = 0.6;
+export const TRICKY_ACCURACY_THRESHOLD = 0.7;
 
 type ClassAcc = { accuracy: number | null; n: number };
 const accuracyTable = classAccuracy.classes as Record<string, ClassAcc>;
@@ -103,7 +103,10 @@ export function isTricky(english: string): boolean {
 export const CONFUSABLE_GROUPS: readonly (readonly string[])[] = [
   ["when", "time", "one hour"],
   ["bus", "subway", "ride", "arrive"],
-  ["end", "arrive"],
+  ["location", "where"],
+  ["success", "finally"],
+  ["good", "special"],
+  ["receive", "experience"],
 ];
 
 /** Other words in the same confusable group(s) as `english` that have demo videos. */

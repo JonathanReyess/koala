@@ -98,8 +98,12 @@ describe("tricky signs and compare groups", () => {
       expect(isTricky(w.english)).toBe(a! < TRICKY_ACCURACY_THRESHOLD);
     }
     expect(Object.keys(classAccuracy.classes)).toHaveLength(67);
-    expect(isTricky("success")).toBe(true); // 52.6% held-out
+    expect(TRICKY_ACCURACY_THRESHOLD).toBe(0.7);
     expect(isTricky("hi")).toBe(false);
+    // Exactly the signs under 70% held-out accuracy in the calibration.
+    expect(ALL_WORDS.filter((w) => isTricky(w.english)).map((w) => w.english).sort()).toEqual(
+      ["arrive", "bi bim rice", "family", "receive", "ride", "success", "time", "you"].sort(),
+    );
   });
 
   it("confusable groups only mention real words; candidates are the available mates in the same group", () => {
@@ -115,5 +119,24 @@ describe("tricky signs and compare groups", () => {
     }
     expect(compareCandidates("when")).toContain("time"); // time has clips today
     expect(compareCandidates("hi")).toEqual([]);
+  });
+
+  it("uses the agreed groups (end/arrive removed; location/where, success/finally, good/special, receive/experience added)", () => {
+    expect(CONFUSABLE_GROUPS.map((g) => [...g])).toEqual([
+      ["when", "time", "one hour"],
+      ["bus", "subway", "ride", "arrive"],
+      ["location", "where"],
+      ["success", "finally"],
+      ["good", "special"],
+      ["receive", "experience"],
+    ]);
+    expect(CONFUSABLE_GROUPS.some((g) => g.includes("end"))).toBe(false);
+    expect(compareCandidates("end")).toEqual([]);
+    expect(compareCandidates("arrive")).not.toContain("end");
+    // Pairs whose partner has clips today
+    expect(compareCandidates("success")).toEqual(["finally"]);
+    expect(compareCandidates("finally")).toEqual(["success"].filter(hasDemoVideos));
+    expect(compareCandidates("good")).toEqual(["special"]);
+    expect(compareCandidates("receive")).toEqual(["experience"]);
   });
 });

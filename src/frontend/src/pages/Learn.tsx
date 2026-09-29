@@ -16,6 +16,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CompareDialog } from "@/components/CompareDialog";
 import {
+  calculateNextReview,
+  newWordProgress,
+  sanitizeProgress,
+  type WordProgress,
+} from "@/lib/spacedRepetition";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -42,9 +48,6 @@ import { RotateCcw, Shuffle, ChevronLeft, ChevronRight, GitCompare, Flame } from
 
 const MASTERY_CORRECT_THRESHOLD = 3;
 const MASTERY_INTERVAL_DAYS = 7;
-const INITIAL_EASE_FACTOR = 2.5;
-const MIN_EASE_FACTOR = 1.3;
-const EASE_FACTOR_DECREMENT = 0.2;
 
 // Words, decks and Korean text live in src/data (vocab.json + words.ts). Only words whose two demo
 // clips exist in public/videos are offered (AVAILABLE_WORDS).
@@ -66,15 +69,6 @@ const loadDeckChoice = (): DeckChoice => {
 // Types
 // =============================================================================
 
-interface WordProgress {
-  word: string;
-  correctCount: number;
-  incorrectCount: number;
-  lastSeen: number;
-  interval: number;
-  easeFactor: number;
-}
-
 // =============================================================================
 // Utility Functions
 // =============================================================================
@@ -88,73 +82,23 @@ const shuffleArray = <T,>(array: readonly T[]): T[] => {
   return newArray;
 };
 
-const createInitialProgress = (): Map<string, WordProgress> => {
-  const progress = new Map<string, WordProgress>();
-  ALL_WORDS.forEach(({ english }) => {
-    progress.set(english, {
-      word: english,
-      correctCount: 0,
-      incorrectCount: 0,
-      lastSeen: 0,
-      interval: 0,
-      easeFactor: INITIAL_EASE_FACTOR,
-    });
-  });
-  return progress;
-};
+const createInitialProgress = (): Map<string, WordProgress> =>
+  new Map(ALL_WORDS.map(({ english }) => [english, newWordProgress(english)]));
 
 const loadProgressFromStorage = (): Map<string, WordProgress> => {
   const saved = localStorage.getItem("wordProgress");
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      return new Map(Object.entries(parsed));
+      // Repair values saved by the old (buggy) ease-factor update.
+      return new Map(
+        Object.entries(parsed as Record<string, WordProgress>).map(([w, p]) => [w, sanitizeProgress(p)] as const),
+      );
     } catch {
       // If parsing fails, initialize fresh
     }
   }
   return createInitialProgress();
-};
-
-/**
- * SM-2 Spaced Repetition Algorithm
- * Updates the ease factor and interval based on response quality
- */
-const calculateNextReview = (
-  current: WordProgress,
-  correct: boolean,
-): WordProgress => {
-  const updated = { ...current, lastSeen: Date.now() };
-
-  if (correct) {
-    updated.correctCount += 1;
-
-    // SM-2: Quality of 4 (correct with hesitation)
-    const quality = 4;
-    updated.easeFactor = Math.max(
-      MIN_EASE_FACTOR,
-      current.easeFactor +
-        (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02)),
-    );
-
-    // Calculate next interval
-    if (current.interval === 0) {
-      updated.interval = 1;
-    } else if (current.interval === 1) {
-      updated.interval = 6;
-    } else {
-      updated.interval = Math.round(current.interval * updated.easeFactor);
-    }
-  } else {
-    updated.incorrectCount += 1;
-    updated.interval = 0;
-    updated.easeFactor = Math.max(
-      MIN_EASE_FACTOR,
-      current.easeFactor - EASE_FACTOR_DECREMENT,
-    );
-  }
-
-  return updated;
 };
 
 // =============================================================================
@@ -449,14 +393,7 @@ const Learn = () => {
   const updateProgress = useCallback((word: string, correct: boolean) => {
     setWordProgress((prev) => {
       const newProgress = new Map(prev);
-      const current = newProgress.get(word) || {
-        word,
-        correctCount: 0,
-        incorrectCount: 0,
-        lastSeen: 0,
-        interval: 0,
-        easeFactor: INITIAL_EASE_FACTOR,
-      };
+      const current = newProgress.get(word) || newWordProgress(word);
 
       newProgress.set(word, calculateNextReview(current, correct));
       return newProgress;
