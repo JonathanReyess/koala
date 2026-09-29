@@ -1,4 +1,4 @@
-# PERF.md — in-browser inference (PR 3)
+# PERF.md - in-browser inference (PR 3)
 
 ## Versions
 
@@ -21,7 +21,7 @@ table below (first-ever init took 17.6 s).
 **Setup:** MacBook (Apple M4, 16 GB), Chrome 154, `vite build` + `vite preview` on localhost (no network
 latency, no compression) for load times; dev server for live runs. Driven with puppeteer-core in headless
 Chrome using Chrome's fake camera fed with a real signing clip (`public/videos/me_example1.mp4` as y4m).
-**These are not from a hand-held, interactive Chrome session with a webcam** — see "Reproduce" below to get
+**These are not from a hand-held, interactive Chrome session with a webcam** - see "Reproduce" below to get
 your own numbers (the fps badge shows in dev, or with `?perf=1`).
 
 | Metric | Result |
@@ -92,5 +92,5 @@ Takeaways:
 cd src/frontend
 npm install && npm run dev            # http://localhost:8080/learn  (fps badge bottom-left of camera view)
 # open DevTools console: "[koala] models loaded {...}" and "[koala:perf] Stop→result … ms" lines
-# parity tool: http://localhost:8080/debug/parity  (dev only) — upload a clip
+# parity tool: http://localhost:8080/debug/parity  (dev only) - upload a clip
 ```

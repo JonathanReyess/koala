@@ -214,7 +214,7 @@ describe("landmark layout + grading", () => {
     const g = gradePrediction(P({ 2: 0.3, 3: 0.2, 4: 0.15, 1: 0.01 }), d2o, 101, ok, TEST_CFG);
     expect(g).toMatchObject({ status: "incorrect", countsAsMiss: true, countsAsAttempt: true });
     const word = (id: number) => `word${id}`;
-    expect(feedbackMessage(g, word)).toBe("Not quite — watch the example and try again.");
+    expect(feedbackMessage(g, word)).toBe("Not quite. Watch the example and try again.");
     expect(feedbackMessage(g, word)).not.toMatch(/word/);
   });
 
@@ -227,10 +227,10 @@ describe("landmark layout + grading", () => {
     const msg = (e: Record<number, number>) => feedbackMessage(gradePrediction(P(e), d2o, 101, ok), word);
     expect(msg({ 2: 0.8, 1: 0.05 })).toBe("That looked like “word102”.");
     expect(msg({ 1: 0.9 })).toBe("Perfect!");
-    expect(msg({ 2: 0.8, 1: 0.1 })).toBe("Almost — it looked a bit like “word102”."); // close AND confident top-1
+    expect(msg({ 2: 0.8, 1: 0.1 })).toBe("Almost! It looked a bit like “word102”."); // close AND confident top-1
     const g = (over: object) => ({ countsAsAttempt: true, countsAsMiss: false, ...over }) as never;
     expect(feedbackMessage(g({ status: "not_detected", reason: "hands" }), word)).toBe(
-      "I couldn't see your hands much — keep them in view while signing.",
+      "I couldn't see your hands much. Keep them in view while signing.",
     );
   });
 
@@ -244,15 +244,15 @@ describe("landmark layout + grading", () => {
     const low = msg({ 2: 0.446, 1: 0.3 });
     expect(low.grade.status).toBe("close");
     expect(low.grade.namesTop1).toBe(false);
-    expect(low.text).toBe("Almost — that was close. Try once more.");
+    expect(low.text).toBe("Almost! That was close. Try once more.");
     expect(low.text).not.toMatch(/word/);
     // just under the confusion bar: still generic; at the bar: names the word
-    expect(msg({ 2: 0.74, 1: 0.15 }).text).toBe("Almost — that was close. Try once more.");
-    expect(msg({ 2: 0.75, 1: 0.15 }).text).toBe("Almost — it looked a bit like “word102”.");
+    expect(msg({ 2: 0.74, 1: 0.15 }).text).toBe("Almost! That was close. Try once more.");
+    expect(msg({ 2: 0.75, 1: 0.15 }).text).toBe("Almost! It looked a bit like “word102”.");
     // target itself is top-1 but under CORRECT_MIN: generic, never names the target
     const self = msg({ 1: 0.15 });
     expect(self.grade.status).toBe("close");
-    expect(self.text).toBe("Almost — that was close. Try once more.");
+    expect(self.text).toBe("Almost! That was close. Try once more.");
   });
 
   it("live framing never warns about hands", () => {

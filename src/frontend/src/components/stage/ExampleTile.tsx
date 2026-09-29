@@ -58,7 +58,7 @@ export const ExampleTile = ({
       />
     </TileVideoArea>
 
-    <TileBar className="justify-center gap-1.5 mt-auto">
+    <TileBar position="bottom" className="justify-center gap-1.5 mt-auto">
       <PrimaryButton onClick={onTogglePlay} aria-label={playing ? "Pause" : "Play"} className="px-3.5 text-lg gap-2" data-testid="play-pause">
         {playing ? <Pause className="h-7 w-7" aria-hidden="true" /> : <Play className="h-7 w-7" aria-hidden="true" />}
         {playing ? "Pause" : "Play"}

@@ -140,7 +140,7 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
           )}
         >
           {inLearn && !state.showMe && (
-            <div className="rounded-[var(--tile-radius)] border-[length:var(--tile-border)] border-dashed border-[color:var(--tile-border-color)] bg-white/70 p-4 flex flex-col items-center gap-3 text-center">
+            <div className="rounded-[var(--tile-radius)] border-2 border-dashed border-gray-300 bg-white p-4 flex flex-col items-center gap-3 text-center">
               <p className="text-sm font-medium text-gray-700">Want to check yourself? (optional)</p>
               <QuietButton large pressed={false} onClick={() => dispatch({ type: "TOGGLE_SHOW_ME" })} data-testid="show-me">
                 <Camera className="h-6 w-6" aria-hidden="true" />
@@ -180,7 +180,7 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
         >
           {session.debug && (
             <div className="mt-3 rounded-lg border border-dashed border-gray-400 bg-white/60 p-2 text-xs text-gray-600">
-              (debug) pose-coach slot: handshape · location · movement — not built yet
+              (debug) pose-coach slot: handshape · location · movement (not built yet)
             </div>
           )}
         </ResultPanel>
@@ -256,7 +256,7 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
             <QuietButton disabled={session.loggedAttempts === 0} onClick={session.clearAttempts}>
               Clear
             </QuietButton>
-            <span>{session.loggedAttempts} attempt(s) logged in memory — nothing is uploaded.</span>
+            <span>{session.loggedAttempts} attempt(s) logged in memory. Nothing is uploaded.</span>
           </div>
         </div>
       )}

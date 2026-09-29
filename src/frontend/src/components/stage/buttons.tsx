@@ -31,8 +31,8 @@ export const QuietButton = forwardRef<HTMLButtonElement, Props & { large?: boole
       aria-pressed={pressed}
       {...p}
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border-2 border-[var(--tile-border-color)] bg-white px-5",
-        "text-base font-semibold text-gray-900 hover:bg-gray-100",
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full border border-gray-300 bg-white shadow-sm px-5",
+        "text-base font-semibold text-gray-900 hover:bg-gray-50",
         large ? "min-h-[var(--tap-large)] min-w-[var(--tap-large)]" : "min-h-[var(--tap-min)] min-w-[var(--tap-min)]",
         pressed && "bg-[var(--cta)] text-white border-[var(--cta)] hover:bg-[var(--cta-hover)]",
         "focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-[var(--cta)]",

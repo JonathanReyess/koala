@@ -44,11 +44,11 @@ export const CameraTile = ({
 
   const status =
     modelStatus === "loading" ? "Getting the sign checker ready…"
-    : modelStatus === "error" ? "Couldn't load the sign checker — check your connection and refresh."
-    : cameraError ? "Camera is off — allow camera access in your browser."
+    : modelStatus === "error" ? "Couldn't load the sign checker. Check your connection and refresh."
+    : cameraError ? "Camera is off. Allow camera access in your browser."
     : mode === "countdown" ? "Get ready…"
     : mode === "grading" || mode === "result" ? "Your attempt"
-    : hint ?? (framingOk ? (recording ? "Looking good — keep signing." : "You're all set — press Record.") : "Getting a good look at you…");
+    : hint ?? (framingOk ? (recording ? "Looking good, keep signing." : "You're all set. Press Record.") : "Getting a good look at you…");
   const statusIsHint = live && !!hint && modelStatus === "ready" && !cameraError;
 
   return (
@@ -60,7 +60,7 @@ export const CameraTile = ({
             aria-live="polite"
             className={cn(
               "inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-semibold",
-              statusIsHint ? "bg-amber-100 text-amber-900" : "bg-white text-gray-800",
+              statusIsHint ? "bg-amber-100 text-amber-900" : "bg-gray-100 text-gray-800",
             )}
           >
             {statusIsHint ? <Lightbulb className="h-4 w-4" aria-hidden="true" /> : <Sparkles className="h-4 w-4" aria-hidden="true" />}
@@ -113,7 +113,7 @@ export const CameraTile = ({
         )}
       </TileVideoArea>
 
-      <TileBar className="justify-center mt-auto">
+      <TileBar position="bottom" className="justify-center mt-auto">
         {compact ? (
           <QuietButton onClick={onHide} aria-label="Hide my camera">
             <EyeOff className="h-4 w-4" aria-hidden="true" />

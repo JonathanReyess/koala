@@ -1,7 +1,7 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-/** Thick-bordered video tile: top bar, video area, bottom bar. Controls live in the bars, never over the video. */
+/** Clean white video card: soft shadow, hairline border. Top bar, video area, bottom bar; nothing floats over the video. */
 export const Tile = ({
   className,
   recording,
@@ -11,9 +11,10 @@ export const Tile = ({
   <section
     {...p}
     className={cn(
-      "h-full overflow-hidden bg-[#f4efe6] flex flex-col border-solid rounded-[var(--tile-radius)]",
-      "border-[length:var(--tile-border)]",
-      recording ? "border-[color:var(--tile-border-recording)]" : "border-[color:var(--tile-border-color)]",
+      "h-full overflow-hidden bg-white flex flex-col border-solid rounded-[var(--tile-radius)] shadow-[var(--tile-shadow)]",
+      "border-[length:var(--tile-border)] border-[color:var(--tile-border-color)]",
+      // Recording: a red ring (the "Recording" label + timer say it too, so it's not colour alone).
+      recording && "ring-[3px] ring-[color:var(--tile-border-recording)]",
       className,
     )}
   >
@@ -21,8 +22,19 @@ export const Tile = ({
   </section>
 );
 
-export const TileBar = ({ className, ...p }: HTMLAttributes<HTMLDivElement>) => (
-  <div {...p} className={cn("flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#f4efe6] min-h-[var(--tap-min)]", className)} />
+export const TileBar = ({
+  className,
+  position = "top",
+  ...p
+}: HTMLAttributes<HTMLDivElement> & { position?: "top" | "bottom" }) => (
+  <div
+    {...p}
+    className={cn(
+      "flex flex-wrap items-center justify-between gap-2 px-4 py-2 bg-white min-h-[var(--tap-min)] border-gray-100",
+      position === "top" ? "border-b" : "border-t",
+      className,
+    )}
+  />
 );
 
 /** 16:9 video area. Videos inside crop with object-position centre-bottom so hands stay visible. */

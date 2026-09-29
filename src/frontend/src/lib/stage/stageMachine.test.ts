@@ -120,7 +120,11 @@ describe("theme tokens meet the design rules", () => {
     expect(inset).toBeLessThanOrEqual(24);
     expect(STAGE_THEME.splitPractice).toBe("1fr 1fr");
     expect(STAGE_THEME.splitLearn).toMatch(/72fr/);
-    expect(parseInt(STAGE_THEME.tileBorderWidth, 10)).toBeGreaterThanOrEqual(3);
+    // Clean white cards: hairline border in a light grey plus a soft shadow (no heavy dark outlines).
+    expect(parseInt(STAGE_THEME.tileBorderWidth, 10)).toBeLessThanOrEqual(2);
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(STAGE_THEME.tileBorderColor.slice(i, i + 2), 16));
+    expect(Math.min(r, g, b)).toBeGreaterThanOrEqual(0xd0);
+    expect(STAGE_THEME.tileShadow).toMatch(/rgba/);
     const vars = stageCssVars();
     expect(vars["--tap-min"]).toBe("48px");
     expect(vars["--split-practice"]).toBe("1fr 1fr");

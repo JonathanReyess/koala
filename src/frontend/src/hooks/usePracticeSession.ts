@@ -215,7 +215,7 @@ export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }:
           `top 5: ` +
             result.top5.map((r) => `${wordForClassId(r.classId)} ${(r.prob * 100).toFixed(1)}%`).join(", ") +
             `\nframes with pose ${pct(f.pose)}, any hand ${pct(f.anyHand)} (left ${pct(f.leftHand)}, right ${pct(f.rightHand)})` +
-            `\ngrade: ${g.status}${g.reason ? ` (${g.reason})` : ""}, target p=${g.targetProb?.toFixed(3) ?? "—"}`,
+            `\ngrade: ${g.status}${g.reason ? ` (${g.reason})` : ""}, target p=${g.targetProb?.toFixed(3) ?? "n/a"}`,
         );
         // In-memory only (never uploaded): exported on demand via "Download attempts (JSON)".
         logAttempt(

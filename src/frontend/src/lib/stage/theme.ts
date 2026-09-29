@@ -5,11 +5,12 @@
  */
 export const STAGE_THEME = {
   /** Tile (video card) corner radius. */
-  tileRadius: "20px",
-  /** Thick, readable tile borders. */
-  tileBorderWidth: "4px",
-  tileBorderColor: "#3b4a45",
-  /** Camera tile border while recording (the label + timer carry the meaning too; colour is only reinforcement). */
+  tileRadius: "24px",
+  /** Clean white cards: a hairline border and a soft shadow instead of heavy outlines. */
+  tileBorderWidth: "1px",
+  tileBorderColor: "#e5e7eb",
+  tileShadow: "0 10px 30px -12px rgba(15, 23, 42, 0.25)",
+  /** Camera tile ring while recording (the label + timer carry the meaning too; colour is only reinforcement). */
   tileBorderRecording: "#b3261e",
   /** Primary call-to-action colour (white text on it is ~7.5:1) and its hover state. */
   ctaColor: "#2f5f52",
@@ -43,6 +44,7 @@ export function stageCssVars(t: StageTheme = STAGE_THEME): Record<string, string
     "--tile-radius": t.tileRadius,
     "--tile-border": t.tileBorderWidth,
     "--tile-border-color": t.tileBorderColor,
+    "--tile-shadow": t.tileShadow,
     "--tile-border-recording": t.tileBorderRecording,
     "--cta": t.ctaColor,
     "--cta-hover": t.ctaHoverColor,
