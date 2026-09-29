@@ -135,5 +135,126 @@ class TestPathsAndVocab(unittest.TestCase):
         self.assertEqual((plans, warnings), ([], []))
 
 
+def signer_table(**overrides):
+    base = {f"{i:02d}": {"presentation": "M" if i % 2 == 0 else "F", "dominant_hand": "R", "exclude": False, "notes": ""} for i in range(20)}
+    for k, v in overrides.items():
+        base[k.lstrip("s")] = {**base[k.lstrip("s")], **v}
+    return base
+
+
+class TestSignerTable(unittest.TestCase):
+    def write(self, text):
+        d = tempfile.mkdtemp()
+        p = Path(d) / "signers.csv"
+        p.write_text(text)
+        return p
+
+    def test_load_signers_normalizes_ids_presentation_and_exclude(self):
+        p = self.write("signer_id,presentation,dominant_hand,exclude,notes\n0,m,R,0,\n08,unknown,L,1,lefty\n9,F,r,0,\n")
+        s = mdc.load_signers(p)
+        self.assertEqual(s["00"]["presentation"], "M")
+        self.assertTrue(s["08"]["exclude"])
+        self.assertEqual(s["08"]["dominant_hand"], "L")
+        self.assertEqual(s["09"], {"presentation": "F", "dominant_hand": "R", "exclude": False, "notes": ""})
+
+    def test_load_signers_rejects_bad_presentation_and_missing_columns(self):
+        with self.assertRaisesRegex(ValueError, "presentation"):
+            mdc.load_signers(self.write("signer_id,presentation,exclude\n00,X,0\n"))
+        with self.assertRaisesRegex(ValueError, "missing column"):
+            mdc.load_signers(self.write("signer_id,notes\n00,\n"))
+
+    def test_template_from_contact_sheet_script_round_trips(self):
+        spec2 = importlib.util.spec_from_file_location("signer_contact_sheet", REPO / "scripts" / "signer_contact_sheet.py")
+        sys.path.insert(0, str(REPO / "scripts"))
+        sc = importlib.util.module_from_spec(spec2)
+        spec2.loader.exec_module(sc)
+        d = Path(tempfile.mkdtemp()) / "signers.csv"
+        sc.write_template(d, [f"{i:02d}" for i in range(20)])
+        s = mdc.load_signers(d)
+        self.assertEqual(len(s), 20)
+        self.assertTrue(s["08"]["exclude"] and s["08"]["dominant_hand"] == "L")
+        self.assertTrue(all(not v["exclude"] and v["dominant_hand"] == "R" for k, v in s.items() if k != "08"))
+        self.assertTrue(all(v["presentation"] == "UNKNOWN" for v in s.values()))
+
+
+class TestBalanced(unittest.TestCase):
+    def setUp(self):
+        # class 7; signers: 00 M, 01 F, 02 M, 03 F, 08 (excluded, best of all)
+        ids = ["08", "00", "01", "02", "03"]
+        self.manifest = pd.DataFrame({
+            "signer_id": ids, "video_path": [f"/x/07/{s}_07.MP4" for s in ids],
+            "n_frames": 60, "frac_frames_with_any_hand": 0.9,
+        })
+        probs = {0: 0.999, 1: 0.90, 2: 0.99, 3: 0.95, 4: 0.97}  # sample_idx -> p
+        self.pred = pd.DataFrame([{"run": "r0", "sample_idx": i, "target_class_id": 7, "target_prob": p, "correct": True}
+                                  for i, p in probs.items()])
+        self.signers = signer_table(s08={"presentation": "M", "exclude": True})
+
+    def test_excluded_signers_are_never_candidates(self):
+        c = mdc.rank_candidates(self.pred, self.manifest, 7, self.signers)
+        self.assertNotIn("08", set(c["signer_id"]))
+        self.assertEqual(list(c["sample_idx"]), [2, 4, 3, 1])
+        self.assertEqual(list(c["presentation"]), ["F", "F", "M", "M"])  # 01 .99, 03 .97, 02 .95, 00 .90
+
+    def test_balanced_picks_best_male_and_best_female_ordered_best_first(self):
+        c = mdc.rank_candidates(self.pred, self.manifest, 7, self.signers)
+        picks, note = mdc.pick_balanced(c)
+        self.assertIsNone(note)
+        # best F is 01 (0.99); best M is 02 (0.95) even though F 03 (0.97) outranks it
+        self.assertEqual([p["signer_id"] for p in picks], ["01", "02"])
+        self.assertEqual({p["presentation"] for p in picks}, {"M", "F"})
+
+    def test_balanced_falls_back_to_best_two_when_a_presentation_is_missing(self):
+        signers = signer_table(**{f"s{i:02d}": {"presentation": "M"} for i in range(0, 20)})  # nobody is F
+        signers["08"]["exclude"] = True
+        c = mdc.rank_candidates(self.pred, self.manifest, 7, signers)
+        picks, note = mdc.pick_balanced(c)
+        self.assertEqual(len(picks), 2)
+        self.assertIn("no valid F clip", note)
+        self.assertEqual([int(p["sample_idx"]) for p in picks], [2, 4])
+
+    def test_build_plans_reports_presentation_and_fallbacks(self):
+        vocab = {7: "me", 8: "you"}
+        # class 8 has only male candidates
+        manifest = pd.concat([self.manifest, pd.DataFrame({
+            "signer_id": ["00", "02"], "video_path": ["/x/08/00_08.MP4", "/x/08/02_08.MP4"], "n_frames": 60,
+            "frac_frames_with_any_hand": 0.9})], ignore_index=True)
+        pred = pd.concat([self.pred, pd.DataFrame([{"run": "r0", "sample_idx": i, "target_class_id": 8, "target_prob": 0.9, "correct": True} for i in (5, 6)])])
+        mask = np.stack([mask_with_hands(range(5, 25))] * len(manifest))
+        args = Namespace(classes=None, all=True, existing_videos="/none", raw_videos="/raw", pad=0.5, min_seconds=1.0, balance_presentation=True)
+        plans, _ = mdc.build_plans(args, vocab, manifest, mask, pred, lambda s, r: 30.0, self.signers)
+        by_word = {}
+        for pl in plans:
+            by_word.setdefault(pl.word, []).append(pl)
+        self.assertEqual({p.presentation for p in by_word["me"]}, {"M", "F"})
+        self.assertTrue(all(p.fallback is None for p in by_word["me"]))
+        self.assertTrue(all(p.fallback and "F" in p.fallback for p in by_word["you"]))
+
+
+class TestOutputNaming(unittest.TestCase):
+    def test_all_mode_names_match_exactly_what_the_app_expects(self):
+        """--all writes <english>_example{1,2}.mp4 for every vocab word: identical to the clips the app loads
+        today (incl. 'how many', 'do effort', 'Seoul', and words whose class label differs, e.g. please/worried/nice)."""
+        vocab = mdc.load_vocab(REPO / "src/frontend/src/data/vocab.json")
+        signers = signer_table()
+        rows, preds = [], []
+        for cid in vocab:
+            for k, sid in enumerate(["00", "01", "02"]):
+                rows.append({"signer_id": sid, "video_path": f"/x/{cid:02d}/{sid}_{cid:02d}.MP4", "n_frames": 60, "frac_frames_with_any_hand": 0.9})
+                preds.append({"run": "r0", "sample_idx": len(rows) - 1, "target_class_id": cid, "target_prob": 0.9 - 0.1 * k, "correct": True})
+        manifest, pred = pd.DataFrame(rows), pd.DataFrame(preds)
+        mask = np.stack([mask_with_hands(range(5, 25))] * len(manifest))
+        args = Namespace(classes=None, all=True, existing_videos="/none", raw_videos="/raw", pad=0.5, min_seconds=1.0, balance_presentation=True)
+        plans, warnings = mdc.build_plans(args, vocab, manifest, mask, pred, lambda s, r: 30.0, signers)
+        names = {f"{p.word}_example{p.example}.mp4" for p in plans}
+        on_disk = {f.name for f in (REPO / "src/frontend/public/videos").glob("*.mp4")}
+        self.assertEqual(names, on_disk)
+        self.assertEqual(len(plans), 134)
+        self.assertEqual(warnings, [])
+        for n in ("how many_example1.mp4", "do effort_example2.mp4", "Seoul_example1.mp4", "please_example1.mp4", "worried_example2.mp4", "nice_example1.mp4"):
+            self.assertIn(n, names)
+        self.assertTrue(all(n.endswith(".mp4") and n == n[:-4] + ".mp4" for n in names))
+
+
 if __name__ == "__main__":
     unittest.main()
