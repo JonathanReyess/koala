@@ -37,7 +37,7 @@ for (const w of stems) {
 }
 const expected = [...stems].filter((w) => fileSet.has(`${w}_example1.mp4`) && fileSet.has(`${w}_example2.mp4`)).sort();
 if (JSON.stringify(expected) !== JSON.stringify(manifest)) {
-  problems.push("src/data/video-manifest.json is stale — run: node scripts/build-video-manifest.mjs");
+  problems.push("src/data/video-manifest.json is stale, run: node scripts/build-video-manifest.mjs");
 }
 
 if (problems.length) {
@@ -46,5 +46,5 @@ if (problems.length) {
   process.exit(1);
 }
 const missing = vocab.filter((w) => !manifest.includes(w.english)).map((w) => w.english);
-console.log(`check-videos: OK — ${manifest.length}/${vocab.length} words have both clips.`);
+console.log(`check-videos: OK: ${manifest.length}/${vocab.length} words have both clips.`);
 if (missing.length) console.log(`  not yet practiceable (no clips): ${missing.join(", ")}`);

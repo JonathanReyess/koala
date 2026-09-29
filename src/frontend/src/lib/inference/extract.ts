@@ -52,7 +52,7 @@ export function assumedTotalFrames(video: HTMLVideoElement, fps = INFERENCE_CONF
 }
 
 /**
- * IMAGE mode on the 32 spec-sampled frames — mirrors extract_landmarks.py
+ * IMAGE mode on the 32 spec-sampled frames - mirrors extract_landmarks.py
  * (seek to each sampled frame, detect independently, no tracking state).
  */
 export async function extractImageMode(
@@ -74,7 +74,7 @@ export async function extractImageMode(
 
 /**
  * VIDEO mode (tracking) over every frame in order, then spec-sample 32 of the
- * recorded frames — the same thing the live camera path does, so uploads and
+ * recorded frames - the same thing the live camera path does, so uploads and
  * live recordings go through one pipeline. Pass a FRESH VIDEO-mode landmarker
  * so no tracking state leaks in from earlier runs.
  */

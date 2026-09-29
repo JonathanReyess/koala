@@ -1,5 +1,5 @@
 /**
- * In-memory log of graded attempts for `?debug=1` sessions — becomes a local learner test set.
+ * In-memory log of graded attempts for `?debug=1` sessions - becomes a local learner test set.
  * Nothing is persisted or uploaded: entries live in this module until the page is reloaded, or are
  * exported explicitly via the "Download attempts (JSON)" button.
  *

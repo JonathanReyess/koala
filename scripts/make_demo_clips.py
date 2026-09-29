@@ -66,7 +66,7 @@ dataset:
   Yang, S., Jung, S., Kang, H., & Kim, C. (2020). The Korean Sign Language Dataset for Action Recognition.
   In MultiMedia Modeling (MMM 2020), Springer, Cham. https://doi.org/10.1007/978-3-030-37731-1_43
 
-Licence: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) — attribution required,
+Licence: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) - attribution required,
 non-commercial use only. Changes made: trimmed idle frames at the start/end, downscaled and re-encoded
 (H.264, no audio). See ATTRIBUTION.md in the repository.
 
@@ -353,7 +353,7 @@ def main(argv=None) -> int:
         print(f"--signers file not found: {signers_path}", file=sys.stderr)
         return 2
     else:
-        print(f"WARNING: {signers_path} not found — no signers excluded (e.g. 08). Create it with scripts/signer_contact_sheet.py.")
+        print(f"WARNING: {signers_path} not found - no signers excluded (e.g. 08). Create it with scripts/signer_contact_sheet.py.")
     if args.balance_presentation:
         have = {v["presentation"] for v in (signers or {}).values() if not v["exclude"]}
         if not {"M", "F"} <= have:
@@ -363,7 +363,7 @@ def main(argv=None) -> int:
     predictions = pd.read_csv(args.predictions, dtype={"signer_id": str})
     if predictions["sample_idx"].max() >= len(manifest):
         print(f"predictions.csv refers to sample {predictions['sample_idx'].max()} but the filtered manifest has "
-              f"{len(manifest)} rows — check --min-hand-frac / --features-dir match the calibration run.", file=sys.stderr)
+              f"{len(manifest)} rows - check --min-hand-frac / --features-dir match the calibration run.", file=sys.stderr)
         return 2
 
     def fps_of(src: Path, row: pd.Series) -> float:

@@ -57,7 +57,7 @@ const avg = (xs: number[]) => {
   const v = xs.filter((x) => Number.isFinite(x));
   return v.length ? v.reduce((s, x) => s + x, 0) / v.length : NaN;
 };
-const fmt = (x: number, d = 4) => (Number.isFinite(x) ? x.toFixed(d) : "—");
+const fmt = (x: number, d = 4) => (Number.isFinite(x) ? x.toFixed(d) : "n/a");
 
 interface Report {
   raw: ReturnType<typeof perJointDiff>;
