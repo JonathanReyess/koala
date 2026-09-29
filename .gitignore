@@ -16,3 +16,5 @@ __pycache__/
 /runs/
 /features_v2/
 
+# Signer contact sheet shows identifiable faces (incl. minors): never commit it
+/data/contact_sheet.png

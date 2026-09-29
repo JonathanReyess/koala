@@ -1,37 +1,135 @@
-word,example,class_id,file,source_video,signer_id,sample_idx,mean_heldout_target_prob,n_runs,correct_in_all_runs,start_s,end_s,bytes
-what,1,2,what_example1.mp4,02/03_02.MP4,03,23,0.999,3,True,0.07,3.087,76059
-what,2,2,what_example2.mp4,02/11_02.MP4,11,31,0.9976,3,True,0.0,1.778,68398
-bi bim rice,1,4,bi bim rice_example1.mp4,04/01_04.MP4,01,60,0.9915,3,True,0.138,2.715,84419
-bi bim rice,2,4,bi bim rice_example2.mp4,04/15_04.MP4,15,74,0.9782,3,True,0.987,4.623,134416
-hobby,1,6,hobby_example1.mp4,06/10_06.MP4,10,107,0.9949,3,True,0.137,3.456,135586
-hobby,2,6,hobby_example2.mp4,06/00_06.MP4,00,98,0.9932,3,True,0.0,3.187,156483
-movie,1,8,movie_example1.mp4,08/04_08.MP4,04,140,0.9997,3,True,0.0,2.437,125392
-movie,2,8,movie_example2.mp4,08/07_08.MP4,07,143,0.9996,3,True,0.0,2.504,123272
-face,1,9,face_example1.mp4,09/07_09.MP4,07,160,0.9937,3,True,0.0,2.304,74880
-face,2,9,face_example2.mp4,09/02_09.MP4,02,156,0.9933,3,True,0.205,3.654,112587
-nice,1,24,nice_example1.mp4,24/01_24.MP4,01,386,0.9982,3,True,0.0,2.807,58162
-nice,2,24,nice_example2.mp4,24/09_24.MP4,09,393,0.9918,3,True,0.0,2.479,122511
-we,1,26,we_example1.mp4,26/01_26.MP4,01,419,0.9985,3,True,0.0,2.569,76312
-we,2,26,we_example2.mp4,26/11_26.MP4,11,428,0.9958,3,True,0.0,2.047,77926
-bus,1,29,bus_example1.mp4,29/11_29.MP4,11,464,0.9975,3,True,0.0,1.879,70603
-bus,2,29,bus_example2.mp4,29/00_29.MP4,00,455,0.9781,3,True,0.0,3.758,192544
-ride,1,30,ride_example1.mp4,30/09_30.MP4,09,480,0.9826,3,True,0.0,3.05,188008
-ride,2,30,ride_example2.mp4,30/16_30.MP4,16,487,0.873,3,True,0.48,4.463,121112
-cell phone,1,31,cell phone_example1.mp4,31/10_31.MP4,10,501,0.9971,3,True,0.305,3.856,111916
-cell phone,2,31,cell phone_example2.mp4,31/01_31.MP4,01,492,0.9935,3,True,0.0,2.782,68317
-where,1,32,where_example1.mp4,32/08_32.MP4,08,518,0.9964,3,True,0.0,1.912,94732
-where,2,32,where_example2.mp4,32/01_32.MP4,01,512,0.9906,3,True,0.0,2.815,81613
-location,1,34,location_example1.mp4,34/10_34.MP4,10,537,0.9837,3,True,0.0,2.953,125761
-location,2,34,location_example2.mp4,34/11_34.MP4,11,538,0.8938,3,True,0.0,1.879,69090
-responsibility,1,36,responsibility_example1.mp4,36/09_36.MP4,09,556,0.9981,3,True,0.0,2.55,158665
-responsibility,2,36,responsibility_example2.mp4,36/10_36.MP4,10,557,0.9866,3,True,0.417,2.684,100335
-arrive,1,38,arrive_example1.mp4,38/07_38.MP4,07,594,0.9966,3,True,0.0,2.647,104377
-arrive,2,38,arrive_example2.mp4,38/11_38.MP4,11,598,0.9953,3,True,0.0,2.046,90970
-walk,1,44,walk_example1.mp4,44/11_44.MP4,11,703,0.9967,3,True,0.0,1.778,72773
-walk,2,44,walk_example2.mp4,44/08_44.MP4,08,700,0.9946,3,True,0.0,2.147,103216
-success,1,65,success_example1.mp4,65/04_65.MP4,04,1025,0.9599,3,True,0.0,2.795,99823
-success,2,65,success_example2.mp4,65/02_65.MP4,02,1023,0.8713,3,True,0.0,3.12,132781
-favor,1,66,favor_example1.mp4,66/15_66.MP4,15,1054,0.9895,3,True,1.134,4.731,154347
-favor,2,66,favor_example2.mp4,66/14_66.MP4,14,1053,0.9883,3,True,0.0,3.255,103297
-one hour,1,74,one hour_example1.mp4,74/04_74.MP4,04,1172,0.9987,3,True,0.0,2.269,78636
-one hour,2,74,one hour_example2.mp4,74/11_74.MP4,11,1179,0.9857,3,True,0.0,1.677,72875
+word,example,class_id,file,source_video,signer_id,presentation,balance_fallback,sample_idx,mean_heldout_target_prob,n_runs,correct_in_all_runs,start_s,end_s,bytes
+hi,1,1,hi_example1.mp4,01/07_01.MP4,07,M,,7,0.9981,3,True,0.171,2.416,75782
+hi,2,1,hi_example2.mp4,01/03_01.MP4,03,F,,3,0.9979,3,True,0.0,2.304,65883
+what,1,2,what_example1.mp4,02/03_02.MP4,03,F,,23,0.999,3,True,0.07,3.087,76059
+what,2,2,what_example2.mp4,02/15_02.MP4,15,M,,35,0.9857,3,True,1.461,4.396,90117
+meet,1,3,meet_example1.mp4,03/03_03.MP4,03,F,,43,0.9986,3,True,0.0,3.218,87349
+meet,2,3,meet_example2.mp4,03/07_03.MP4,07,M,,46,0.9926,3,True,0.0,2.647,88027
+bi bim rice,1,4,bi bim rice_example1.mp4,04/01_04.MP4,01,M,,60,0.9915,3,True,0.138,2.715,84419
+bi bim rice,2,4,bi bim rice_example2.mp4,04/10_04.MP4,10,F,,69,0.9243,3,True,0.0,3.117,152638
+glad,1,5,glad_example1.mp4,05/15_05.MP4,15,M,,93,0.9991,3,True,1.043,4.06,140285
+glad,2,5,glad_example2.mp4,05/00_05.MP4,00,F,,79,0.994,3,True,0.0,3.355,198583
+hobby,1,6,hobby_example1.mp4,06/10_06.MP4,10,F,,107,0.9949,3,True,0.137,3.456,135586
+hobby,2,6,hobby_example2.mp4,06/15_06.MP4,15,M,,112,0.9846,3,True,1.192,4.094,87621
+me,1,7,me_example1.mp4,07/01_07.MP4,01,M,,118,0.9979,3,True,0.0,2.641,63791
+me,2,7,me_example2.mp4,07/11_07.MP4,11,F,,127,0.997,3,True,0.0,1.241,52689
+movie,1,8,movie_example1.mp4,08/07_08.MP4,07,M,,143,0.9996,3,True,0.0,2.504,123272
+movie,2,8,movie_example2.mp4,08/10_08.MP4,10,F,,145,0.9987,3,True,0.0,2.416,151091
+face,1,9,face_example1.mp4,09/07_09.MP4,07,M,,160,0.9937,3,True,0.0,2.304,74880
+face,2,9,face_example2.mp4,09/02_09.MP4,02,F,,156,0.9933,3,True,0.205,3.654,112587
+see,1,10,see_example1.mp4,10/03_10.MP4,03,F,,175,0.9964,3,True,0.44,3.587,108121
+see,2,10,see_example2.mp4,10/16_10.MP4,16,M,,186,0.9671,3,True,0.0,4.194,153445
+name,1,11,name_example1.mp4,11/07_11.MP4,07,M,,195,0.9994,3,True,0.0,2.047,56877
+name,2,11,name_example2.mp4,11/11_11.MP4,11,F,,198,0.9966,3,True,0.0,1.61,57594
+thank,1,13,thank_example1.mp4,13/09_13.MP4,09,F,,214,0.9801,3,True,0.0,2.547,173409
+thank,2,13,thank_example2.mp4,13/14_13.MP4,14,M,,219,0.9499,3,True,0.0,3.289,113444
+equal,1,14,equal_example1.mp4,14/00_14.MP4,00,F,,225,0.9957,3,True,0.0,3.489,173386
+equal,2,14,equal_example2.mp4,14/16_14.MP4,16,M,,238,0.9912,3,True,0.0,4.295,118068
+sorry,1,15,sorry_example1.mp4,15/11_15.MP4,11,F,,251,0.9959,3,True,0.0,1.778,77686
+sorry,2,15,sorry_example2.mp4,15/14_15.MP4,14,M,,254,0.7646,3,True,0.0,4.026,125267
+eat,1,16,eat_example1.mp4,16/10_16.MP4,10,F,,265,0.9955,3,True,0.0,2.819,114786
+eat,2,16,eat_example2.mp4,16/07_16.MP4,07,M,,262,0.9413,3,True,0.0,2.346,66850
+fine,1,17,fine_example1.mp4,17/19_17.MP4,19,M,,293,0.9982,3,True,0.0,2.234,47534
+fine,2,17,fine_example2.mp4,17/11_17.MP4,11,F,,285,0.9982,3,True,0.0,1.475,59099
+do effort,1,18,do effort_example1.mp4,18/18_18.MP4,18,F,,309,0.9904,3,True,0.0,2.308,110648
+do effort,2,18,do effort_example2.mp4,18/14_18.MP4,14,M,,305,0.9402,3,True,0.0,3.154,97736
+age,1,20,age_example1.mp4,20/03_20.MP4,03,F,,314,0.9997,3,True,0.314,3.255,70570
+age,2,20,age_example2.mp4,20/16_20.MP4,16,M,,326,0.9979,3,True,0.112,5.0,119307
+again,1,21,again_example1.mp4,21/03_21.MP4,03,F,,333,0.9985,3,True,0.305,2.852,58621
+again,2,21,again_example2.mp4,21/15_21.MP4,15,M,,344,0.995,3,True,0.49,3.926,95996
+how many,1,22,how many_example1.mp4,22/07_22.MP4,07,M,,354,0.9937,3,True,0.07,2.651,64091
+how many,2,22,how many_example2.mp4,22/18_22.MP4,18,F,,364,0.9545,3,True,0.0,1.906,88669
+day,1,23,day_example1.mp4,23/09_23.MP4,09,F,,374,0.996,3,True,0.0,2.583,183847
+day,2,23,day_example2.mp4,23/16_23.MP4,16,M,,381,0.9932,3,True,0.345,4.463,130407
+nice,1,24,nice_example1.mp4,24/01_24.MP4,01,M,,386,0.9982,3,True,0.0,2.807,58162
+nice,2,24,nice_example2.mp4,24/09_24.MP4,09,F,,393,0.9918,3,True,0.0,2.479,122511
+when,1,25,when_example1.mp4,25/11_25.MP4,11,F,,410,0.9959,3,True,0.0,1.879,72366
+when,2,25,when_example2.mp4,25/14_25.MP4,14,M,,413,0.6723,3,True,0.0,4.63,113333
+we,1,26,we_example1.mp4,26/01_26.MP4,01,M,,419,0.9985,3,True,0.0,2.569,76312
+we,2,26,we_example2.mp4,26/11_26.MP4,11,F,,428,0.9958,3,True,0.0,2.047,77926
+subway,1,27,subway_example1.mp4,27/03_27.MP4,03,F,,439,0.9996,3,True,0.154,2.617,82756
+subway,2,27,subway_example2.mp4,27/01_27.MP4,01,M,,438,0.9955,3,True,0.0,3.389,91641
+bus,1,29,bus_example1.mp4,29/11_29.MP4,11,F,,464,0.9975,3,True,0.0,1.879,70603
+bus,2,29,bus_example2.mp4,29/14_29.MP4,14,M,,467,0.8816,3,True,0.0,2.584,73328
+ride,1,30,ride_example1.mp4,30/09_30.MP4,09,F,,480,0.9826,3,True,0.0,3.05,188008
+ride,2,30,ride_example2.mp4,30/16_30.MP4,16,M,,487,0.873,3,True,0.48,4.463,121112
+cell phone,1,31,cell phone_example1.mp4,31/10_31.MP4,10,F,,501,0.9971,3,True,0.305,3.856,111916
+cell phone,2,31,cell phone_example2.mp4,31/01_31.MP4,01,M,,492,0.9935,3,True,0.0,2.782,68317
+where,1,32,where_example1.mp4,32/01_32.MP4,01,M,,512,0.9906,3,True,0.0,2.815,81613
+where,2,32,where_example2.mp4,32/10_32.MP4,10,F,,519,0.9461,3,True,0.0,3.486,133583
+location,1,34,location_example1.mp4,34/10_34.MP4,10,F,,537,0.9837,3,True,0.0,2.953,125761
+location,2,34,location_example2.mp4,34/16_34.MP4,16,M,,543,0.7198,3,True,0.0,5.335,159863
+responsibility,1,36,responsibility_example1.mp4,36/09_36.MP4,09,F,,556,0.9981,3,True,0.0,2.55,158665
+responsibility,2,36,responsibility_example2.mp4,36/16_36.MP4,16,M,,563,0.8584,3,True,0.0,4.899,135884
+who,1,37,who_example1.mp4,37/10_37.MP4,10,F,,577,0.9975,3,True,0.171,2.449,91446
+who,2,37,who_example2.mp4,37/07_37.MP4,07,M,,574,0.9877,3,True,0.0,2.506,76298
+arrive,1,38,arrive_example1.mp4,38/07_38.MP4,07,M,,594,0.9966,3,True,0.0,2.647,104377
+arrive,2,38,arrive_example2.mp4,38/11_38.MP4,11,F,,598,0.9953,3,True,0.0,2.046,90970
+family,1,39,family_example1.mp4,39/17_39.MP4,17,F,,620,0.8448,3,True,0.0,2.563,94719
+family,2,39,family_example2.mp4,39/07_39.MP4,07,M,,613,0.9886,3,True,0.619,3.077,89762
+time,1,40,time_example1.mp4,40/16_40.MP4,16,M,,636,0.974,3,True,0.0,5.0,161107
+time,2,40,time_example2.mp4,40/09_40.MP4,09,F,,631,0.9254,3,True,0.0,2.144,141173
+introduction,1,41,introduction_example1.mp4,41/10_41.MP4,10,F,,648,0.9729,3,True,0.0,2.718,100970
+introduction,2,41,introduction_example2.mp4,41/07_41.MP4,07,M,,645,0.9954,3,True,0.0,2.211,62956
+receive,1,42,receive_example1.mp4,42/07_42.MP4,07,M,,662,0.821,3,True,0.0,2.748,81605
+receive,2,42,receive_example2.mp4,42/12_42.MP4,12,F,,665,0.8048,3,True,0.0,2.147,84311
+please,1,43,please_example1.mp4,43/07_43.MP4,07,M,,679,0.9792,3,True,0.0,2.402,77242
+please,2,43,please_example2.mp4,43/10_43.MP4,10,F,,682,0.9601,3,True,0.003,3.221,120621
+walk,1,44,walk_example1.mp4,44/11_44.MP4,11,F,,703,0.9967,3,True,0.0,1.778,72773
+walk,2,44,walk_example2.mp4,44/14_44.MP4,14,M,,706,0.9639,3,True,0.0,2.684,80279
+sister,1,47,sister_example1.mp4,47/02_47.MP4,02,F,,714,0.9811,3,True,0.0,2.214,78590
+sister,2,47,sister_example2.mp4,47/07_47.MP4,07,M,,718,0.7414,3,True,0.0,2.382,71842
+study,1,48,study_example1.mp4,48/07_48.MP4,07,M,,737,0.9976,3,True,0.0,2.315,94047
+study,2,48,study_example2.mp4,48/11_48.MP4,11,F,,741,0.9935,3,True,0.0,1.98,77673
+human,1,49,human_example1.mp4,49/11_49.MP4,11,F,,760,0.9988,3,True,0.0,1.644,66541
+human,2,49,human_example2.mp4,49/15_49.MP4,15,M,,764,0.9958,3,True,1.203,4.496,118250
+now,1,50,now_example1.mp4,50/00_50.MP4,00,F,,769,0.9984,3,True,0.0,2.986,160265
+now,2,50,now_example2.mp4,50/16_50.MP4,16,M,,784,0.9531,3,True,0.0,5.537,158061
+special,1,51,special_example1.mp4,51/00_51.MP4,00,F,,788,0.9938,3,True,0.0,2.953,168021
+special,2,51,special_example2.mp4,51/16_51.MP4,16,M,,803,0.8476,3,True,0.0,4.865,141641
+yesterday,1,52,yesterday_example1.mp4,52/10_52.MP4,10,F,,814,0.994,3,True,0.0,3.053,102121
+yesterday,2,52,yesterday_example2.mp4,52/01_52.MP4,01,M,,808,0.9937,3,True,0.0,2.815,61084
+test,1,54,test_example1.mp4,54/00_54.MP4,00,F,,824,0.9911,3,True,0.0,3.188,164170
+test,2,54,test_example2.mp4,54/16_54.MP4,16,M,,838,0.9899,3,True,0.0,5.268,159338
+end,1,55,end_example1.mp4,55/09_55.MP4,09,F,,850,0.9982,3,True,0.0,4.292,233200
+end,2,55,end_example2.mp4,55/01_55.MP4,01,M,,843,0.9926,3,True,0.0,2.346,70926
+you,1,56,you_example1.mp4,56/09_56.MP4,09,F,,868,0.9486,3,True,0.047,3.339,164359
+you,2,56,you_example2.mp4,56/16_56.MP4,16,M,,875,0.7753,3,True,0.0,4.396,122437
+worried,1,57,worried_example1.mp4,57/11_57.MP4,11,F,,886,0.9965,3,True,0.0,2.382,107431
+worried,2,57,worried_example2.mp4,57/01_57.MP4,01,M,,880,0.9965,3,True,0.0,3.453,110371
+marry,1,58,marry_example1.mp4,58/11_58.MP4,11,F,,904,0.9984,3,True,0.0,1.577,68549
+marry,2,58,marry_example2.mp4,58/01_58.MP4,01,M,,895,0.9966,3,True,0.0,2.775,87529
+effort,1,59,effort_example1.mp4,59/11_59.MP4,11,F,,923,0.9991,3,True,0.0,1.879,76154
+effort,2,59,effort_example2.mp4,59/07_59.MP4,07,M,,919,0.9982,3,True,0.0,2.446,88527
+no,1,60,no_example1.mp4,60/11_60.MP4,11,F,,940,0.9885,3,True,0.0,1.51,63036
+no,2,60,no_example2.mp4,60/07_60.MP4,07,M,,937,0.9874,3,True,0.0,2.211,78886
+sweat,1,61,sweat_example1.mp4,61/11_61.MP4,11,F,,955,0.9627,3,True,0.0,1.845,84248
+sweat,2,61,sweat_example2.mp4,61/07_61.MP4,07,M,,952,0.8758,3,True,0.0,2.681,115777
+yet,1,62,yet_example1.mp4,62/11_62.MP4,11,F,,974,0.9977,3,True,0.0,1.443,59598
+yet,2,62,yet_example2.mp4,62/07_62.MP4,07,M,,970,0.9654,3,True,0.0,2.748,93189
+finally,1,63,finally_example1.mp4,63/01_63.MP4,01,M,,984,0.9029,3,True,0.0,2.278,76875
+finally,2,63,finally_example2.mp4,63/02_63.MP4,02,F,,985,0.8917,3,True,0.0,2.775,109924
+born,1,64,born_example1.mp4,64/10_64.MP4,10,F,,1011,0.9997,3,True,0.0,2.867,148361
+born,2,64,born_example2.mp4,64/16_64.MP4,16,M,,1017,0.9482,3,True,0.0,5.167,145680
+success,1,65,success_example1.mp4,65/02_65.MP4,02,F,,1023,0.8713,3,True,0.0,3.12,132781
+success,2,65,success_example2.mp4,65/14_65.MP4,14,M,,1034,0.8297,3,True,0.0,3.288,93479
+favor,1,66,favor_example1.mp4,66/15_66.MP4,15,M,,1054,0.9895,3,True,1.134,4.731,154347
+favor,2,66,favor_example2.mp4,66/09_66.MP4,09,F,,1048,0.9455,3,True,0.0,2.516,188173
+Seoul,1,67,Seoul_example1.mp4,67/07_67.MP4,07,M,,1065,0.9972,3,True,0.11,2.874,66813
+Seoul,2,67,Seoul_example2.mp4,67/00_67.MP4,00,F,,1058,0.9962,3,True,0.0,4.362,188679
+dinner,1,68,dinner_example1.mp4,68/02_68.MP4,02,F,,1080,0.9959,3,True,0.0,2.55,106561
+dinner,2,68,dinner_example2.mp4,68/16_68.MP4,16,M,,1093,0.9486,3,True,0.0,4.463,119192
+experience,1,69,experience_example1.mp4,69/01_69.MP4,01,M,,1098,0.9982,3,True,0.0,2.513,79346
+experience,2,69,experience_example2.mp4,69/00_69.MP4,00,F,,1097,0.9917,3,True,0.0,3.255,178231
+invite,1,70,invite_example1.mp4,70/12_70.MP4,12,F,,1127,0.9869,3,True,0.0,2.516,102245
+invite,2,70,invite_example2.mp4,70/01_70.MP4,01,M,,1118,0.9715,3,True,0.0,2.446,80626
+food,1,71,food_example1.mp4,71/09_71.MP4,09,F,,1139,0.9833,3,True,0.0,3.386,247814
+food,2,71,food_example2.mp4,71/07_71.MP4,07,M,,1137,0.8772,3,True,0.0,3.151,115110
+want,1,72,want_example1.mp4,72/11_72.MP4,11,F,,1159,0.9978,3,True,0.0,1.61,57846
+want,2,72,want_example2.mp4,72/07_72.MP4,07,M,,1155,0.9885,3,True,0.0,2.647,68824
+one hour,1,74,one hour_example1.mp4,74/11_74.MP4,11,F,,1179,0.9857,3,True,0.0,1.677,72875
+one hour,2,74,one hour_example2.mp4,74/01_74.MP4,01,M,,1169,0.9846,3,True,0.0,2.614,79107
+good,1,76,good_example1.mp4,76/11_76.MP4,11,F,,1199,0.9449,3,True,0.0,1.409,55087
+good,2,76,good_example2.mp4,76/16_76.MP4,16,M,,1204,0.7271,3,True,0.0,4.865,154427
+care,1,77,care_example1.mp4,77/00_77.MP4,00,F,,1208,0.9989,3,True,0.0,3.053,163296
+care,2,77,care_example2.mp4,77/01_77.MP4,01,M,,1209,0.9987,3,True,0.0,2.708,74074

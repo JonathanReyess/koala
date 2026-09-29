@@ -18,6 +18,12 @@ right in *every* run of runs/calibration/predictions.csv with the highest mean
 target probability (i.e. clear, prototypical signing), from two different
 signers when possible.
 
+Signer table (data/signers.csv, made from scripts/signer_contact_sheet.py):
+signers with exclude=1 are never used. With --balance-presentation each word
+gets its best male- and best female-presenting signer (each still chosen by the
+usual ranking); if a word has no valid clip for one presentation it falls back
+to the best two clips and is listed at the end.
+
 Trimming: features_v2/mask.npy marks, for the 32 frames sampled per clip, which
 joints MediaPipe found. The active window runs from the first to the last
 sampled frame with a hand detected, widened by one sample step plus --pad
@@ -29,6 +35,9 @@ Usage (Colab; mount Drive first, run from the repo root):
         --features-dir /content/drive/MyDrive/KSL_Project/features_v2 \\
         --predictions /content/drive/MyDrive/KSL_Project/runs/calibration/predictions.csv \\
         --out /content/drive/MyDrive/KSL_Project/demo_clips
+
+To regenerate clips for all 67 words with balanced signers:
+    ... --all --pad 0.5 --balance-presentation
 
 Add --dry-run to print the picks and trim windows without needing the raw videos or ffmpeg.
 """
@@ -60,6 +69,11 @@ dataset:
 Licence: Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) — attribution required,
 non-commercial use only. Changes made: trimmed idle frames at the start/end, downscaled and re-encoded
 (H.264, no audio). See ATTRIBUTION.md in the repository.
+
+Signer selection: the demo clips deliberately exclude signers 05 and 06 (minors) and 08 (left-handed).
+Each word shows one male-presenting and one female-presenting signer where available.
+This applies only to the demo clips shown in the app: the landmarks of ALL signers are still
+used for training and evaluation. (Signer table: data/signers.csv.)
 """
 
 
@@ -111,7 +125,34 @@ def active_window(
     return float(start), float(end)
 
 
-def rank_candidates(predictions: pd.DataFrame, manifest: pd.DataFrame, class_id: int) -> pd.DataFrame:
+def load_signers(path: Path) -> dict[str, dict]:
+    """data/signers.csv -> {signer_id: {presentation: M|F|UNKNOWN, dominant_hand, exclude: bool, notes}}."""
+    df = pd.read_csv(path, dtype=str, keep_default_na=False)
+    missing = {"signer_id", "presentation", "exclude"} - set(df.columns)
+    if missing:
+        raise ValueError(f"{path}: missing column(s) {sorted(missing)}")
+    out: dict[str, dict] = {}
+    for _, r in df.iterrows():
+        sid = str(r["signer_id"]).strip().zfill(2)
+        pres = str(r["presentation"]).strip().upper() or "UNKNOWN"
+        if pres not in {"M", "F", "UNKNOWN"}:
+            raise ValueError(f"{path}: signer {sid} has presentation {r['presentation']!r}; use M, F or unknown")
+        exclude = str(r["exclude"]).strip() in {"1", "true", "True", "TRUE", "yes"}
+        out[sid] = {
+            "presentation": pres,
+            "dominant_hand": str(r.get("dominant_hand", "")).strip().upper(),
+            "exclude": exclude,
+            "notes": str(r.get("notes", "")),
+        }
+    return out
+
+
+def rank_candidates(
+    predictions: pd.DataFrame,
+    manifest: pd.DataFrame,
+    class_id: int,
+    signers: Optional[dict[str, dict]] = None,
+) -> pd.DataFrame:
     """Held-out clips of `class_id`, best first.
 
     predictions.csv has one row per (run, test clip); `sample_idx` indexes the manifest *after*
@@ -125,6 +166,10 @@ def rank_candidates(predictions: pd.DataFrame, manifest: pd.DataFrame, class_id:
         mean_target_prob=("target_prob", "mean"),
     ).reset_index()
     g = g.merge(manifest[["signer_id", "video_path", "n_frames", "frac_frames_with_any_hand"]], left_on="sample_idx", right_index=True)
+    if signers:
+        excluded = g["signer_id"].map(lambda s: bool(signers.get(str(s), {}).get("exclude", False))).astype(bool)
+        g = g[~excluded]
+    g["presentation"] = g["signer_id"].map(lambda s: (signers or {}).get(str(s), {}).get("presentation", "UNKNOWN"))
     g["hands_ok"] = g["frac_frames_with_any_hand"] >= 0.5
     return g.sort_values(["all_correct", "hands_ok", "mean_target_prob"], ascending=False, kind="stable").reset_index(drop=True)
 
@@ -145,6 +190,23 @@ def pick_two(candidates: pd.DataFrame, n: int = 2) -> list[pd.Series]:
         if not any(row["sample_idx"] == c["sample_idx"] for c in chosen):
             chosen.append(row)
     return chosen
+
+
+def pick_balanced(candidates: pd.DataFrame) -> tuple[list[pd.Series], Optional[str]]:
+    """Best male-presenting and best female-presenting clip (candidates are already ranked best-first).
+
+    Returns (picks ordered best-first, fallback note). If either presentation has no candidate, falls back to
+    pick_two() and the note says which presentation(s) were missing.
+    """
+    best: dict[str, pd.Series] = {}
+    for _, row in candidates.iterrows():
+        best.setdefault(row["presentation"], row)
+    if "M" in best and "F" in best:
+        two = [best["M"], best["F"]]
+        order = sorted(range(2), key=lambda i: int(candidates.index[candidates["sample_idx"] == two[i]["sample_idx"]][0]))
+        return [two[i] for i in order], None
+    missing = [p for p in ("M", "F") if p not in best]
+    return pick_two(candidates), "no valid " + "/".join(missing) + " clip; used best two"
 
 
 def remap_raw_path(raw_root: Path, manifest_video_path: str) -> Path:
@@ -195,6 +257,8 @@ class Plan:
     src: Path
     start_s: float
     end_s: float
+    presentation: str = "UNKNOWN"
+    fallback: Optional[str] = None
 
 
 def load_dataset_tables(features_dir: Path, min_hand_frac: float):
@@ -210,7 +274,15 @@ def load_dataset_tables(features_dir: Path, min_hand_frac: float):
     return manifest_f, mask_f
 
 
-def build_plans(args, vocab: dict[int, str], manifest: pd.DataFrame, mask: np.ndarray, predictions: pd.DataFrame, fps_of) -> tuple[list[Plan], list[str]]:
+def build_plans(
+    args,
+    vocab: dict[int, str],
+    manifest: pd.DataFrame,
+    mask: np.ndarray,
+    predictions: pd.DataFrame,
+    fps_of,
+    signers: Optional[dict[str, dict]] = None,
+) -> tuple[list[Plan], list[str]]:
     if args.classes:
         wanted = {int(c) for c in args.classes}
     elif args.all:
@@ -222,11 +294,15 @@ def build_plans(args, vocab: dict[int, str], manifest: pd.DataFrame, mask: np.nd
     warnings: list[str] = []
     for cid in sorted(wanted):
         word = vocab[cid]
-        cands = rank_candidates(predictions, manifest, cid)
+        cands = rank_candidates(predictions, manifest, cid, signers)
         if len(cands) < 2:
-            warnings.append(f"{word} (class {cid}): only {len(cands)} held-out clip(s) in predictions.csv; skipped")
+            warnings.append(f"{word} (class {cid}): only {len(cands)} usable held-out clip(s) (after excluding signers); skipped")
             continue
-        picks = pick_two(cands)
+        fallback = None
+        if getattr(args, "balance_presentation", False):
+            picks, fallback = pick_balanced(cands)
+        else:
+            picks = pick_two(cands)
         if len({str(r['signer_id']) for r in picks}) < 2:
             warnings.append(f"{word}: both clips are from signer {picks[0]['signer_id']} (no second signer available)")
         for r in picks:
@@ -236,7 +312,7 @@ def build_plans(args, vocab: dict[int, str], manifest: pd.DataFrame, mask: np.nd
             src = remap_raw_path(Path(args.raw_videos), r["video_path"])
             fps = fps_of(src, r)
             start, end = active_window(mask[int(r["sample_idx"])], int(r["n_frames"]), fps, args.pad, args.min_seconds)
-            plans.append(Plan(word, cid, i, r, src, start, end))
+            plans.append(Plan(word, cid, i, r, src, start, end, r["presentation"], fallback))
     return plans, warnings
 
 
@@ -250,6 +326,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--existing-videos", default=str(REPO / "src/frontend/public/videos"), help="Classes whose words already have both clips here are skipped")
     p.add_argument("--classes", nargs="*", help="Only these class ids (overrides the missing-clips default)")
     p.add_argument("--all", action="store_true", help="Make clips for every class, even ones that already have demo clips")
+    p.add_argument("--signers", default=None, help="Signer table CSV (default: data/signers.csv if present)")
+    p.add_argument("--balance-presentation", action="store_true", help="Prefer one M and one F signer per word (needs presentation in the signer table)")
     p.add_argument("--min-hand-frac", type=float, default=0.0, help="Must match the runs' config.json (config f used 0.0)")
     p.add_argument("--pad", type=float, default=0.25, help="Seconds of context kept before/after the signing")
     p.add_argument("--min-seconds", type=float, default=1.0)
@@ -265,6 +343,22 @@ def main(argv=None) -> int:
         print("ffmpeg/ffprobe not found (Colab has them; otherwise `apt-get install ffmpeg`).", file=sys.stderr)
         return 2
     vocab = load_vocab(Path(args.vocab))
+    signers = None
+    signers_path = Path(args.signers) if args.signers else REPO / "data" / "signers.csv"
+    if signers_path.exists():
+        signers = load_signers(signers_path)
+        excluded = sorted(k for k, v in signers.items() if v["exclude"])
+        print(f"Signer table {signers_path}: excluding {', '.join(excluded) or 'none'}")
+    elif args.signers:
+        print(f"--signers file not found: {signers_path}", file=sys.stderr)
+        return 2
+    else:
+        print(f"WARNING: {signers_path} not found — no signers excluded (e.g. 08). Create it with scripts/signer_contact_sheet.py.")
+    if args.balance_presentation:
+        have = {v["presentation"] for v in (signers or {}).values() if not v["exclude"]}
+        if not {"M", "F"} <= have:
+            print("--balance-presentation needs both M and F (non-excluded) signers in the signer table.", file=sys.stderr)
+            return 2
     manifest, mask = load_dataset_tables(Path(args.features_dir), args.min_hand_frac)
     predictions = pd.read_csv(args.predictions, dtype={"signer_id": str})
     if predictions["sample_idx"].max() >= len(manifest):
@@ -277,7 +371,7 @@ def main(argv=None) -> int:
             return 30.0  # nominal; dry-run only
         return probe_fps(src)
 
-    plans, warnings = build_plans(args, vocab, manifest, mask, predictions, fps_of)
+    plans, warnings = build_plans(args, vocab, manifest, mask, predictions, fps_of, signers)
     if not plans:
         print("Nothing to do (every class already has clips, or no candidates).")
         for w in warnings:
@@ -287,7 +381,7 @@ def main(argv=None) -> int:
     out = Path(args.out)
     rows = []
     total = 0
-    print(f"{'word':<16}{'ex':<4}{'signer':<8}{'p(target)':<11}{'window (s)':<16}source")
+    print(f"{'word':<16}{'ex':<4}{'signer':<8}{'pres.':<7}{'p(target)':<11}{'window (s)':<14}source")
     for pl in plans:
         dst = out / f"{pl.word}_example{pl.example}.mp4"
         size = 0
@@ -299,17 +393,24 @@ def main(argv=None) -> int:
             size = dst.stat().st_size
             total += size
         r = pl.row
-        print(f"{pl.word:<16}{pl.example:<4}{r['signer_id']:<8}{r['mean_target_prob']:<11.3f}"
+        print(f"{pl.word:<16}{pl.example:<4}{r['signer_id']:<8}{pl.presentation[:1]:<7}{r['mean_target_prob']:<11.3f}"
               f"{pl.start_s:5.2f}-{pl.end_s:5.2f}   {'/'.join(pl.src.parts[-2:])}" + (f"  {size/1024:.0f} KB" if size else ""))
         rows.append({
             "word": pl.word, "example": pl.example, "class_id": pl.class_id, "file": dst.name,
-            "source_video": "/".join(pl.src.parts[-2:]), "signer_id": r["signer_id"], "sample_idx": int(r["sample_idx"]),
+            "source_video": "/".join(pl.src.parts[-2:]), "signer_id": r["signer_id"], "presentation": pl.presentation,
+            "balance_fallback": pl.fallback or "", "sample_idx": int(r["sample_idx"]),
             "mean_heldout_target_prob": round(float(r["mean_target_prob"]), 4), "n_runs": int(r["n_runs"]),
             "correct_in_all_runs": bool(r["all_correct"]), "start_s": round(pl.start_s, 3), "end_s": round(pl.end_s, 3),
             "bytes": size,
         })
     for w in warnings:
         print("WARNING:", w)
+    if args.balance_presentation:
+        fb = sorted({(pl.word, pl.fallback) for pl in plans if pl.fallback})
+        n_words = len({pl.word for pl in plans})
+        print(f"\nPresentation balance: {n_words - len(fb)}/{n_words} words got one M + one F clip.")
+        for word, note in fb:
+            print(f"  fallback: {word}: {note}")
     if args.dry_run:
         print("\n--dry-run: nothing written.")
         return 0
