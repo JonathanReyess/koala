@@ -16,6 +16,15 @@ The core training data for this project is derived from the Korean Sign Language
 * **Source Link:** [Source Research Paper (Springer)](https://link.springer.com/content/pdf/10.1007/978-3-030-37731-1_43.pdf)
 * **Data License:** Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0).
 
+
+### B. Demo clips shown in the app (`src/frontend/public/videos/`)
+
+The example videos are trimmed clips of KSL-77 dataset videos (same source, citation and CC BY-NC 4.0 licence as above).
+Clips for the words added after the first 49 are produced by `scripts/make_demo_clips.py`, which selects two
+clear examples from different signers, trims idle frames at the start/end, and re-encodes them (H.264, no audio,
+downscaled). The script writes an `ATTRIBUTION.txt` and a provenance table (`demo_clips_manifest.csv`: source video,
+signer, trim window) alongside the clips. The app keeps the on-page attribution to Yang et al. (MMM 2020).
+
 ---
 
 ## 2. Methodology and Model Architecture
