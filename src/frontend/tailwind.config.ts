@@ -17,6 +17,12 @@ export default {
         // Custom background color: #B6CDB6 (less saturated sage green)
         'auth-bg': '#B6CDB6', 
 
+        // Koala design-system tokens (defined in src/index.css)
+        sage: { 50: "var(--sage-50)", 200: "var(--sage-200)", 600: "var(--sage-600)", 700: "var(--sage-700)" },
+        ink: { DEFAULT: "var(--ink)", muted: "var(--text-muted)" },
+        danger: "var(--danger)",
+        surface: "var(--surface)",
+
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -66,10 +72,19 @@ export default {
         },
       },
       borderRadius: {
+        card: "var(--card-radius)",
+        media: "var(--media-radius)",
+        btn: "var(--btn-radius)",
+        chip: "var(--chip-radius)",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      boxShadow: {
+        card: "var(--card-shadow)",
+      },
+      height: { btn: "var(--btn-height)" },
+      minHeight: { btn: "var(--btn-height)" },
       keyframes: {
         "accordion-down": {
           from: {
