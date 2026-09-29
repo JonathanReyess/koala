@@ -90,9 +90,11 @@ class TestSweeps(unittest.TestCase):
             cal.sweep_correct_min(self.probs, self.y, grid),
             cal.sweep_close_min(self.probs, self.y, grid),
             cal.sweep_confusion_min(self.probs, self.y, grid),
-            min_correct_accepted=1.0, max_false_close=0.5, min_naming_precision=0.5,
+            max_false_accept=0.02, max_false_close=0.5, min_naming_precision=0.5,
         )
-        self.assertLessEqual(s["CORRECT_MIN"], 0.3)  # need to keep the p=0.3 correct clip
+        # false accepts (wrong clips with p(top1) >= t, / 36 attempts): 0.8 clip alone = 2.8%, 0.3 clip = 2.8%;
+        # both wrong clips clear t<=0.3, only the 0.8 one clears t<=0.8, none clear t>0.8.
+        self.assertGreater(s["CORRECT_MIN"], 0.8)
         self.assertTrue(all(k in s for k in ("CORRECT_MIN", "CLOSE_MIN", "CONFUSION_MIN")))
 
 

@@ -173,17 +173,20 @@ def suggest(
     correct_rows: list[dict],
     close_rows: list[dict],
     confusion_rows: list[dict],
-    min_correct_accepted: float = 0.95,
+    max_false_accept: float = 0.005,
     max_false_close: float = 0.02,
     min_naming_precision: float = 0.95,
 ) -> dict:
     """Pick thresholds by explicit, overridable rules (see CLI flags)."""
-    # CORRECT_MIN: the highest t that still accepts >= min_correct_accepted of correct predictions.
+    # CORRECT_MIN: the lowest t whose false-accept rate is <= max_false_accept. (Rationale: rejecting a correct sign
+    # is costly to learners, so start from the most permissive gate that still keeps false "Perfect!"s rare. On
+    # the KSL calibration the false-accept curve is nearly flat, so this rule alone lands at the bottom of the
+    # grid; the shipped value is a judgement call informed by learner testing -- see RESULTS.md.)
     notes = []
-    ok = [r for r in correct_rows if r["correct_accepted"] >= min_correct_accepted]
+    ok = [r for r in correct_rows if r["false_accept"] <= max_false_accept]
     if not ok:
-        notes.append(f"No CORRECT_MIN keeps >={min_correct_accepted:.0%} of correct predictions; using the lowest grid value.")
-    correct_min = max((r["t"] for r in ok), default=correct_rows[0]["t"])
+        notes.append(f"No CORRECT_MIN gets false-accept <= {max_false_accept:.1%}; using the highest grid value.")
+    correct_min = min((r["t"] for r in ok), default=correct_rows[-1]["t"])
     # CLOSE_MIN: the lowest t whose false-close rate is <= max_false_close.
     ok = [r for r in close_rows if r["false_close"] <= max_false_close]
     if not ok:
@@ -258,12 +261,12 @@ def analyze(probs: np.ndarray, y: np.ndarray, args) -> dict:
     print_tables(correct_rows, close_rows, confusion_rows)
     sug = suggest(
         correct_rows, close_rows, confusion_rows,
-        min_correct_accepted=args.min_correct_accepted,
+        max_false_accept=args.max_false_accept,
         max_false_close=args.max_false_close,
         min_naming_precision=args.min_naming_precision,
     )
-    print("\nSuggested thresholds (rules: CORRECT_MIN = highest t keeping "
-          f">={args.min_correct_accepted:.0%} of correct predictions; CLOSE_MIN = lowest t with false-close "
+    print("\nSuggested thresholds (rules: CORRECT_MIN = lowest t with false-accept "
+          f"<={args.max_false_accept:.1%}; CLOSE_MIN = lowest t with false-close "
           f"<={args.max_false_close:.1%}; CONFUSION_MIN = lowest t with naming precision >={args.min_naming_precision:.0%})")
     for k_ in ("CORRECT_MIN", "CLOSE_MIN", "CONFUSION_MIN"):
         print(f"  {k_:<14} {sug[k_]:.2f}")
@@ -361,7 +364,7 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--class-labels", default=None, help="Pickle {class_id: word} (default: class_label.p in the repo root)")
     p.add_argument("--from-npz", default=None, help="Skip model/data: analyse a probs.npz written by an earlier run")
     p.add_argument("--grid-min", type=float, default=0.05); p.add_argument("--grid-max", type=float, default=0.95); p.add_argument("--grid-step", type=float, default=0.05)
-    p.add_argument("--min-correct-accepted", type=float, default=0.95)
+    p.add_argument("--max-false-accept", type=float, default=0.005)
     p.add_argument("--max-false-close", type=float, default=0.02)
     p.add_argument("--min-naming-precision", type=float, default=0.95)
     return p

@@ -15,6 +15,7 @@ import { runTta, softmax } from "./model";
 import { gradePrediction } from "./grading";
 import { checkFraming, detectionFractions, resultTo47 } from "./landmarks";
 import { feedbackMessage } from "./messages";
+import { attemptCount, attemptsToJson, buildAttemptRecord, clearAttempts, logAttempt } from "./attemptLog";
 import { INFERENCE_CONFIG } from "./config";
 
 const root = resolve(__dirname, "../../..");
@@ -165,14 +166,16 @@ describe("landmark layout + grading", () => {
   const TEST_CFG = { ...G, CORRECT_MIN: 0.4, CLOSE_MIN: 0.15, CONFUSION_MIN: 0.6 };
 
   it("thresholds live in config with the calibrated values", () => {
-    expect([G.CORRECT_MIN, G.CLOSE_MIN, G.CONFUSION_MIN]).toEqual([0.5, 0.1, 0.75]);
+    expect([G.CORRECT_MIN, G.CLOSE_MIN, G.CONFUSION_MIN]).toEqual([0.2, 0.1, 0.75]);
     expect(INFERENCE_CONFIG.landmarkerDelegate).toBe("CPU");
   });
 
-  it("calibrated defaults: boundaries at 0.50 / 0.10 / 0.75", () => {
+  it("calibrated defaults: boundaries at 0.20 / 0.10 / 0.75", () => {
     const g = (e: Record<number, number>) => gradePrediction(P(e), d2o, 101, ok).status;
-    expect(g({ 1: 0.5 })).toBe("correct");
-    expect(g({ 1: 0.49 })).toBe("close");
+    expect(g({ 1: 0.2 })).toBe("correct");
+    expect(g({ 1: 0.19 })).toBe("close"); // top-1 but under CORRECT_MIN, still >= CLOSE_MIN
+    expect(g({ 1: 0.347 })).toBe("correct"); // learner-testing regressions: "when" 34.7%, "study" 41%
+    expect(g({ 1: 0.41 })).toBe("correct");
     expect(g({ 2: 0.6, 3: 0.2, 1: 0.1 })).toBe("close");
     expect(g({ 2: 0.6, 3: 0.2, 4: 0.09, 1: 0.05 })).toBe("incorrect");
     expect(g({ 2: 0.75, 1: 0.02 })).toBe("confused");
@@ -211,8 +214,8 @@ describe("landmark layout + grading", () => {
     const g = gradePrediction(P({ 2: 0.3, 3: 0.2, 4: 0.15, 1: 0.01 }), d2o, 101, ok, TEST_CFG);
     expect(g).toMatchObject({ status: "incorrect", countsAsMiss: true, countsAsAttempt: true });
     const word = (id: number) => `word${id}`;
-    expect(feedbackMessage(g, word, 101)).toBe("Not quite — watch the example and try again.");
-    expect(feedbackMessage(g, word, 101)).not.toMatch(/word/);
+    expect(feedbackMessage(g, word)).toBe("Not quite — watch the example and try again.");
+    expect(feedbackMessage(g, word)).not.toMatch(/word/);
   });
 
   it("order of checks follows the spec: close beats confused when the target is in the top-3", () => {
@@ -221,13 +224,35 @@ describe("landmark layout + grading", () => {
 
   it("messages", () => {
     const word = (id: number) => `word${id}`;
+    const msg = (e: Record<number, number>) => feedbackMessage(gradePrediction(P(e), d2o, 101, ok), word);
+    expect(msg({ 2: 0.8, 1: 0.05 })).toBe("That looked like “word102”.");
+    expect(msg({ 1: 0.9 })).toBe("Perfect!");
+    expect(msg({ 2: 0.8, 1: 0.1 })).toBe("Almost — it looked a bit like “word102”."); // close AND confident top-1
     const g = (over: object) => ({ countsAsAttempt: true, countsAsMiss: false, ...over }) as never;
-    expect(feedbackMessage(g({ status: "confused", top1: 102 }), word, 101)).toBe("That looked like “word102”.");
-    expect(feedbackMessage(g({ status: "close", top1: 102 }), word, 101)).toBe("Almost — it looked a bit like “word102”.");
-    expect(feedbackMessage(g({ status: "close", top1: 101 }), word, 101)).not.toMatch(/word/);
     expect(feedbackMessage(g({ status: "not_detected", reason: "hands" }), word)).toBe(
       "I couldn't see your hands much — keep them in view while signing.",
     );
+  });
+
+  it("close never names a low-confidence top-1 (regression: 'looked a bit like subway' at 44.6%)", () => {
+    const word = (id: number) => `word${id}`;
+    const msg = (e: Record<number, number>) => {
+      const grade = gradePrediction(P(e), d2o, 101, ok);
+      return { grade, text: feedbackMessage(grade, word) };
+    };
+    // wrong top-1 at 44.6% (< CONFUSION_MIN 0.75); target 2nd at 30% -> close, generic message
+    const low = msg({ 2: 0.446, 1: 0.3 });
+    expect(low.grade.status).toBe("close");
+    expect(low.grade.namesTop1).toBe(false);
+    expect(low.text).toBe("Almost — that was close. Try once more.");
+    expect(low.text).not.toMatch(/word/);
+    // just under the confusion bar: still generic; at the bar: names the word
+    expect(msg({ 2: 0.74, 1: 0.15 }).text).toBe("Almost — that was close. Try once more.");
+    expect(msg({ 2: 0.75, 1: 0.15 }).text).toBe("Almost — it looked a bit like “word102”.");
+    // target itself is top-1 but under CORRECT_MIN: generic, never names the target
+    const self = msg({ 1: 0.15 });
+    expect(self.grade.status).toBe("close");
+    expect(self.text).toBe("Almost — that was close. Try once more.");
   });
 
   it("live framing never warns about hands", () => {
@@ -264,5 +289,48 @@ describe("landmark layout + grading", () => {
     for (let t = 4; t < 12; t++) mask[t * J + 3] = 1; // left hand
     expect(detectionFractions(mask, 32)).toEqual({ pose: 0.5, anyHand: 12 / 32, leftHand: 0.25, rightHand: 0.25 });
     expect(softmax([0, 0]).reduce((a, b) => a + b)).toBeCloseTo(1);
+  });
+});
+
+describe("debug attempt log", () => {
+  it("records target, top-5, grade, fractions, delegate, fps and the raw 32x47x3 clip + mask", () => {
+    const g = golden.vectors[0];
+    const clip = toClip(g);
+    const d2o = (d: number) => d + 100;
+    const probs = new Float64Array(10).fill(0.02);
+    probs[3] = 0.6;
+    probs[1] = 0.12;
+    const fractions = detectionFractions(clip.mask, clip.frames);
+    const grade = gradePrediction(probs, d2o, 101, fractions);
+    const top5 = Array.from(probs.keys()).sort((a, b) => probs[b] - probs[a]).slice(0, 5).map((d) => ({ classId: d2o(d), prob: probs[d] }));
+    clearAttempts();
+    logAttempt(
+      buildAttemptRecord({
+        source: "recorded", targetWord: "eat", targetClassId: 101, top5, grade, fractions,
+        wordFor: (id) => `w${id}`, delegate: "CPU", backend: "wasm", liveFps: 11.5, clip,
+        now: new Date("2026-01-02T03:04:05Z"),
+      }),
+    );
+    expect(attemptCount()).toBe(1);
+    const out = JSON.parse(attemptsToJson());
+    const r = out.attempts[0];
+    expect(r).toMatchObject({
+      timestamp: "2026-01-02T03:04:05.000Z", source: "recorded", target_word: "eat", target_class_id: 101,
+      delegate: "CPU", ort_backend: "wasm", live_fps: 11.5,
+    });
+    expect(r.top5).toHaveLength(5);
+    expect(r.top5[0]).toMatchObject({ class_id: 103, word: "w103" });
+    expect(r.grade).toMatchObject({ status: "close", top1_class_id: 103, names_top1: false });
+    expect(r.thresholds).toMatchObject({ CORRECT_MIN: 0.2, CLOSE_MIN: 0.1, CONFUSION_MIN: 0.75 });
+    expect(r.detection_fractions).toEqual(fractions);
+    expect(r.raw_landmarks).toHaveLength(32);
+    expect(r.raw_landmarks[0]).toHaveLength(47);
+    expect(r.raw_landmarks[0][0]).toHaveLength(3);
+    expect(r.raw_mask).toHaveLength(32);
+    // Same nested layout/values as the golden fixture's raw input (float32-exact).
+    expect(r.raw_landmarks[5][43]).toEqual(g.raw_landmarks[5][43].map(Math.fround));
+    expect(r.raw_mask).toEqual(g.raw_mask);
+    clearAttempts();
+    expect(attemptCount()).toBe(0);
   });
 });

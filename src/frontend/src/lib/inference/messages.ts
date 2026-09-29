@@ -1,15 +1,15 @@
 import type { Grade } from "./grading";
 
 /** User-facing feedback text for a grade. `wordFor` maps an original class id to a display word. */
-export function feedbackMessage(grade: Grade, wordFor: (classId: number) => string, targetClassId?: number): string {
+export function feedbackMessage(grade: Grade, wordFor: (classId: number) => string): string {
   switch (grade.status) {
     case "correct":
       return "Perfect!";
     case "close":
-      // Target was top-1 but under CORRECT_MIN: don't "name" the target as if it were a different word.
-      return grade.top1 === targetClassId || grade.top1 === undefined
-        ? "Almost — that was close. Try once more, a little more clearly."
-        : `Almost — it looked a bit like “${wordFor(grade.top1)}”.`;
+      // Only name another word when the guess is confident (grade.namesTop1 = top-1 != target && p >= CONFUSION_MIN).
+      return grade.namesTop1 && grade.top1 !== undefined
+        ? `Almost — it looked a bit like “${wordFor(grade.top1)}”.`
+        : "Almost — that was close. Try once more.";
     case "confused":
       return grade.top1 !== undefined ? `That looked like “${wordFor(grade.top1)}”.` : "Not quite — watch the example and try again.";
     case "incorrect":

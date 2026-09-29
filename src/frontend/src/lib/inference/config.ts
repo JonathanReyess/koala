@@ -33,12 +33,15 @@ export const INFERENCE_CONFIG = {
     closeTopK: 3,
     // Confidence gates on the averaged (TTA) softmax probabilities. Calibrated on 3,684 held-out predictions
     // (15 config-f signer_kfold folds, TTA mirror) with scripts/calibrate_thresholds.py; sweep tables and reasoning
-    // in RESULTS.md ("Grading thresholds"). The calibration script suggested CORRECT 0.50 / CLOSE 0.05 /
-    // CONFUSION 0.75; CLOSE_MIN was raised to 0.10 by hand (false-close 0.8% vs 1.2%) so random movement doesn't
-    // easily reach "Almost". Genuine attempts with the suggested values: correct 79.2%, close 13.9%, wrongly
-    // named 1.9%, not quite 5.0% (with the values below: 79.2 / 12.4 / 2.5 / 5.9). Fluent held-out signers only.
+    // in RESULTS.md ("Grading thresholds"). Calibration data = fluent held-out signers only.
+    //  - CORRECT_MIN 0.20: an earlier 0.50 (the script's suggestion) was rolled back after learner testing ("study"
+    //    graded close at 41%, "when" at 34.7%). On the sweep 0.20 keeps 99.9% of correct top-1 predictions with
+    //    0.3% false accepts.
+    //  - CLOSE_MIN 0.10: script suggested 0.05; raised by hand (false-close 0.8% vs 1.2%) so random movement doesn't
+    //    easily reach "Almost".
+    //  - CONFUSION_MIN 0.75: lowest t with >= 95% naming precision. Also the bar for naming any word in a message.
     /** correct: target is top-1 AND its probability >= this. */
-    CORRECT_MIN: 0.5,
+    CORRECT_MIN: 0.2,
     /** close: target in top-K AND its probability >= this. */
     CLOSE_MIN: 0.1,
     /** confident confusion: top-1 != target AND top-1 probability >= this -> we name the word. */
