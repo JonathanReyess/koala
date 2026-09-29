@@ -5,6 +5,10 @@ import { FRAMING_HINTS, FramingIssue, checkFraming, resultTo47 } from "@/lib/inf
 import { FrameLandmarks } from "@/lib/inference/preprocess";
 import { drawSkeleton } from "@/lib/inference/overlay";
 
+/** Reads a design token (CSS custom property) so canvas drawing uses the same colours as the UI. */
+const tokenColor = (name: string, fallback: string): string =>
+  (typeof document !== "undefined" && getComputedStyle(document.documentElement).getPropertyValue(name).trim()) || fallback;
+
 interface Options {
   videoRef: RefObject<HTMLVideoElement>;
   canvasRef: RefObject<HTMLCanvasElement>;
@@ -105,7 +109,7 @@ export function useLandmarkTracker({ videoRef, canvasRef, landmarker, active, re
           drawOverlayRef.current ? frame : null,
           video.videoWidth,
           video.videoHeight,
-          framing.ok ? "#22c55e" : "#f59e0b",
+          framing.ok ? tokenColor("--sage-200", "white") : "white",
         );
       }
       if (now - lastUiUpdate > 250) {

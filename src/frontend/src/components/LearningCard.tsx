@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useSyncExternalStore } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { SurfaceCard, MediaWell, MediaScrim, PillButton, PillButtonRow, OverlayChip, OverlayToggle, OverlayIconButton } from "@/components/ds";
 import {
   Camera,
   StopCircle,
@@ -27,7 +26,6 @@ import {
   logAttempt,
   subscribeAttempts,
 } from "@/lib/inference/attemptLog";
-import { Switch } from "@/components/ui/switch";
 import { buildClip } from "@/lib/inference/preprocess";
 import { isClassInModel } from "@/lib/inference/labels";
 import { classIdForWord, wordForClassId } from "@/data/words";
@@ -343,10 +341,146 @@ export const LearningCard = ({
     }
   };
 
+  const showLoadingScrim = modelStatus !== "ready";
+  const feedbackScrim = (() => {
+    const msg = feedbackText;
+    switch (feedback) {
+      case "processing":
+        return <MediaScrim passive icon={<Loader className="h-12 w-12 animate-spin" />} label="Analyzing your sign..." />;
+      case "correct":
+        return <MediaScrim passive icon={<CheckCircle className="h-12 w-12" />} label={msg} />;
+      case "close":
+        return <MediaScrim passive tone="ink" icon={<CircleAlert className="h-12 w-12" />} label={msg} />;
+      case "confused":
+      case "incorrect":
+        return <MediaScrim passive tone="ink" icon={<XCircle className="h-12 w-12" />} label={msg} />;
+      case "not_detected":
+        return <MediaScrim passive tone="ink" icon={<AlertTriangle className="h-12 w-12" />} label={msg} />;
+      case "error":
+        return (
+          <MediaScrim
+            passive
+            tone="ink"
+            icon={<AlertTriangle className="h-12 w-12" />}
+            label="Something went wrong checking that clip, this isn't your signing. Please try again."
+          />
+        );
+      default:
+        return null;
+    }
+  })();
+
+  const scrim = showLoadingScrim ? (
+    modelStatus === "loading" ? (
+      <MediaScrim
+        passive
+        icon={<Loader className="h-12 w-12 animate-spin" />}
+        label="Getting the sign checker ready…"
+      >
+        <span className="text-sm opacity-90">First time only, this loads right in your browser.</span>
+      </MediaScrim>
+    ) : (
+      <MediaScrim
+        passive
+        tone="ink"
+        icon={<AlertTriangle className="h-12 w-12" />}
+        label="Couldn't load the sign checker."
+      >
+        <span className="text-sm opacity-90">Check your connection and refresh the page.</span>
+      </MediaScrim>
+    )
+  ) : countdown !== null ? (
+    <MediaScrim passive tone="ink" label={<span className="text-8xl font-bold leading-none animate-pulse">{countdown}</span>} />
+  ) : (
+    feedbackScrim
+  );
+
+  const showHint = cameraOn && !videoFile && modelStatus === "ready" && feedback === "idle" && countdown === null;
+
+  const footer = feedback === "processing" ? (
+    <PillButton block disabled icon={<Loader className="h-5 w-5 animate-spin" />}>
+      Analyzing...
+    </PillButton>
+  ) : isRecording ? (
+    <PillButton block onClick={stopRecording} icon={<StopCircle className="h-5 w-5" />}>
+      Stop Recording
+    </PillButton>
+  ) : isReadyToSubmit ? (
+    <PillButtonRow>
+      <PillButton variant="secondary" onClick={handlePlaybackToggle} icon={isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}>
+        {isPlaying ? "Pause" : "Replay"}
+      </PillButton>
+      <PillButton
+        variant="secondary"
+        icon={<Camera className="h-5 w-5" />}
+        onClick={() => {
+          setVideoFile(null);
+          setFeedback("idle");
+          setGrade(null);
+          setDebugInfo(null);
+          setClipSource(null);
+          setIsReadyToSubmit(false);
+          startCamera();
+        }}
+      >
+        Re-record
+      </PillButton>
+      {clipSource === "upload" && (feedback === "idle" || feedback === "error") && (
+        <PillButton icon={<CheckCircle className="h-5 w-5" />} onClick={() => videoFile && runUploadInference(videoFile.blob)}>
+          Submit
+        </PillButton>
+      )}
+    </PillButtonRow>
+  ) : (
+    <PillButtonRow>
+      <PillButton variant="secondary" disabled={modelStatus !== "ready"} onClick={() => fileInputRef.current?.click()} icon={<Upload className="h-5 w-5" />}>
+        Upload Video
+      </PillButton>
+      <PillButton disabled={modelStatus !== "ready"} onClick={startRecording} icon={<Camera className="h-5 w-5" />}>
+        Start Recording
+      </PillButton>
+    </PillButtonRow>
+  );
+
+  const mirrorClass = isMirrored && !videoFile ? "scale-x-[-1]" : "";
+
   return (
-    <Card className="w-full border-0 shadow-lg bg-white dark:bg-gray-900 rounded-2xl overflow-hidden">
-      <CardContent className="p-6 space-y-6">
-        <div className="relative aspect-video bg-black rounded-xl overflow-hidden">
+    <div className="space-y-4">
+      <SurfaceCard footer={footer}>
+        <MediaWell
+          scrim={scrim}
+          topLeft={
+            showHint && (
+              <OverlayChip
+                role="status"
+                aria-live="polite"
+                tone={tracker.hint ? "default" : tracker.framingOk ? "sage" : "default"}
+                icon={tracker.hint ? <Lightbulb className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+              >
+                {tracker.hint ??
+                  (tracker.framingOk
+                    ? isRecording
+                      ? "Looking good, keep signing."
+                      : "You're all set. Press Start Recording."
+                    : "Getting a good look at you…")}
+              </OverlayChip>
+            )
+          }
+          topRight={modelStatus === "ready" && !videoFile && <OverlayToggle label="Show tracking" checked={showTracking} onCheckedChange={toggleTracking} />}
+          bottomLeft={showPerf && tracker.fps > 0 && <OverlayChip className="font-mono text-xs">{tracker.fps.toFixed(1)} fps</OverlayChip>}
+          bottomRight={
+            <OverlayIconButton label="Toggle mirror" onClick={() => setIsMirrored(!isMirrored)}>
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform ${isMirrored ? "scale-x-[-1]" : ""}`} aria-hidden="true">
+                <path
+                  fillRule="evenodd"
+                  clipRule="evenodd"
+                  d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </OverlayIconButton>
+          }
+        >
           <video
             ref={videoRef}
             key={videoFile?.url}
@@ -354,288 +488,30 @@ export const LearningCard = ({
             autoPlay={!videoFile || isPlaying}
             muted={!videoFile}
             playsInline
-            className={`w-full h-full object-cover ${
-              isMirrored && !videoFile ? "scale-x-[-1]" : ""
-            }`}
+            className={mirrorClass}
           />
-
           {/* Skeleton overlay: mirrored together with the camera preview */}
-          <canvas
-            ref={canvasRef}
-            className={`absolute inset-0 w-full h-full pointer-events-none ${
-              isMirrored && !videoFile ? "scale-x-[-1]" : ""
-            }`}
-          />
+          <canvas ref={canvasRef} className={mirrorClass} />
+        </MediaWell>
+        <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileUpload} className="hidden" />
+      </SurfaceCard>
 
-          {/* Tracking overlay toggle (off by default, remembered) */}
-          {modelStatus === "ready" && !videoFile && (
-            <label className="absolute top-3 right-3 z-10 flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow text-xs font-medium text-gray-700 dark:text-gray-200 cursor-pointer">
-              <Switch checked={showTracking} onCheckedChange={toggleTracking} aria-label="Show tracking" />
-              Show tracking
-            </label>
+      {debug && (
+        <div className="space-y-2">
+          {debugInfo && (
+            <pre className="rounded-media bg-sage-50 p-3 text-xs text-ink whitespace-pre-wrap font-mono">{debugInfo}</pre>
           )}
-
-          {/* Live framing hint, before and during recording (body only; never about hands) */}
-          {cameraOn && !videoFile && modelStatus === "ready" && feedback === "idle" && countdown === null && (
-            <div className="absolute top-3 inset-x-3 flex justify-center pointer-events-none">
-              <div
-                role="status"
-                aria-live="polite"
-                className={`px-4 py-2 rounded-full text-sm font-medium shadow-md backdrop-blur-sm flex items-center gap-2 ${
-                  tracker.hint
-                    ? "bg-amber-100/95 text-amber-900"
-                    : tracker.framingOk
-                      ? "bg-green-100/95 text-green-900"
-                      : "bg-white/90 text-gray-700"
-                }`}
-              >
-                {tracker.hint ? (
-                  <Lightbulb className="w-4 h-4 shrink-0" />
-                ) : (
-                  <Sparkles className="w-4 h-4 shrink-0" />
-                )}
-                {tracker.hint ??
-                  (tracker.framingOk
-                    ? isRecording
-                      ? "Looking good — keep signing."
-                      : "You're all set — press Start Recording."
-                    : "Getting a good look at you…")}
-              </div>
-            </div>
-          )}
-
-          {showPerf && tracker.fps > 0 && (
-            <div className="absolute bottom-4 left-4 px-2 py-1 rounded bg-black/60 text-white text-xs font-mono">
-              {tracker.fps.toFixed(1)} fps
-            </div>
-          )}
-
-          {modelStatus !== "ready" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm text-center px-6">
-              {modelStatus === "loading" ? (
-                <>
-                  <Loader className="w-12 h-12 text-white animate-spin mb-3" />
-                  <span className="text-white text-lg font-medium">Getting the sign checker ready…</span>
-                  <span className="text-white/80 text-sm mt-1">First time only — this loads right in your browser.</span>
-                </>
-              ) : (
-                <>
-                  <AlertTriangle className="w-12 h-12 text-yellow-400 mb-3" />
-                  <span className="text-white text-lg font-medium">Couldn't load the sign checker.</span>
-                  <span className="text-white/80 text-sm mt-1">Check your connection and refresh the page.</span>
-                </>
-              )}
-            </div>
-          )}
-
-          {countdown !== null && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-              <div className="text-white text-8xl md:text-9xl font-bold animate-pulse">
-                {countdown}
-              </div>
-            </div>
-          )}
-
-          {feedback === "processing" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm">
-              <Loader className="w-16 h-16 text-white animate-spin mb-4" />
-              <span className="text-white text-lg font-medium">
-                Analyzing your sign...
-              </span>
-            </div>
-          )}
-
-          {(feedback === "incorrect" || feedback === "confused") && (
-            <div className="absolute inset-0 flex items-center justify-center bg-red-500/20 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
-                <XCircle className="w-12 h-12 text-red-600 shrink-0" />
-                <span className="text-xl font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
-              </div>
-            </div>
-          )}
-
-          {feedback === "correct" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-green-500/20 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4">
-                <CheckCircle className="w-12 h-12 text-green-600" />
-                <span className="text-2xl font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
-              </div>
-            </div>
-          )}
-
-          {feedback === "close" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-amber-500/20 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
-                <CircleAlert className="w-12 h-12 text-amber-500 shrink-0" />
-                <span className="text-xl font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
-              </div>
-            </div>
-          )}
-
-          {feedback === "not_detected" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-yellow-500/20 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
-                <AlertTriangle className="w-12 h-12 text-yellow-600 shrink-0" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">{feedbackText}</span>
-              </div>
-            </div>
-          )}
-
-          {feedback === "error" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-gray-500/20 backdrop-blur-sm">
-              <div className="bg-white dark:bg-gray-900 px-8 py-6 rounded-2xl shadow-2xl flex items-center gap-4 max-w-sm text-center">
-                <AlertTriangle className="w-12 h-12 text-gray-600 shrink-0" />
-                <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Something went wrong checking that clip — this isn't your signing. Please try again.
-                </span>
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => setIsMirrored(!isMirrored)}
-            className="absolute bottom-4 right-4 p-3 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg hover:scale-110 transition-transform"
-            aria-label="Toggle mirror"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className={`w-5 h-5 transition-transform ${
-                isMirrored ? "scale-x-[-1]" : ""
-              }`}
-            >
-              <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M2.14935 19.5257C2.33156 19.8205 2.65342 20 3 20H10C10.5523 20 11 19.5523 11 19V4.99998C11 4.5362 10.6811 4.13328 10.2298 4.02673C9.77838 3.92017 9.31298 4.13795 9.10557 4.55276L2.10557 18.5528C1.95058 18.8628 1.96714 19.2309 2.14935 19.5257ZM4.61804 18L9 9.23604V18H4.61804ZM13 19C13 19.5523 13.4477 20 14 20H21C21.3466 20 21.6684 19.8205 21.8507 19.5257C22.0329 19.2309 22.0494 18.8628 21.8944 18.5528L14.8944 4.55276C14.687 4.13795 14.2216 3.92017 13.7702 4.02673C13.3189 4.13328 13 4.5362 13 4.99998V19Z"
-                fill="currentColor"
-                className="text-gray-700 dark:text-gray-300"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {debug && (
-          <div className="space-y-2">
-            {debugInfo && (
-              <pre className="text-xs bg-gray-100 dark:bg-gray-800 rounded-lg p-3 whitespace-pre-wrap font-mono">
-                {debugInfo}
-              </pre>
-            )}
-            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={loggedAttempts === 0}
-                onClick={downloadAttempts}
-              >
-                Download attempts (JSON)
-              </Button>
-              <Button variant="ghost" size="sm" disabled={loggedAttempts === 0} onClick={clearAttempts}>
-                Clear
-              </Button>
-              <span>{loggedAttempts} attempt(s) logged in memory — nothing is uploaded.</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+            <PillButton variant="secondary" disabled={loggedAttempts === 0} onClick={downloadAttempts}>
+              Download attempts (JSON)
+            </PillButton>
+            <PillButton variant="ghost" disabled={loggedAttempts === 0} onClick={clearAttempts}>
+              Clear
+            </PillButton>
+            <span>{loggedAttempts} attempt(s) logged in memory. Nothing is uploaded.</span>
           </div>
-        )}
-
-        <div className="space-y-3">
-          {!isRecording && !isReadyToSubmit && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                disabled={modelStatus !== "ready"}
-                onClick={() => fileInputRef.current?.click()}
-                className="flex-1 h-12 text-base font-medium rounded-full bg-[#5e877a] text-white hover:bg-[#5e877a] hover:brightness-110 transition-all"
-                variant="outline"
-              >
-                <Upload className="mr-2 h-5 w-5" />
-                Upload Video
-              </Button>
-              <Button
-                disabled={modelStatus !== "ready"}
-                onClick={startRecording}
-                className="flex-1 h-12 text-base font-medium rounded-full hover:opacity-90 transition-opacity"
-              >
-                <Camera className="mr-2 h-5 w-5" />
-                Start Recording
-              </Button>
-            </div>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="video/*"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-
-          {isRecording && (
-            <Button
-              onClick={stopRecording}
-              className="w-full h-12 text-base font-medium rounded-full bg-red-600 hover:bg-red-700 text-white transition-colors"
-            >
-              <StopCircle className="mr-2 h-5 w-5" />
-              Stop Recording
-            </Button>
-          )}
-
-          {isReadyToSubmit && feedback !== "processing" && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                onClick={handlePlaybackToggle}
-                variant="outline"
-                className="flex-1 h-12 text-base font-medium rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                {isPlaying ? (
-                  <Pause className="mr-2 h-5 w-5" />
-                ) : (
-                  <Play className="mr-2 h-5 w-5" />
-                )}
-                {isPlaying ? "Pause" : "Replay"}
-              </Button>
-
-              <Button
-                onClick={() => {
-                  setVideoFile(null);
-                  setFeedback("idle");
-                  setGrade(null);
-                  setDebugInfo(null);
-                  setClipSource(null);
-                  setIsReadyToSubmit(false);
-                  startCamera();
-                }}
-                variant="outline"
-                className="flex-1 h-12 text-base font-medium rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                <Camera className="mr-2 h-5 w-5" />
-                Re-record
-              </Button>
-
-              {clipSource === "upload" && (feedback === "idle" || feedback === "error") && (
-                <Button
-                  onClick={() => videoFile && runUploadInference(videoFile.blob)}
-                  className="flex-1 h-12 text-base font-medium rounded-full hover:opacity-90 transition-opacity"
-                >
-                  <CheckCircle className="mr-2 h-5 w-5" />
-                  Submit
-                </Button>
-              )}
-            </div>
-          )}
-
-          {feedback === "processing" && (
-            <Button
-              disabled
-              className="w-full h-12 text-base font-medium rounded-full bg-gray-400 cursor-not-allowed"
-            >
-              <Loader className="mr-2 h-5 w-5 animate-spin" />
-              Analyzing...
-            </Button>
-          )}
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
 };

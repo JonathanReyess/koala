@@ -2,18 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { LearningCard } from "@/components/LearningCard";
 import { VideoExampleCard } from "@/components/VideoExampleCard";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { AppDialog, HeaderChip, HeaderSelect, PillButton, PillButtonRow } from "@/components/ds";
 import { CompareDialog } from "@/components/CompareDialog";
 import {
   calculateNextReview,
@@ -21,13 +10,6 @@ import {
   sanitizeProgress,
   type WordProgress,
 } from "@/lib/spacedRepetition";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   ALL_WORDS,
   AVAILABLE_WORDS,
@@ -115,7 +97,7 @@ const ProgressBar = ({ current, total }: ProgressBarProps) => {
 
   return (
     <div
-      className="w-full bg-gray-200 dark:bg-gray-800 rounded-full h-2 overflow-hidden"
+      className="w-full bg-sage-50 rounded-full h-2 overflow-hidden"
       role="progressbar"
       aria-valuenow={current}
       aria-valuemin={0}
@@ -123,7 +105,7 @@ const ProgressBar = ({ current, total }: ProgressBarProps) => {
       aria-label={`Progress: ${current} of ${total} words`}
     >
       <div
-        className="bg-primary h-full transition-all duration-300 ease-out"
+        className="bg-sage-600 h-full transition-all duration-300 ease-out"
         style={{ width: `${percentage}%` }}
       />
     </div>
@@ -144,13 +126,13 @@ const ProgressStats = ({
   mastered,
 }: ProgressStatsProps) => (
   <div className="flex items-center justify-center gap-6 mb-3 text-sm">
-    <span className="font-semibold text-gray-900 dark:text-gray-100">
+    <span className="font-semibold text-ink">
       {current} of {total}
     </span>
-    <span className="text-gray-600 dark:text-gray-400 hidden sm:inline">
+    <span className="text-ink-muted hidden sm:inline">
       Practiced: {practiced}
     </span>
-    <span className="text-gray-600 dark:text-gray-400 hidden sm:inline">
+    <span className="text-ink-muted hidden sm:inline">
       Mastered: {mastered}
     </span>
   </div>
@@ -179,29 +161,25 @@ const WordDisplay = ({
 }: WordDisplayProps) => (
   <div className="flex items-center justify-between gap-4">
     <button
+      type="button"
       onClick={onPrevious}
       disabled={!canGoPrevious}
-      className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-sage-50 disabled:opacity-30 disabled:pointer-events-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
       aria-label="Previous word"
     >
-      <ChevronLeft className="w-8 h-8 text-gray-700 dark:text-gray-300" />
+      <ChevronLeft className="w-7 h-7" aria-hidden="true" />
     </button>
 
     <div className="flex flex-col items-center flex-1 space-y-2">
-      <p className="text-base md:text-lg font-medium text-gray-600 dark:text-gray-400">
-        Sign this word
-      </p>
-      <h2 className="text-4xl md:text-6xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-        {english}
-      </h2>
+      <p className="text-base md:text-lg font-medium text-ink-muted">Sign this word</p>
+      <h2 className="text-4xl md:text-6xl font-semibold tracking-tight text-ink">{english}</h2>
       <p className="text-2xl md:text-4xl font-semibold text-primary" lang="ko">
         {korean}
       </p>
       {(tricky || onCompare) && (
         <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
           {tricky && (
-            <span
-              className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 px-3 py-1 text-xs font-medium"
+            <HeaderChip
               title={
                 accuracy !== undefined
                   ? `Fluent signers were recognised ${Math.round(accuracy * 100)}% of the time on this sign.`
@@ -210,24 +188,24 @@ const WordDisplay = ({
             >
               <Flame className="h-3.5 w-3.5" aria-hidden="true" />
               tricky sign
-            </span>
+            </HeaderChip>
           )}
           {onCompare && (
-            <Button size="sm" variant="outline" className="rounded-full h-7 text-xs" onClick={onCompare}>
-              <GitCompare className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            <PillButton size="sm" variant="secondary" icon={<GitCompare className="h-4 w-4" />} onClick={onCompare}>
               Compare with…
-            </Button>
+            </PillButton>
           )}
         </div>
       )}
     </div>
 
     <button
+      type="button"
       onClick={onNext}
-      className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 transition-all"
+      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-sage-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
       aria-label="Next word"
     >
-      <ChevronRight className="w-8 h-8 text-gray-700 dark:text-gray-300" />
+      <ChevronRight className="w-7 h-7" aria-hidden="true" />
     </button>
   </div>
 );
@@ -236,38 +214,40 @@ interface ResetDialogProps {
   onReset: () => void;
 }
 
-const ResetDialog = ({ onReset }: ResetDialogProps) => (
-  <AlertDialog>
-    <AlertDialogTrigger asChild>
-      <Button
-        size="sm"
-        variant="ghost"
-        className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 px-3 py-2 text-red-600 dark:text-red-400"
-      >
-        <RotateCcw className="h-4 w-4 md:mr-2" />
+const ResetDialog = ({ onReset }: ResetDialogProps) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <PillButton variant="ghost" onClick={() => setOpen(true)} icon={<RotateCcw className="h-4 w-4" />} className="px-3 md:px-5 text-danger hover:bg-sage-50">
         <span className="hidden md:inline">Reset</span>
-      </Button>
-    </AlertDialogTrigger>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Reset all progress?</AlertDialogTitle>
-        <AlertDialogDescription>
-          This will clear all your learning progress and cannot be undone. You
-          will start fresh with all words marked as unlearned.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction
-          onClick={onReset}
-          className="bg-red-600 hover:bg-red-700"
-        >
-          Reset Progress
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-);
+        <span className="sr-only md:hidden">Reset</span>
+      </PillButton>
+      <AppDialog
+        alert
+        open={open}
+        onOpenChange={setOpen}
+        title="Reset all progress?"
+        description="This will clear all your learning progress and cannot be undone. You will start fresh with all words marked as unlearned."
+        footer={
+          <PillButtonRow>
+            <PillButton variant="secondary" onClick={() => setOpen(false)}>
+              Cancel
+            </PillButton>
+            <PillButton
+              variant="danger"
+              onClick={() => {
+                onReset();
+                setOpen(false);
+              }}
+            >
+              Reset Progress
+            </PillButton>
+          </PillButtonRow>
+        }
+      />
+    </>
+  );
+};
 
 // =============================================================================
 // Main Component
@@ -401,9 +381,9 @@ const Learn = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col bg-white dark:bg-black">
+    <div className="relative min-h-screen flex flex-col bg-background">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-white/80 dark:bg-black/80 border-b border-gray-200/20 dark:border-gray-800/20">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background [border-bottom:var(--card-border)]">
         <div className="max-w-7xl mx-auto px-6 py-4">
           {/* Top row: Logo and action buttons */}
           <div className="flex items-center justify-between mb-4">
@@ -417,29 +397,21 @@ const Learn = () => {
               role="button"
             />
 
-            <div className="flex items-center gap-2">
-              <Select value={deck} onValueChange={handleDeckChange}>
-                <SelectTrigger className="w-[190px] md:w-[240px] h-9 rounded-full" aria-label="Choose a deck">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All words ({AVAILABLE_WORDS.length})</SelectItem>
-                  {decks.map((d) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.label} ({d.count})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleShuffle}
-                className="rounded-full hover:bg-gray-100 dark:hover:bg-gray-900 px-3 py-2"
-              >
-                <Shuffle className="h-4 w-4 md:mr-2" aria-hidden="true" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              <HeaderSelect
+                aria-label="Choose a deck"
+                value={deck}
+                onValueChange={handleDeckChange}
+                className="w-[132px] sm:w-[190px] md:w-[240px]"
+                options={[
+                  { value: "all", label: `All words (${AVAILABLE_WORDS.length})` },
+                  ...decks.map((d) => ({ value: d.id, label: `${d.label} (${d.count})` })),
+                ]}
+              />
+              <PillButton variant="ghost" onClick={handleShuffle} icon={<Shuffle className="h-4 w-4" />} className="px-3 md:px-5">
                 <span className="hidden md:inline">Shuffle</span>
-              </Button>
+                <span className="sr-only md:hidden">Shuffle</span>
+              </PillButton>
               <ResetDialog onReset={handleReset} />
             </div>
           </div>
@@ -463,48 +435,46 @@ const Learn = () => {
           `Current word: ${currentWordData.english}, Korean: ${currentWordData.korean}`}
       </div>
 
-      {/* Main content */}
+      {/* Main content: word prompt, then two equal cards */}
       <main
         className={`
-          flex-1 flex flex-col lg:flex-row items-start justify-center 
-          max-w-7xl mx-auto w-full px-6 gap-12 pt-40 pb-12
+          flex-1 flex flex-col items-stretch
+          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-8 pt-40 pb-12
           transition-opacity duration-700 ease-out
           ${isLoaded ? "opacity-100" : "opacity-0"}
         `}
       >
-        {/* Video example section */}
-        <div className="flex-1 w-full max-w-2xl mt-[176px]">
-          <VideoExampleCard word={currentWord} />
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">
-            Clips trimmed from the original source videos:{" "}
-            <a
-              href="https://doi.org/10.1007/978-3-030-37731-1_43"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-            >
-              Yang et al., "The Korean Sign Language Dataset for Action Recognition," MMM 2020
-            </a>
-          </p>
-        </div>
+        {currentWordData && (
+          <WordDisplay
+            english={currentWordData.english}
+            korean={currentWordData.korean}
+            tricky={isTricky(currentWordData.english)}
+            accuracy={heldOutAccuracy(currentWordData.english)}
+            onCompare={compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            canGoPrevious={currentIndex > 0}
+          />
+        )}
 
-        {/* Practice section */}
-        <div className="flex-1 w-full max-w-2xl space-y-8">
-          {/* Word header with navigation */}
-          {currentWordData && (
-            <WordDisplay
-              english={currentWordData.english}
-              korean={currentWordData.korean}
-              tricky={isTricky(currentWordData.english)}
-              accuracy={heldOutAccuracy(currentWordData.english)}
-              onCompare={compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
-              onPrevious={handlePrevious}
-              onNext={handleNext}
-              canGoPrevious={currentIndex > 0}
-            />
-          )}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Example video + attribution */}
+          <div>
+            <VideoExampleCard word={currentWord} />
+            <p className="text-xs text-ink-muted mt-4 text-center">
+              Clips trimmed from the original source videos:{" "}
+              <a
+                href="https://doi.org/10.1007/978-3-030-37731-1_43"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-ink transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
+              >
+                Yang et al., "The Korean Sign Language Dataset for Action Recognition," MMM 2020
+              </a>
+            </p>
+          </div>
 
-          {/* Learning Card */}
+          {/* Your camera */}
           <LearningCard
             word={currentWord}
             onNext={handleNext}
