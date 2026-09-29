@@ -184,7 +184,8 @@ Share of each grade. *Genuine* = the signer signed the target word (all held-out
 |---|---|---|---|---|---|---|---|---|
 | Placeholders (0.40 / 0.15 / 0.60) | 81.8% | 8.5% | 4.3% | 5.5% | 0.2% | 0.4% | 80.8% | 18.6% |
 | Suggested by the script (0.50 / 0.05 / 0.75) | 79.2% | 13.9% | 1.9% | 5.0% | 0.1% | 1.0% | 70.2% | 28.7% |
-| **Chosen (shipped)** (0.50 / 0.10 / 0.75) | 79.2% | 12.4% | 2.5% | 5.9% | 0.1% | 0.7% | 70.4% | 28.8% |
+| Shipped first (rolled back) (0.50 / 0.10 / 0.75) | 79.2% | 12.4% | 2.5% | 5.9% | 0.1% | 0.7% | 70.4% | 28.8% |
+| **Shipped now** (0.20 / 0.10 / 0.75) | 83.2% | 8.4% | 2.5% | 5.9% | 0.3% | 0.6% | 70.4% | 28.8% |
 
 ("Wrongly named" = a correctly signed clip shown "That looked like <other word>"; "named" for impostors is mostly a
 *correct* naming of the word actually signed, since the top-1 is usually the true sign.)
@@ -193,16 +194,36 @@ Share of each grade. *Genuine* = the signer signed the target word (all held-out
 
 | | value | basis |
 |---|---|---|
-| `CORRECT_MIN` | **0.50** | Script suggestion: the highest t that still accepts ≥ 95% of correct predictions. |
-| `CONFUSION_MIN` | **0.75** | Script suggestion: the lowest t with naming precision ≥ 95%. Wrongly named genuine attempts drop from 4.3% (placeholder 0.60) to 1.9–2.5%. |
-| `CLOSE_MIN` | **0.10** | Script suggested 0.05 (lowest t with false-close ≤ 2%). Raised to 0.10 by hand: false-close falls from 1.2% to 0.8% (a third fewer accidental "Almost" results), at the cost of keeping 77% instead of 91% of genuine near-misses. The intent is that random or unrelated movement shouldn't easily earn an "Almost" — a wrong call that flatters non-signing is worse than a missed "Almost" for a real near-miss, which just becomes "Not quite". |
+| `CORRECT_MIN` | **0.20** | Rolled back from 0.50 after learner testing with `?debug=1` (see below). On the sweep, 0.20 keeps **99.9%** of correct top-1 predictions (99.93%) with **0.3%** false accepts (0.25% of clip × wrong-target attempts get a false "Perfect!"). |
+| `CONFUSION_MIN` | **0.75** | Script suggestion: the lowest t with naming precision ≥ 95%. Wrongly named genuine attempts drop from 4.3% (placeholder 0.60) to about 2%. It is also the bar for *naming any word* in any message, including "Almost". |
+| `CLOSE_MIN` | **0.10** | Script suggested 0.05 (lowest t with false-close ≤ 2%). Raised to 0.10 by hand: false-close falls from 1.2% to 0.8% (a third fewer accidental "Almost" results), at the cost of keeping 77% instead of 91% of genuine near-misses. The intent is that random or unrelated movement shouldn't easily earn an "Almost". |
 
-Side effect of 0.10 vs 0.05 on genuine attempts (because "close" is checked before "confused"): close 13.9% → 12.4%,
-wrongly named 1.9% → 2.5%, not quite 5.0% → 5.9%; correct is unchanged at 79.2%.
+**CORRECT_MIN 0.50 was rolled back after learner testing.** The first shipped value was the script's suggestion
+(highest t keeping ≥ 95% of correct predictions, which the sweep put at 0.50). Real learners, who sign less
+prototypically than fluent held-out signers, were graded "close" on genuinely correct attempts whose top-1 was the
+target: "study" at 41% and "when" at 34.7%. The sweep tables above understate this because they only contain fluent
+signers, whose correct top-1 predictions are almost always confident. Since false accepts are essentially flat across
+thresholds (about 0.25% at every t from 0.05 to 0.40, because the wrong clips the model is confident about clear any
+of those gates), a high CORRECT_MIN buys almost no protection and mostly rejects correct learners.
 
-These are calibrated on fluent held-out signers only. Nothing here was measured on random movement or on learners;
-treat CLOSE_MIN in particular as a starting point to revisit with real usage data.
+**Script rule change.** `scripts/calibrate_thresholds.py` now suggests CORRECT_MIN as the *lowest* threshold whose
+false-accept rate is ≤ 0.5% (`--max-false-accept`) instead of the highest t keeping ≥ 95% of correct predictions.
+On this calibration the false-accept curve never exceeds 0.26%, so the rule alone lands on the bottom of the grid
+(0.05); the shipped **0.20** is a judgement call that keeps a floor against very-low-confidence top-1 hits, not the
+rule's output.
 
+**"Close" messages never name a low-confidence word.** A "close" result names the top-1 word only if top-1 ≠ target and
+its probability ≥ CONFUSION_MIN (`Grade.namesTop1`); otherwise it says "Almost — that was close. Try once more."
+Previously it named the top-1 whatever its probability (e.g. "looked a bit like subway" at 44.6%).
+
+Side effect of CLOSE_MIN 0.10 vs 0.05 on genuine attempts (because "close" is checked before "confused"): close 13.9% →
+12.4%, wrongly named 1.9% → 2.5%, not quite 5.0% → 5.9% (at the earlier CORRECT_MIN 0.50; see the table for the
+shipped mix).
+
+These are calibrated on fluent held-out signers only. Nothing here was measured on random movement or on learners
+beyond the anecdotes above; treat CLOSE_MIN in particular as a starting point to revisit. `?debug=1` now keeps an
+in-memory attempt log (target, top-5, grade, fractions, delegate, fps, raw 32×47×3 landmarks + mask) that can be
+downloaded as JSON to build a learner test set (nothing is uploaded).
 
 ## Decisions
 

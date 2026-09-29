@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -19,6 +19,14 @@ import { loadModels, createHolisticLandmarker, LoadedModels } from "@/lib/infere
 import { gradeClip } from "@/lib/inference/pipeline";
 import { Grade } from "@/lib/inference/grading";
 import { feedbackMessage } from "@/lib/inference/messages";
+import {
+  attemptCount,
+  attemptsToJson,
+  buildAttemptRecord,
+  clearAttempts,
+  logAttempt,
+  subscribeAttempts,
+} from "@/lib/inference/attemptLog";
 import { Switch } from "@/components/ui/switch";
 import { buildClip } from "@/lib/inference/preprocess";
 import { classIdToWord, isClassInModel, wordToClassId } from "@/lib/inference/labels";
@@ -155,6 +163,7 @@ export const LearningCard = ({
   const [clipSource, setClipSource] = useState<"recorded" | "upload" | null>(null);
   const debug = new URLSearchParams(location.search).get("debug") === "1";
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  const loggedAttempts = useSyncExternalStore(subscribeAttempts, attemptCount);
   // Skeleton overlay is opt-in; the choice is remembered per browser.
   const [showTracking, setShowTracking] = useState<boolean>(() => {
     try {
@@ -182,7 +191,17 @@ export const LearningCard = ({
     drawOverlay: showTracking,
   });
 
-  const feedbackText = grade ? feedbackMessage(grade, (id) => classIdToWord(WORD_TO_ID_MAP, id), wordToClassId(WORD_TO_ID_MAP, word.toLowerCase())) : "";
+  const downloadAttempts = () => {
+    const blob = new Blob([attemptsToJson()], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `koala-attempts-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const feedbackText = grade ? feedbackMessage(grade, (id) => classIdToWord(WORD_TO_ID_MAP, id)) : "";
 
   const ID_TO_WORD_MAP: { [id: string]: string } = Object.fromEntries(
     Object.entries(WORD_TO_ID_MAP).map(([word, id]) => [id, word])
@@ -250,7 +269,11 @@ export const LearningCard = ({
   }, [word]);
 
   /** Grades a sampled raw clip against the current word; updates feedback + spaced repetition. */
-  const gradeAndShow = async (clip: ReturnType<typeof buildClip>, startedAt: number) => {
+  const gradeAndShow = async (
+    clip: ReturnType<typeof buildClip>,
+    startedAt: number,
+    source: "recorded" | "upload",
+  ) => {
     const targetId = wordToClassId(WORD_TO_ID_MAP, word.toLowerCase());
     if (!models || targetId === undefined || !isClassInModel(models.labels, targetId)) {
       setFeedback("error");
@@ -269,6 +292,22 @@ export const LearningCard = ({
           `\nframes with pose ${pct(f.pose)}, any hand ${pct(f.anyHand)} (left ${pct(f.leftHand)}, right ${pct(f.rightHand)})` +
           `\ngrade: ${g.status}${g.reason ? ` (${g.reason})` : ""}, target p=${g.targetProb?.toFixed(3) ?? "—"}`;
         setDebugInfo(text);
+        // In-memory only (never uploaded): exported on demand via "Download attempts (JSON)".
+        logAttempt(
+          buildAttemptRecord({
+            source,
+            targetWord: word,
+            targetClassId: targetId,
+            top5: result.top5,
+            grade: g,
+            fractions: f,
+            wordFor: (id) => classIdToWord(WORD_TO_ID_MAP, id),
+            delegate: models.timings.delegate,
+            backend: models.timings.backend,
+            liveFps: source === "recorded" ? tracker.fps : null,
+            clip,
+          }),
+        );
         console.log("[koala:debug]", { grade: g, top5: result.top5, fractions: f });
       }
       // not_detected: not the user's fault, no attempt. close: neutral (neither miss nor credit).
@@ -304,7 +343,7 @@ export const LearningCard = ({
       const { video, revoke } = await loadVideoElement(videoBlob);
       try {
         const clip = await extractVideoMode(video, landmarker);
-        await gradeAndShow(clip, startedAt);
+        await gradeAndShow(clip, startedAt, "upload");
       } finally {
         landmarker.close();
         revoke();
@@ -372,7 +411,7 @@ export const LearningCard = ({
     setFeedback("processing");
     const clip = buildClip(frames);
     // Yield once so the "Analyzing" state paints before the (synchronous) preprocessing/inference work.
-    setTimeout(() => void gradeAndShow(clip, startedAt), 0);
+    setTimeout(() => void gradeAndShow(clip, startedAt, "recorded"), 0);
   };
 
   const handlePlaybackToggle = () => {
@@ -561,10 +600,28 @@ export const LearningCard = ({
           </button>
         </div>
 
-        {debug && debugInfo && (
-          <pre className="text-xs bg-gray-100 dark:bg-gray-800 rounded-lg p-3 whitespace-pre-wrap font-mono">
-            {debugInfo}
-          </pre>
+        {debug && (
+          <div className="space-y-2">
+            {debugInfo && (
+              <pre className="text-xs bg-gray-100 dark:bg-gray-800 rounded-lg p-3 whitespace-pre-wrap font-mono">
+                {debugInfo}
+              </pre>
+            )}
+            <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loggedAttempts === 0}
+                onClick={downloadAttempts}
+              >
+                Download attempts (JSON)
+              </Button>
+              <Button variant="ghost" size="sm" disabled={loggedAttempts === 0} onClick={clearAttempts}>
+                Clear
+              </Button>
+              <span>{loggedAttempts} attempt(s) logged in memory — nothing is uploaded.</span>
+            </div>
+          </div>
         )}
 
         <div className="space-y-3">

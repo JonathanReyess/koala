@@ -26,6 +26,11 @@ export interface Grade {
   top1?: number;
   top1Prob?: number;
   targetProb?: number;
+  /**
+   * True when a message may name the top-1 word: top-1 is not the target AND its probability >= CONFUSION_MIN.
+   * The one place that decides this, so no message can name a low-confidence guess.
+   */
+  namesTop1?: boolean;
   /** Top-5 (best first) for debugging. */
   ranked?: RankedGuess[];
   /** Counts as an attempt in spaced repetition? Only not_detected does not. */
@@ -75,7 +80,8 @@ export function gradePrediction(
   if (targetRank < 0) {
     for (let d = 0; d < probs.length; d++) if (denseToOriginal(d) === targetOriginalId) targetProb = probs[d];
   }
-  const base = { top1: top1.classId, top1Prob: top1.prob, targetProb, ranked };
+  const namesTop1 = top1.classId !== targetOriginalId && top1.prob >= cfg.CONFUSION_MIN;
+  const base = { top1: top1.classId, top1Prob: top1.prob, targetProb, ranked, namesTop1 };
 
   if (top1.classId === targetOriginalId && targetProb >= cfg.CORRECT_MIN) {
     return { status: "correct", ...base, countsAsAttempt: true, countsAsMiss: false };
@@ -83,7 +89,7 @@ export function gradePrediction(
   if (topKIds.includes(targetOriginalId) && targetProb >= cfg.CLOSE_MIN) {
     return { status: "close", ...base, countsAsAttempt: true, countsAsMiss: false };
   }
-  if (top1.classId !== targetOriginalId && top1.prob >= cfg.CONFUSION_MIN) {
+  if (namesTop1) {
     return { status: "confused", ...base, countsAsAttempt: true, countsAsMiss: true };
   }
   return { status: "incorrect", ...base, countsAsAttempt: true, countsAsMiss: true };
