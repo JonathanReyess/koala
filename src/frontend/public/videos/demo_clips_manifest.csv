@@ -1,0 +1,37 @@
+word,example,class_id,file,source_video,signer_id,sample_idx,mean_heldout_target_prob,n_runs,correct_in_all_runs,start_s,end_s,bytes
+what,1,2,what_example1.mp4,02/03_02.MP4,03,23,0.999,3,True,0.07,3.087,76059
+what,2,2,what_example2.mp4,02/11_02.MP4,11,31,0.9976,3,True,0.0,1.778,68398
+bi bim rice,1,4,bi bim rice_example1.mp4,04/01_04.MP4,01,60,0.9915,3,True,0.138,2.715,84419
+bi bim rice,2,4,bi bim rice_example2.mp4,04/15_04.MP4,15,74,0.9782,3,True,0.987,4.623,134416
+hobby,1,6,hobby_example1.mp4,06/10_06.MP4,10,107,0.9949,3,True,0.137,3.456,135586
+hobby,2,6,hobby_example2.mp4,06/00_06.MP4,00,98,0.9932,3,True,0.0,3.187,156483
+movie,1,8,movie_example1.mp4,08/04_08.MP4,04,140,0.9997,3,True,0.0,2.437,125392
+movie,2,8,movie_example2.mp4,08/07_08.MP4,07,143,0.9996,3,True,0.0,2.504,123272
+face,1,9,face_example1.mp4,09/07_09.MP4,07,160,0.9937,3,True,0.0,2.304,74880
+face,2,9,face_example2.mp4,09/02_09.MP4,02,156,0.9933,3,True,0.205,3.654,112587
+nice,1,24,nice_example1.mp4,24/01_24.MP4,01,386,0.9982,3,True,0.0,2.807,58162
+nice,2,24,nice_example2.mp4,24/09_24.MP4,09,393,0.9918,3,True,0.0,2.479,122511
+we,1,26,we_example1.mp4,26/01_26.MP4,01,419,0.9985,3,True,0.0,2.569,76312
+we,2,26,we_example2.mp4,26/11_26.MP4,11,428,0.9958,3,True,0.0,2.047,77926
+bus,1,29,bus_example1.mp4,29/11_29.MP4,11,464,0.9975,3,True,0.0,1.879,70603
+bus,2,29,bus_example2.mp4,29/00_29.MP4,00,455,0.9781,3,True,0.0,3.758,192544
+ride,1,30,ride_example1.mp4,30/09_30.MP4,09,480,0.9826,3,True,0.0,3.05,188008
+ride,2,30,ride_example2.mp4,30/16_30.MP4,16,487,0.873,3,True,0.48,4.463,121112
+cell phone,1,31,cell phone_example1.mp4,31/10_31.MP4,10,501,0.9971,3,True,0.305,3.856,111916
+cell phone,2,31,cell phone_example2.mp4,31/01_31.MP4,01,492,0.9935,3,True,0.0,2.782,68317
+where,1,32,where_example1.mp4,32/08_32.MP4,08,518,0.9964,3,True,0.0,1.912,94732
+where,2,32,where_example2.mp4,32/01_32.MP4,01,512,0.9906,3,True,0.0,2.815,81613
+location,1,34,location_example1.mp4,34/10_34.MP4,10,537,0.9837,3,True,0.0,2.953,125761
+location,2,34,location_example2.mp4,34/11_34.MP4,11,538,0.8938,3,True,0.0,1.879,69090
+responsibility,1,36,responsibility_example1.mp4,36/09_36.MP4,09,556,0.9981,3,True,0.0,2.55,158665
+responsibility,2,36,responsibility_example2.mp4,36/10_36.MP4,10,557,0.9866,3,True,0.417,2.684,100335
+arrive,1,38,arrive_example1.mp4,38/07_38.MP4,07,594,0.9966,3,True,0.0,2.647,104377
+arrive,2,38,arrive_example2.mp4,38/11_38.MP4,11,598,0.9953,3,True,0.0,2.046,90970
+walk,1,44,walk_example1.mp4,44/11_44.MP4,11,703,0.9967,3,True,0.0,1.778,72773
+walk,2,44,walk_example2.mp4,44/08_44.MP4,08,700,0.9946,3,True,0.0,2.147,103216
+success,1,65,success_example1.mp4,65/04_65.MP4,04,1025,0.9599,3,True,0.0,2.795,99823
+success,2,65,success_example2.mp4,65/02_65.MP4,02,1023,0.8713,3,True,0.0,3.12,132781
+favor,1,66,favor_example1.mp4,66/15_66.MP4,15,1054,0.9895,3,True,1.134,4.731,154347
+favor,2,66,favor_example2.mp4,66/14_66.MP4,14,1053,0.9883,3,True,0.0,3.255,103297
+one hour,1,74,one hour_example1.mp4,74/04_74.MP4,04,1172,0.9987,3,True,0.0,2.269,78636
+one hour,2,74,one hour_example2.mp4,74/11_74.MP4,11,1179,0.9857,3,True,0.0,1.677,72875

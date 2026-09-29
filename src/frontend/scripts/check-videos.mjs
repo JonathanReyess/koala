@@ -12,7 +12,9 @@ import path from "node:path";
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const vocab = JSON.parse(readFileSync(path.join(root, "src", "data", "vocab.json"), "utf8")).words;
 const manifest = JSON.parse(readFileSync(path.join(root, "src", "data", "video-manifest.json"), "utf8")).words;
-const files = readdirSync(path.join(root, "public", "videos")).filter((f) => !f.startsWith("."));
+// Provenance files written by scripts/make_demo_clips.py live next to the clips.
+const METADATA_FILES = new Set(["ATTRIBUTION.txt", "demo_clips_manifest.csv"]);
+const files = readdirSync(path.join(root, "public", "videos")).filter((f) => !f.startsWith(".") && !METADATA_FILES.has(f));
 const fileSet = new Set(files);
 const english = new Set(vocab.map((w) => w.english));
 const problems = [];

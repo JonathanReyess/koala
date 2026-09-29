@@ -105,20 +105,34 @@ class TestPathsAndVocab(unittest.TestCase):
 
     def test_default_targets_are_exactly_the_classes_without_clips(self):
         vocab = mdc.load_vocab(REPO / "src/frontend/src/data/vocab.json")
-        have = mdc.words_with_clips(REPO / "src/frontend/public/videos")
-        missing = {c for c, w in vocab.items() if w not in have}
-        args = Namespace(classes=None, all=False, existing_videos=str(REPO / "src/frontend/public/videos"),
-                         raw_videos="/raw", pad=0.25, min_seconds=1.0)
-        manifest = pd.DataFrame({"signer_id": ["A", "B"], "video_path": ["/x/02/00_02.MP4", "/x/02/01_02.MP4"],
-                                 "n_frames": 60, "frac_frames_with_any_hand": 0.9})
-        pred = pd.DataFrame({"run": "r0", "sample_idx": [0, 1], "target_class_id": 2, "target_prob": 0.9, "correct": True})
-        mask = np.stack([mask_with_hands(range(5, 25))] * 2)
-        plans, warnings = mdc.build_plans(args, {c: vocab[c] for c in vocab}, manifest, mask, pred, lambda s, r: 30.0)
-        # only class 2 ("what") has predictions here; the other missing classes are skipped with a warning
-        self.assertEqual({p.class_id for p in plans}, {2} & missing)
-        self.assertEqual(len(warnings), len(missing) - 1)
+        with tempfile.TemporaryDirectory() as videos:
+            # every word has clips except "what" (class 2) and "hobby" (class 6)
+            for cid, w in vocab.items():
+                if cid not in (2, 6):
+                    for n in (1, 2):
+                        (Path(videos) / f"{w}_example{n}.mp4").touch()
+            args = Namespace(classes=None, all=False, existing_videos=videos, raw_videos="/raw", pad=0.25, min_seconds=1.0)
+            manifest = pd.DataFrame({"signer_id": ["A", "B"], "video_path": ["/x/02/00_02.MP4", "/x/02/01_02.MP4"],
+                                     "n_frames": 60, "frac_frames_with_any_hand": 0.9})
+            pred = pd.DataFrame({"run": "r0", "sample_idx": [0, 1], "target_class_id": 2, "target_prob": 0.9, "correct": True})
+            mask = np.stack([mask_with_hands(range(5, 25))] * 2)
+            plans, warnings = mdc.build_plans(args, vocab, manifest, mask, pred, lambda s, r: 30.0)
+        # only class 2 has predictions here; class 6 is targeted but skipped with a warning
+        self.assertEqual({p.class_id for p in plans}, {2})
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("hobby", warnings[0])
         self.assertEqual([p.example for p in plans], [1, 2])
         self.assertTrue(all(p.word == "what" for p in plans))
+
+    def test_nothing_to_do_when_every_class_has_clips(self):
+        vocab = mdc.load_vocab(REPO / "src/frontend/src/data/vocab.json")
+        with tempfile.TemporaryDirectory() as videos:
+            for w in vocab.values():
+                for n in (1, 2):
+                    (Path(videos) / f"{w}_example{n}.mp4").touch()
+            args = Namespace(classes=None, all=False, existing_videos=videos, raw_videos="/raw", pad=0.25, min_seconds=1.0)
+            plans, warnings = mdc.build_plans(args, vocab, pd.DataFrame(), np.zeros((0, 32, 47)), pd.DataFrame(), lambda s, r: 30.0)
+        self.assertEqual((plans, warnings), ([], []))
 
 
 if __name__ == "__main__":
