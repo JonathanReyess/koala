@@ -45,8 +45,8 @@ describe("design tokens", () => {
 describe("practice page uses tokens, not one-off colours", () => {
   const files = [
     ...readdirSync(resolve(root, "src/components/ds")).filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx")).map((f) => `src/components/ds/${f}`),
-    "src/components/LearningCard.tsx",
-    "src/components/VideoExampleCard.tsx",
+    ...readdirSync(resolve(root, "src/components/stage")).filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx")).map((f) => `src/components/stage/${f}`),
+    "src/lib/stage/theme.ts",
     "src/components/CompareDialog.tsx",
     "src/pages/Learn.tsx",
     "src/hooks/useLandmarkTracker.ts",
@@ -58,14 +58,16 @@ describe("practice page uses tokens, not one-off colours", () => {
     for (const f of files) expect(read(f).match(/\b(?:bg|text|border)-(?:green|emerald|teal|lime|amber|red|gray|slate|zinc)-\d{2,3}\b/g) ?? [], f).toEqual([]);
   });
   it("both media wells share one aspect ratio (no per-card override)", () => {
-    for (const f of ["src/components/LearningCard.tsx", "src/components/VideoExampleCard.tsx"]) expect(read(f)).not.toMatch(/aspect=/);
+    for (const f of ["src/components/stage/ExampleTile.tsx", "src/components/stage/CameraTile.tsx"]) expect(read(f)).not.toMatch(/aspect=/);
   });
-  it("uses the primitives: SurfaceCard + MediaWell + PillButton for the two video panels, AppDialog for modals", () => {
-    for (const f of ["src/components/LearningCard.tsx", "src/components/VideoExampleCard.tsx"]) {
+  it("uses the primitives: SurfaceCard + MediaWell + PillButton for the video cards, AppDialog for modals", () => {
+    for (const f of ["src/components/stage/ExampleTile.tsx", "src/components/stage/CameraTile.tsx"]) {
       const src = read(f);
-      for (const p of ["SurfaceCard", "MediaWell", "PillButton"]) expect(src, `${f} ${p}`).toContain(`<${p}`);
+      for (const p of ["SurfaceCard", "MediaWell"]) expect(src, `${f} ${p}`).toContain(`<${p}`);
+      expect(src).toMatch(/PillButton/);
       expect(src).not.toMatch(/from "@\/components\/ui\/(button|card)"/);
     }
+    expect(read("src/components/stage/ResultPanel.tsx")).toContain("<SurfaceCard");
     expect(read("src/pages/Learn.tsx")).toContain("<AppDialog");
     expect(read("src/components/CompareDialog.tsx")).toContain("<AppDialog");
     expect(read("src/pages/Learn.tsx")).not.toContain("AlertDialog");

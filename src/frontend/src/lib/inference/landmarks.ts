@@ -43,7 +43,7 @@ export function resultTo47(result: HolisticResultLike): FrameLandmarks {
 
 // --- Live framing checks -----------------------------------------------------
 
-/** Live issues only cover the body (never hands — see config.framing). */
+/** Live issues only cover the body (never hands - see config.framing). */
 export type FramingIssue = "no_body" | "shoulders" | "face" | "too_small";
 
 export interface FramingStatus {
@@ -52,10 +52,10 @@ export interface FramingStatus {
 }
 
 export const FRAMING_HINTS: Record<FramingIssue, string> = {
-  no_body: "We can't see you yet — step into the frame.",
+  no_body: "We can't see you yet. Step into the frame.",
   shoulders: "Move back a little so both shoulders are in view.",
   face: "Make sure your face is in view.",
-  too_small: "You look a bit far away — move closer to the camera.",
+  too_small: "You look a bit far away. Move closer to the camera.",
 };
 
 /** Priority order: the first issue is the one shown as the hint. */
@@ -95,7 +95,7 @@ export interface DetectionFractions {
   rightHand: number;
 }
 
-/** Fractions over the (already sampled) clip frames — same stats as manifest.csv. */
+/** Fractions over the (already sampled) clip frames - same stats as manifest.csv. */
 export function detectionFractions(mask: Uint8Array, frames: number): DetectionFractions {
   let pose = 0;
   let left = 0;
