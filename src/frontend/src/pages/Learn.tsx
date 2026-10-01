@@ -480,8 +480,8 @@ const Learn = () => {
           />
         )}
 
-        <p className="text-xs text-ink-muted text-center mt-4">
-          Clips trimmed from the original source videos:{" "}
+        <p className="text-xs text-ink-muted text-center -mt-2">
+          Original source videos:{" "}
           <a
             href="https://doi.org/10.1007/978-3-030-37731-1_43"
             target="_blank"
