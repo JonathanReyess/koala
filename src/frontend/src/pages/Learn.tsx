@@ -198,11 +198,11 @@ const WordDisplay = ({
 
     <div className="flex flex-col items-center flex-1 space-y-1">
       <p className="sr-only">Sign this word</p>
-      <div className="flex flex-wrap items-baseline justify-center gap-x-4">
-        <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-ink">
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-ink leading-none">
           {english}
         </h2>
-        <p className="text-2xl md:text-3xl font-semibold text-primary" lang="ko">
+        <p className="text-2xl md:text-3xl font-semibold text-primary leading-none" lang="ko">
           {korean}
         </p>
         {badges}
