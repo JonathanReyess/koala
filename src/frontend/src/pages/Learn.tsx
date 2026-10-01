@@ -202,7 +202,7 @@ const WordDisplay = ({
         <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-ink leading-none">
           {english}
         </h2>
-        <p className="text-2xl md:text-3xl font-semibold text-primary leading-none" lang="ko">
+        <p className="relative top-[2px] md:top-[3px] text-2xl md:text-3xl font-semibold text-primary leading-none" lang="ko">
           {korean}
         </p>
         {badges}
