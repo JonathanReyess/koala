@@ -16,7 +16,7 @@ export const STAGE_THEME = {
    * at (viewport height - this) so a whole stage fits a ~800px laptop screen without scrolling; when the cap binds
    * the video is cropped from the TOP only (object-position centre-bottom keeps torso and hands).
    */
-  stageChrome: "446px",
+  stageChrome: "500px",
   /** Never let the cap shrink a media well below this. */
   videoMinHeight: "240px",
   /** Minimum tap targets in px (ds PillButton sizes: touch = 48, lg = 60). */

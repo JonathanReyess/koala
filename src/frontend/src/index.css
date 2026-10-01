@@ -138,3 +138,20 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Example-card controls: 4 equal buttons in one row when the card is wide enough, otherwise a 2x2 grid.
+   A container query (not a viewport breakpoint) because the same card is wide in Learn and half-width in Practice. */
+.stage-controls {
+  container-type: inline-size;
+}
+.stage-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@container (min-width: 470px) {
+  .stage-controls-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+

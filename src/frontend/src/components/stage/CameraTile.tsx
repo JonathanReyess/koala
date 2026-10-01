@@ -1,6 +1,6 @@
-import { EyeOff, Lightbulb, RotateCcw, Sparkles } from "lucide-react";
-import type { RefObject } from "react";
-import { MediaWell, OverlayChip, OverlayToggle, PillButton, SurfaceCard } from "@/components/ds";
+import { EyeOff, Lightbulb, Loader, RotateCcw, Sparkles } from "lucide-react";
+import type { ReactNode, RefObject } from "react";
+import { MediaScrim, MediaWell, OverlayChip, OverlayToggle, PillButton, SurfaceCard } from "@/components/ds";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 import type { StageMode } from "@/lib/stage/stageMachine";
@@ -21,6 +21,10 @@ interface Props {
   elapsedMs: number;
   /** The take (or uploaded clip) shown for review in grading/result. */
   recordedUrl: string | null;
+  /** 3-2-1 before recording: shown as an overlay on the video. */
+  countdown?: number | null;
+  /** Primary actions for the card footer, right under the video (Upload / Record, Cancel, Stop, ...). */
+  actions?: ReactNode;
   /** Learn-mode picture-in-picture: video only, plus a Hide button. */
   compact?: boolean;
   onHide?: () => void;
@@ -38,13 +42,15 @@ export const formatTimer = (ms: number): string => {
  */
 export const CameraTile = ({
   mode, videoRef, canvasRef, mirrored, onMirroredChange, showTracking, onShowTracking, hint, framingOk, modelStatus,
-  cameraError, elapsedMs, recordedUrl, compact, onHide, className,
+  cameraError, elapsedMs, recordedUrl, countdown, actions, compact, onHide, className,
 }: Props) => {
   // On phones the media well is small: option toggles move to the card footer so they never cover the signer.
   const narrow = useMediaQuery("(max-width: 639px)");
   const live = mode === "practice" || mode === "countdown" || mode === "recording" || mode === "learn";
   const reviewing = (mode === "grading" || mode === "result") && !!recordedUrl;
   const recording = mode === "recording";
+  const grading = mode === "grading";
+  const counting = mode === "countdown";
 
   const status =
     modelStatus === "loading" ? "Getting the sign checker ready…"
@@ -66,36 +72,51 @@ export const CameraTile = ({
     <PillButton size="sm" variant="secondary" block onClick={onHide} aria-label="Hide my camera" icon={<EyeOff className="h-4 w-4" />}>
       Hide me
     </PillButton>
-  ) : reviewing ? (
-    <PillButton
-      size="touch"
-      variant="secondary"
-      block
-      aria-label="Replay my attempt"
-      icon={<RotateCcw className="h-5 w-5" />}
-      onClick={(e) => {
-        const v = (e.currentTarget.closest("section") as HTMLElement | null)?.querySelector<HTMLVideoElement>('[data-testid="playback-video"]');
-        if (v) {
-          v.currentTime = 0;
-          void v.play();
-        }
-      }}
-    >
-      Replay my take
-    </PillButton>
-  ) : narrow && toggles ? (
-    <div className="flex flex-wrap items-center justify-center gap-2 min-h-12">{toggles}</div>
   ) : (
-    <p className="text-center text-sm text-ink-muted min-h-12 flex items-center justify-center">Keep your head, body and both hands in view.</p>
+    <div className="space-y-3">
+      {narrow && toggles && <div className="flex flex-wrap items-center justify-center gap-2">{toggles}</div>}
+      {actions ??
+        (reviewing && !grading ? (
+          <PillButton
+            size="lg"
+            variant="secondary"
+            block
+            aria-label="Replay my attempt"
+            icon={<RotateCcw className="h-5 w-5" />}
+            onClick={(e) => {
+              const v = (e.currentTarget.closest("section") as HTMLElement | null)?.querySelector<HTMLVideoElement>('[data-testid="playback-video"]');
+              if (v) {
+                v.currentTime = 0;
+                void v.play();
+              }
+            }}
+          >
+            Replay my take
+          </PillButton>
+        ) : null)}
+    </div>
   );
 
+  const scrim = counting ? (
+    <MediaScrim passive tone="ink" label="Get ready" data-testid="countdown">
+      <span aria-live="assertive" className="text-8xl font-black leading-none tabular-nums">
+        {countdown ?? ""}
+      </span>
+    </MediaScrim>
+  ) : grading ? (
+    <MediaScrim passive icon={<Loader className="h-12 w-12 animate-spin" />} label="Analyzing your sign…" data-testid="analyzing" />
+  ) : null;
+
   return (
-    <SurfaceCard aria-label="Your camera" data-testid="camera-tile" data-recording={recording || undefined} className={cn("h-full", recording && "ring-2 ring-sage-600", className)} footer={footer}>
+    <SurfaceCard aria-label="Your camera" data-testid="camera-tile" data-recording={recording || undefined} className={cn(recording && "ring-2 ring-sage-600", className)} footer={footer}>
       <MediaWell
         inset={compact ? "sm" : "md"}
         style={{ maxHeight: "var(--video-max-h)" }}
+        scrim={scrim}
         topLeft={
-          !compact && (
+          !compact &&
+          !counting &&
+          !grading && (
             <OverlayChip
               role="status"
               aria-live="polite"

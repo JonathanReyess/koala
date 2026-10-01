@@ -2,8 +2,8 @@ import { useCallback, useEffect, useReducer, useRef, useState, type CSSPropertie
 import { Camera, Square, Upload, Video } from "lucide-react";
 import { ExampleTile } from "./ExampleTile";
 import { CameraTile } from "./CameraTile";
-import { AnalyzingPanel, ResultPanel } from "./ResultPanel";
-import { PillButton } from "@/components/ds";
+import { ResultPanel } from "./ResultPanel";
+import { PillButton, PillButtonRow } from "@/components/ds";
 import { usePracticeSession } from "@/hooks/usePracticeSession";
 import { useExamplePlayer } from "@/hooks/useExamplePlayer";
 import { initialStageState, stageReducer, type ResultKind } from "@/lib/stage/stageMachine";
@@ -101,6 +101,31 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
   const ready = session.modelStatus === "ready";
   const result: ResultKind | null = state.result;
 
+  // Actions that live in the camera card, right under the video.
+  const cameraActions =
+    state.mode === "practice" ? (
+      <PillButtonRow className="flex-col-reverse sm:flex-row">
+        <PillButton size="lg" variant="secondary" onClick={() => fileRef.current?.click()} disabled={!ready} icon={<Upload className="h-5 w-5" />} data-testid="upload">
+          Upload a video
+        </PillButton>
+        <PillButton size="lg" onClick={recordOrStop} disabled={!ready || session.cameraError} icon={<Camera className="h-5 w-5" />} data-testid="record" aria-keyshortcuts="R">
+          Record
+        </PillButton>
+      </PillButtonRow>
+    ) : state.mode === "countdown" ? (
+      <PillButton size="lg" variant="secondary" block onClick={recordOrStop} data-testid="cancel-countdown">
+        Cancel
+      </PillButton>
+    ) : state.mode === "recording" ? (
+      <PillButton size="lg" block onClick={recordOrStop} icon={<Square className="h-5 w-5 fill-current" />} data-testid="stop" aria-keyshortcuts="R">
+        Stop
+      </PillButton>
+    ) : state.mode === "grading" ? (
+      <PillButton size="lg" block disabled>
+        Analyzing…
+      </PillButton>
+    ) : undefined;
+
   return (
     <div
       data-testid="stage"
@@ -111,9 +136,9 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
           "--split": inLearn ? "var(--split-learn)" : "var(--split-practice)",
         } as CSSProperties
       }
-      className="w-full space-y-5"
+      className="w-full space-y-10"
     >
-      <div className={cn("grid grid-cols-1 gap-5 md:grid-cols-[var(--split)]", inLearn ? "md:items-end" : "md:items-stretch")}>
+      <div className={cn("grid grid-cols-1 gap-5 md:grid-cols-[var(--split)]", inLearn ? "md:items-end" : "md:items-start")}>
         <ExampleTile
           word={word}
           example={state.example}
@@ -128,7 +153,6 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
           onToggleLoop={() => dispatch({ type: "TOGGLE_LOOP" })}
           onVideoReady={player.onVideoReady}
           onPlayState={player.setPlaying}
-          compact={!inLearn}
         />
 
         {/* Camera: a practice tile, or (Learn + "Show me") a picture-in-picture at the bottom-right of the stage,
@@ -137,13 +161,13 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
           className={cn(
             inLearn
               ? "w-[max(var(--pip-width),var(--pip-min-width))] justify-self-end md:w-full p-[var(--pip-inset)]"
-              : "w-full h-full",
+              : "w-full",
           )}
         >
           {inLearn && !state.showMe && (
             <div className="rounded-card border-2 border-dashed border-sage-200 bg-surface p-4 flex flex-col items-center gap-3 text-center">
               <p className="text-sm font-medium text-ink-muted">Want to check yourself? (optional)</p>
-              <PillButton size="touch" variant="secondary" onClick={() => dispatch({ type: "TOGGLE_SHOW_ME" })} icon={<Camera className="h-5 w-5" />} data-testid="show-me">
+              <PillButton size="lg" variant="secondary" onClick={() => dispatch({ type: "TOGGLE_SHOW_ME" })} icon={<Camera className="h-5 w-5" />} data-testid="show-me">
                 Show me
               </PillButton>
             </div>
@@ -163,6 +187,8 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
             cameraError={session.cameraError}
             elapsedMs={session.elapsedMs}
             recordedUrl={session.recordedUrl}
+            countdown={session.countdown}
+            actions={cameraActions}
             compact={inLearn}
             onHide={() => dispatch({ type: "TOGGLE_SHOW_ME" })}
           />
@@ -184,48 +210,22 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
             </div>
           )}
         </ResultPanel>
-      ) : state.mode === "grading" ? (
-        <AnalyzingPanel />
-      ) : (
-        <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-center gap-3" data-testid="action-bar">
-          {inLearn && (
-            <PillButton size="lg" onClick={() => dispatch({ type: "READY" })} icon={<Video className="h-6 w-6" />} data-testid="ready">
+      ) : inLearn || state.mode === "practice" ? (
+        // Below the cards: only ever ONE button. The camera card holds Upload / Record / Stop itself.
+        <div className="flex justify-center" data-testid="action-bar">
+          {inLearn ? (
+            <PillButton size="lg" onClick={() => dispatch({ type: "READY" })} icon={<Video className="h-5 w-5" />} data-testid="ready">
               I'm ready to practice
             </PillButton>
-          )}
-
-          {state.mode === "practice" && (
-            <>
-              <PillButton size="touch" variant="secondary" onClick={() => dispatch({ type: "WATCH_AGAIN" })} data-testid="watch-again">
-                Watch again
-              </PillButton>
-              <PillButton size="touch" variant="secondary" onClick={() => fileRef.current?.click()} disabled={!ready} icon={<Upload className="h-5 w-5" />} data-testid="upload">
-                Upload a video
-              </PillButton>
-              <PillButton size="lg" onClick={recordOrStop} disabled={!ready || session.cameraError} icon={<Camera className="h-6 w-6" />} data-testid="record" aria-keyshortcuts="R">
-                Record
-              </PillButton>
-            </>
-          )}
-
-          {state.mode === "countdown" && (
-            <>
-              <PillButton size="touch" variant="secondary" onClick={recordOrStop} data-testid="cancel-countdown">
-                Cancel
-              </PillButton>
-              <div role="status" aria-live="assertive" className="text-center min-w-[9rem]" data-testid="countdown">
-                <span className="block text-sm font-semibold uppercase tracking-wide text-ink-muted">Get ready</span>
-                <span className="block text-6xl font-black tabular-nums leading-none text-ink">{session.countdown ?? ""}</span>
-              </div>
-            </>
-          )}
-
-          {state.mode === "recording" && (
-            <PillButton size="lg" onClick={recordOrStop} icon={<Square className="h-6 w-6 fill-current" />} data-testid="stop" aria-keyshortcuts="R">
-              Stop
+          ) : (
+            <PillButton size="lg" variant="secondary" onClick={() => dispatch({ type: "WATCH_AGAIN" })} data-testid="watch-again">
+              Watch again
             </PillButton>
           )}
         </div>
+      ) : (
+        // Countdown / recording / analysing: the controls are in the camera card; keep the height so nothing jumps.
+        <div className="h-14" aria-hidden="true" />
       )}
 
       <input
@@ -246,10 +246,10 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
             <pre className="text-xs bg-sage-50 text-ink rounded-media p-3 whitespace-pre-wrap font-mono">{session.debugInfo}</pre>
           )}
           <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
-            <PillButton size="touch" variant="secondary" disabled={session.loggedAttempts === 0} onClick={session.downloadAttempts}>
+            <PillButton size="sm" variant="secondary" disabled={session.loggedAttempts === 0} onClick={session.downloadAttempts}>
               Download attempts (JSON)
             </PillButton>
-            <PillButton size="touch" variant="ghost" disabled={session.loggedAttempts === 0} onClick={session.clearAttempts}>
+            <PillButton size="sm" variant="ghost" disabled={session.loggedAttempts === 0} onClick={session.clearAttempts}>
               Clear
             </PillButton>
             <span>{session.loggedAttempts} attempt(s) logged in memory. Nothing is uploaded.</span>

@@ -6,6 +6,8 @@ import type { ResultKind } from "@/lib/stage/stageMachine";
 // --- A controllable stand-in for the camera/model/grading session -------------------------------------------------
 const session = vi.hoisted(() => ({
   nextResult: "incorrect" as string,
+  /** When true, beginRecording stops at the countdown (to inspect the 3-2-1 overlay). */
+  holdCountdown: false,
   beginRecording: vi.fn(),
   stopRecording: vi.fn(),
   cancelCountdown: vi.fn(),
@@ -29,7 +31,7 @@ vi.mock("@/hooks/usePracticeSession", () => ({
     beginRecording: () => {
       session.beginRecording();
       dispatch({ type: "RECORD" });
-      dispatch({ type: "COUNTDOWN_DONE" }); // skip the real 3-2-1
+      if (!session.holdCountdown) dispatch({ type: "COUNTDOWN_DONE" }); // skip the real 3-2-1
     },
     cancelCountdown: session.cancelCountdown,
     stopRecording: () => {
@@ -79,6 +81,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   session.nextResult = "incorrect";
+  session.holdCountdown = false;
   session.beginRecording.mockClear();
   session.stopRecording.mockClear();
   session.cancelCountdown.mockClear();
@@ -329,3 +332,54 @@ describe("Keyboard shortcuts", () => {
     for (const sw of screen.getAllByRole("switch")) expect((sw.getAttribute("aria-label") ?? sw.textContent ?? "").trim().length).toBeGreaterThan(0);
   });
 });
+
+describe("layout rules from review", () => {
+  it("the four example controls are exactly the same size", () => {
+    render(<Stage word="hi" onNext={vi.fn()} />);
+    const sizes = ["play-pause", "slow", "replay", "loop"].map((id) =>
+      screen.getByTestId(id).className.split(" ").filter((c) => /^(h|min-h)-/.test(c)).sort().join(" "),
+    );
+    expect(new Set(sizes).size).toBe(1);
+    expect(sizes[0]).toContain("h-14");
+  });
+
+  it("Practice: Upload + Record sit inside the camera card under the video; below the cards there is only 'Watch again'", () => {
+    render(<Stage word="hi" onNext={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("ready"));
+    const tile = screen.getByTestId("camera-tile");
+    expect(tile.contains(screen.getByTestId("upload"))).toBe(true);
+    expect(tile.contains(screen.getByTestId("record"))).toBe(true);
+    const bar = screen.getByTestId("action-bar");
+    expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual(["Watch again"]);
+  });
+
+  it("the camera card has no duplicate framing tip under the video (the status chip on the video is the only one)", () => {
+    render(<Stage word="hi" onNext={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("ready"));
+    expect(screen.getByTestId("camera-tile").textContent).not.toContain("Keep your head");
+    expect(within(screen.getByTestId("camera-tile")).getAllByRole("status")[0].textContent).toContain("You're all set");
+  });
+
+  it("the 3-2-1 countdown is an overlay ON the camera video, with Cancel under it", () => {
+    session.holdCountdown = true;
+    render(<Stage word="hi" onNext={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("ready"));
+    fireEvent.click(screen.getByTestId("record"));
+    expect(mode()).toBe("countdown");
+    const countdown = screen.getByTestId("countdown");
+    expect(cameraVideo().parentElement!.contains(countdown)).toBe(true); // inside the media well
+    expect(countdown.textContent).toContain("Get ready");
+    expect(countdown.textContent).toContain("3");
+    expect(screen.getByTestId("camera-tile").contains(screen.getByTestId("cancel-countdown"))).toBe(true);
+    fireEvent.click(screen.getByTestId("cancel-countdown"));
+    expect(session.cancelCountdown).toHaveBeenCalled();
+  });
+
+  it("Stop is inside the camera card while recording", () => {
+    render(<Stage word="hi" onNext={vi.fn()} />);
+    fireEvent.click(screen.getByTestId("ready"));
+    fireEvent.click(screen.getByTestId("record"));
+    expect(screen.getByTestId("camera-tile").contains(screen.getByTestId("stop"))).toBe(true);
+  });
+});
+

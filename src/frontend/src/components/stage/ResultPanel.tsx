@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle, CircleAlert, Loader, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, CircleAlert, XCircle } from "lucide-react";
 import type { ReactNode } from "react";
 import { PillButton, SurfaceCard } from "@/components/ds";
 import { primaryActionFor, type ResultKind } from "@/lib/stage/stageMachine";
@@ -49,7 +49,7 @@ export const ResultPanel = ({ result, message, onNext, onTryAgain, onWatchAgain,
           </div>
         </div>
         <div className="flex shrink-0 flex-col-reverse gap-3 sm:flex-row sm:items-center">
-          <PillButton size="touch" variant="secondary" onClick={onWatchAgain} data-testid="watch-again">
+          <PillButton size="lg" variant="secondary" onClick={onWatchAgain} data-testid="watch-again">
             Watch again
           </PillButton>
           <PillButton size="lg" onClick={primary.event === "NEXT" ? onNext : onTryAgain} data-testid="primary-action">
@@ -65,11 +65,3 @@ export const ResultPanel = ({ result, message, onNext, onTryAgain, onWatchAgain,
     </SurfaceCard>
   );
 };
-
-/** Shown in the same spot while the clip is being analysed. */
-export const AnalyzingPanel = () => (
-  <SurfaceCard data-testid="analyzing-panel" role="status" className="flex-row items-center justify-center gap-4 p-5 min-h-[60px]">
-    <Loader className="h-8 w-8 animate-spin text-sage-600" aria-hidden="true" />
-    <span className="text-2xl font-bold text-ink">Analyzing your sign…</span>
-  </SurfaceCard>
-);

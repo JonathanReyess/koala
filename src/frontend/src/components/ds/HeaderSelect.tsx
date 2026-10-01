@@ -12,16 +12,19 @@ interface HeaderSelectProps {
   onValueChange: (value: string) => void;
   options: HeaderSelectOption[];
   "aria-label": string;
+  /** md = 44px (default); sm = 40px, matching PillButton size="sm" in a header row. */
+  size?: "md" | "sm";
   className?: string;
 }
 
 /** Pill-shaped select for the page header (sage-50, hairline border): e.g. "All words (67)". */
-export const HeaderSelect = ({ value, onValueChange, options, className, ...p }: HeaderSelectProps) => (
+export const HeaderSelect = ({ value, onValueChange, options, size = "md", className, ...p }: HeaderSelectProps) => (
   <Select value={value} onValueChange={onValueChange}>
     <SelectTrigger
       aria-label={p["aria-label"]}
       className={cn(
-        "h-btn rounded-chip bg-sage-50 text-sage-700 font-semibold [border:var(--card-border)] px-4 shadow-none",
+        "rounded-chip bg-sage-50 text-sage-700 font-semibold [border:var(--card-border)] shadow-none",
+        size === "md" ? "h-btn px-4" : "h-10 px-3 text-sm",
         "focus:ring-0 focus:ring-offset-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600",
         className,
       )}
@@ -40,7 +43,7 @@ export const HeaderSelect = ({ value, onValueChange, options, className, ...p }:
 
 /** Static pill for header metadata (not interactive). */
 export const HeaderChip = ({ children, className, title }: { children: ReactNode; className?: string; title?: string }) => (
-  <span title={title} className={cn("inline-flex items-center gap-2 h-8 rounded-chip bg-sage-50 px-3 text-sm font-semibold text-sage-700 [border:var(--card-border)]", className)}>
+  <span title={title} className={cn("inline-flex items-center gap-2 h-10 rounded-chip bg-sage-50 px-4 text-sm font-semibold text-sage-700 [border:var(--card-border)]", className)}>
     {children}
   </span>
 );

@@ -185,7 +185,7 @@ const WordDisplay = ({
   onNext,
   canGoPrevious,
 }: WordDisplayProps) => (
-  <div className="flex items-center justify-between gap-4">
+  <div className="flex items-center justify-between gap-4 py-3 md:py-4">
     <button
       type="button"
       onClick={onPrevious}
@@ -228,7 +228,7 @@ const ResetDialog = ({ onReset }: ResetDialogProps) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <PillButton variant="ghost" onClick={() => setOpen(true)} icon={<RotateCcw className="h-4 w-4" />} className="px-3 md:px-5 text-danger hover:bg-sage-50">
+      <PillButton size="sm" variant="ghost" onClick={() => setOpen(true)} icon={<RotateCcw className="h-4 w-4" />} className="px-3 md:px-4 text-danger hover:bg-sage-50">
         <span className="hidden md:inline">Reset</span>
         <span className="sr-only md:hidden">Reset</span>
       </PillButton>
@@ -400,7 +400,7 @@ const Learn = () => {
             <img
               src="/koala_logo.png"
               alt="Koala - Go to homepage"
-              className="h-10 md:h-11 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply dark:mix-blend-screen mt-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+              className="h-12 md:h-16 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600 rounded"
               onClick={() => navigate("/")}
               onKeyDown={(e) => e.key === "Enter" && navigate("/")}
               tabIndex={0}
@@ -412,13 +412,14 @@ const Learn = () => {
                 aria-label="Choose a deck"
                 value={deck}
                 onValueChange={handleDeckChange}
-                className="w-[132px] sm:w-[190px] md:w-[240px]"
+                size="sm"
+                className="w-[124px] sm:w-[160px] md:w-[190px]"
                 options={[
                   { value: "all", label: `All words (${AVAILABLE_WORDS.length})` },
                   ...decks.map((d) => ({ value: d.id, label: `${d.label} (${d.count})` })),
                 ]}
               />
-              <PillButton variant="ghost" onClick={handleShuffle} icon={<Shuffle className="h-4 w-4" />} className="px-3 md:px-5">
+              <PillButton size="sm" variant="ghost" onClick={handleShuffle} icon={<Shuffle className="h-4 w-4" />} className="px-3 md:px-4">
                 <span className="hidden md:inline">Shuffle</span>
                 <span className="sr-only md:hidden">Shuffle</span>
               </PillButton>
@@ -449,7 +450,7 @@ const Learn = () => {
       <main
         className={`
           flex-1 flex flex-col items-stretch
-          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-4 pt-[120px] pb-10
+          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-6 pt-[132px] md:pt-[140px] pb-12
           transition-opacity duration-700 ease-out
           ${isLoaded ? "opacity-100" : "opacity-0"}
         `}
@@ -479,7 +480,7 @@ const Learn = () => {
           />
         )}
 
-        <p className="text-xs text-ink-muted text-center">
+        <p className="text-xs text-ink-muted text-center mt-4">
           Clips trimmed from the original source videos:{" "}
           <a
             href="https://doi.org/10.1007/978-3-030-37731-1_43"

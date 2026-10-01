@@ -86,7 +86,14 @@ export const MediaScrim = ({ icon, label, tone = "sage", passive, className, chi
       {children}
     </>
   );
-  if (passive || !onClick) return <div className={cls} role="status">{content}</div>;
+  if (passive || !onClick) {
+    const dataAttrs = Object.fromEntries(Object.entries(p).filter(([k]) => k.startsWith("data-") || k.startsWith("aria-")));
+    return (
+      <div {...dataAttrs} className={cls} role="status">
+        {content}
+      </div>
+    );
+  }
   return (
     <button
       type="button"

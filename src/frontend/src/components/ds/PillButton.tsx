@@ -8,15 +8,15 @@ interface PillButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: ReactNode;
   /** Fill the available width (use for equal-width buttons in a footer). */
   block?: boolean;
-  /** sm 36px (inline), md 44px (default), touch 48px (minimum tap target for stage controls), lg 60px (primary actions). */
+  /** sm 40px (header / inline), md 44px (default), touch 48px (minimum stage tap target), lg 56px (stage controls and primary actions). */
   size?: "sm" | "md" | "touch" | "lg";
 }
 
 const SIZE = {
-  sm: "h-9 min-h-9 px-4 text-sm",
+  sm: "h-10 min-h-10 px-4 text-sm",
   md: "h-btn min-h-btn px-5 text-[15px]",
   touch: "h-12 min-h-12 px-5 text-[15px]",
-  lg: "h-[60px] min-h-[60px] px-7 text-lg",
+  lg: "h-14 min-h-14 px-6 text-[17px]",
 } as const;
 
 const VARIANT: Record<PillButtonVariant, string> = {
