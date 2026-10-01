@@ -3,7 +3,7 @@
  *
  * Source of truth for words is vocab.json (67 trained classes; also read by
  * scripts/make_demo_clips.py). UNVERIFIED TRANSLATIONS: every entry with
- * `koreanVerified: false` in vocab.json (36 of 67 — everything except the original 31 practice words) has Korean text
+ * `koreanVerified: false` in vocab.json (36 of 67 - everything except the original 31 practice words) has Korean text
  * that has NOT been reviewed by a native speaker. Treat it as a placeholder.
  */
 import vocab from "./vocab.json";
@@ -24,7 +24,7 @@ export interface WordEntry {
   /** Practice word; also the demo-video filename stem (public/videos/<english>_example{1,2}.mp4). */
   english: string;
   korean: string;
-  /** Original KSL-77 class id (folder id) — the model's label space. */
+  /** Original KSL-77 class id (folder id) - the model's label space. */
   classId: number;
   deck: DeckId;
   /** false = UNVERIFIED translation (see file header). */

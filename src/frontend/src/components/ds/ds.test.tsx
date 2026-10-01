@@ -163,11 +163,11 @@ describe("AppDialog", () => {
 });
 
 describe("HeaderSelect", () => {
-  it("renders the current option as a sage pill trigger", () => {
+  it("renders the current option as a white pill trigger", () => {
     render(<HeaderSelect aria-label="Choose a deck" value="all" onValueChange={() => {}} options={[{ value: "all", label: "All words (67)" }, { value: "time", label: "Time (10)" }]} />);
     const t = screen.getByRole("combobox", { name: "Choose a deck" });
     expect(t.textContent).toContain("All words (67)");
     expect(t.className).toContain("rounded-chip");
-    expect(t.className).toContain("bg-sage-50");
+    expect(t.className).toContain("bg-surface"); // white
   });
 });

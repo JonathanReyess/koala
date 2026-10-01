@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import { LearningCard } from "@/components/LearningCard";
-import { VideoExampleCard } from "@/components/VideoExampleCard";
+import { Stage } from "@/components/stage/Stage";
 import { AppDialog, HeaderChip, HeaderSelect, PillButton, PillButtonRow } from "@/components/ds";
 import { CompareDialog } from "@/components/CompareDialog";
 import {
@@ -125,7 +124,7 @@ const ProgressStats = ({
   practiced,
   mastered,
 }: ProgressStatsProps) => (
-  <div className="flex items-center justify-center gap-6 mb-3 text-sm">
+  <div className="flex items-center justify-center gap-6 mb-1 text-sm">
     <span className="font-semibold text-ink">
       {current} of {total}
     </span>
@@ -138,12 +137,41 @@ const ProgressStats = ({
   </div>
 );
 
-interface WordDisplayProps {
-  english: string;
-  korean: string;
+interface WordBadgesProps {
   tricky?: boolean;
   accuracy?: number;
   onCompare?: () => void;
+}
+
+/** "tricky sign" tag and "Compare with…" button, shown inline with the word. */
+const WordBadges = ({ tricky, accuracy, onCompare }: WordBadgesProps) =>
+  tricky || onCompare ? (
+    <div className="flex flex-wrap items-center gap-2 self-center">
+      {tricky && (
+        <HeaderChip
+          title={
+            accuracy !== undefined
+              ? `Fluent signers were recognised ${Math.round(accuracy * 100)}% of the time on this sign.`
+              : undefined
+          }
+        >
+          <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+          tricky sign
+        </HeaderChip>
+      )}
+      {onCompare && (
+        <PillButton size="sm" variant="secondary" icon={<GitCompare className="h-4 w-4" />} onClick={onCompare}>
+          Compare with…
+        </PillButton>
+      )}
+    </div>
+  ) : null;
+
+interface WordDisplayProps {
+  english: string;
+  korean: string;
+  /** Tags shown inline after the word ("tricky sign", "Compare with…"). */
+  badges?: ReactNode;
   onPrevious: () => void;
   onNext: () => void;
   canGoPrevious: boolean;
@@ -152,57 +180,39 @@ interface WordDisplayProps {
 const WordDisplay = ({
   english,
   korean,
-  tricky,
-  accuracy,
-  onCompare,
+  badges,
   onPrevious,
   onNext,
   canGoPrevious,
 }: WordDisplayProps) => (
-  <div className="flex items-center justify-between gap-4">
+  <div className="flex items-center justify-between gap-4 py-3">
     <button
       type="button"
       onClick={onPrevious}
       disabled={!canGoPrevious}
-      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-sage-50 disabled:opacity-30 disabled:pointer-events-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
+      className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-sage-50 disabled:opacity-30 disabled:pointer-events-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
       aria-label="Previous word"
     >
       <ChevronLeft className="w-7 h-7" aria-hidden="true" />
     </button>
 
-    <div className="flex flex-col items-center flex-1 space-y-2">
-      <p className="text-base md:text-lg font-medium text-ink-muted">Sign this word</p>
-      <h2 className="text-4xl md:text-6xl font-semibold tracking-tight text-ink">{english}</h2>
-      <p className="text-2xl md:text-4xl font-semibold text-primary" lang="ko">
-        {korean}
-      </p>
-      {(tricky || onCompare) && (
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-          {tricky && (
-            <HeaderChip
-              title={
-                accuracy !== undefined
-                  ? `Fluent signers were recognised ${Math.round(accuracy * 100)}% of the time on this sign.`
-                  : undefined
-              }
-            >
-              <Flame className="h-3.5 w-3.5" aria-hidden="true" />
-              tricky sign
-            </HeaderChip>
-          )}
-          {onCompare && (
-            <PillButton size="sm" variant="secondary" icon={<GitCompare className="h-4 w-4" />} onClick={onCompare}>
-              Compare with…
-            </PillButton>
-          )}
-        </div>
-      )}
+    <div className="flex flex-col items-center flex-1 space-y-1">
+      <p className="sr-only">Sign this word</p>
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+        <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-ink leading-none">
+          {english}
+        </h2>
+        <p className="relative top-[2px] md:top-[3px] text-2xl md:text-3xl font-semibold text-primary leading-none" lang="ko">
+          {korean}
+        </p>
+        {badges}
+      </div>
     </div>
 
     <button
       type="button"
       onClick={onNext}
-      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-sage-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
+      className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-sage-50 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
       aria-label="Next word"
     >
       <ChevronRight className="w-7 h-7" aria-hidden="true" />
@@ -218,7 +228,7 @@ const ResetDialog = ({ onReset }: ResetDialogProps) => {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <PillButton variant="ghost" onClick={() => setOpen(true)} icon={<RotateCcw className="h-4 w-4" />} className="px-3 md:px-5 text-danger hover:bg-sage-50">
+      <PillButton size="sm" variant="ghost" onClick={() => setOpen(true)} icon={<RotateCcw className="h-4 w-4" />} className="px-3 md:px-4 text-danger hover:bg-sage-50">
         <span className="hidden md:inline">Reset</span>
         <span className="sr-only md:hidden">Reset</span>
       </PillButton>
@@ -384,13 +394,13 @@ const Learn = () => {
     <div className="relative min-h-screen flex flex-col bg-background">
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background [border-bottom:var(--card-border)]">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+        <div className="max-w-7xl mx-auto px-6 py-2">
           {/* Top row: Logo and action buttons */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-1">
             <img
               src="/koala_logo.png"
               alt="Koala - Go to homepage"
-              className="h-14 md:h-14 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply dark:mix-blend-screen mt-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
+              className="h-12 md:h-16 w-auto cursor-pointer hover:opacity-80 transition-opacity mix-blend-multiply focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600 rounded"
               onClick={() => navigate("/")}
               onKeyDown={(e) => e.key === "Enter" && navigate("/")}
               tabIndex={0}
@@ -402,13 +412,14 @@ const Learn = () => {
                 aria-label="Choose a deck"
                 value={deck}
                 onValueChange={handleDeckChange}
-                className="w-[132px] sm:w-[190px] md:w-[240px]"
+                size="sm"
+                className="w-[124px] sm:w-[160px] md:w-[190px]"
                 options={[
                   { value: "all", label: `All words (${AVAILABLE_WORDS.length})` },
                   ...decks.map((d) => ({ value: d.id, label: `${d.label} (${d.count})` })),
                 ]}
               />
-              <PillButton variant="ghost" onClick={handleShuffle} icon={<Shuffle className="h-4 w-4" />} className="px-3 md:px-5">
+              <PillButton size="sm" variant="ghost" onClick={handleShuffle} icon={<Shuffle className="h-4 w-4" />} className="px-3 md:px-4">
                 <span className="hidden md:inline">Shuffle</span>
                 <span className="sr-only md:hidden">Shuffle</span>
               </PillButton>
@@ -435,11 +446,11 @@ const Learn = () => {
           `Current word: ${currentWordData.english}, Korean: ${currentWordData.korean}`}
       </div>
 
-      {/* Main content: word prompt, then two equal cards */}
+      {/* Main content: word header, then the Learn -> Practice stage */}
       <main
         className={`
           flex-1 flex flex-col items-stretch
-          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-8 pt-40 pb-12
+          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-6 pt-[132px] md:pt-[140px] pb-5
           transition-opacity duration-700 ease-out
           ${isLoaded ? "opacity-100" : "opacity-0"}
         `}
@@ -448,40 +459,38 @@ const Learn = () => {
           <WordDisplay
             english={currentWordData.english}
             korean={currentWordData.korean}
-            tricky={isTricky(currentWordData.english)}
-            accuracy={heldOutAccuracy(currentWordData.english)}
-            onCompare={compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
+            badges={
+              <WordBadges
+                tricky={isTricky(currentWordData.english)}
+                accuracy={heldOutAccuracy(currentWordData.english)}
+                onCompare={compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
+              />
+            }
             onPrevious={handlePrevious}
             onNext={handleNext}
             canGoPrevious={currentIndex > 0}
           />
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          {/* Example video + attribution */}
-          <div>
-            <VideoExampleCard word={currentWord} />
-            <p className="text-xs text-ink-muted mt-4 text-center">
-              Clips trimmed from the original source videos:{" "}
-              <a
-                href="https://doi.org/10.1007/978-3-030-37731-1_43"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-ink transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
-              >
-                Yang et al., "The Korean Sign Language Dataset for Action Recognition," MMM 2020
-              </a>
-            </p>
-          </div>
-
-          {/* Your camera */}
-          <LearningCard
+        {currentWord && (
+          <Stage
             word={currentWord}
             onNext={handleNext}
-            onPrevious={handlePrevious}
             onFeedback={updateProgress}
           />
-        </div>
+        )}
+
+        <p className="text-xs text-ink-muted text-center mt-2">
+          Original source videos:{" "}
+          <a
+            href="https://doi.org/10.1007/978-3-030-37731-1_43"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-ink transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600"
+          >
+            Yang et al., "The Korean Sign Language Dataset for Action Recognition," MMM 2020
+          </a>
+        </p>
       </main>
 
       {currentWord && compareWith.length > 0 && (

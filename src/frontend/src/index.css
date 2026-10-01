@@ -138,3 +138,37 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+/* Example-card controls: always 4 equal buttons in one row on laptop/desktop (the row must not wrap, or the
+   page would need more height). When the card is narrow the buttons get tighter and Slow drops the word "Slow"
+   (turtle icon + speed stay; the aria-label is unchanged). Only very narrow cards (phones) use a 2x2 grid.
+   Container queries, because the same card is wide in Learn and half-width in Practice. */
+.stage-controls {
+  container-type: inline-size;
+}
+.stage-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+@container (max-width: 469px) {
+  .stage-controls-grid {
+    gap: 8px;
+  }
+  .stage-controls-grid > button {
+    padding-inline: 6px;
+    font-size: 14px;
+    gap: 6px;
+  }
+  .stage-ctl-word {
+    display: none;
+  }
+}
+@container (max-width: 359px) {
+  .stage-controls-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .stage-ctl-word {
+    display: inline;
+  }
+}

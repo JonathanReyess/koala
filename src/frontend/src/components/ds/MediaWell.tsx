@@ -15,6 +15,8 @@ interface MediaWellProps extends HTMLAttributes<HTMLDivElement> {
   scrim?: ReactNode;
   /** Vertical anchor of the crop (keeps hands in view). */
   objectPosition?: string;
+  /** Distance from the card edge: md = --media-inset (16px), sm = 8px for compact cards (picture-in-picture). */
+  inset?: "md" | "sm";
 }
 
 /** The single aspect ratio used by every MediaWell (16:10 keeps signers' hands visible on 16:9 clips). */
@@ -25,7 +27,7 @@ export const MEDIA_ASPECT = "16 / 10";
  * Overlays are placed by slot; nothing else should be absolutely positioned over the media.
  */
 export const MediaWell = ({
-  children, aspect = MEDIA_ASPECT, topLeft, topRight, bottomLeft, bottomRight, scrim, objectPosition = "center bottom", className, style, ...p
+  children, aspect = MEDIA_ASPECT, topLeft, topRight, bottomLeft, bottomRight, scrim, objectPosition = "center bottom", inset = "md", className, style, ...p
 }: MediaWellProps) => {
   const row = (left: ReactNode, right: ReactNode, align: "start" | "end") =>
     left || right ? (
@@ -37,10 +39,12 @@ export const MediaWell = ({
 
   return (
     <div
+      data-media-well=""
       {...p}
       style={{ aspectRatio: aspect, ["--media-object-position" as string]: objectPosition, ...style }}
       className={cn(
-        "relative m-[var(--media-inset)] overflow-hidden rounded-media bg-ink",
+        "relative overflow-hidden rounded-media bg-ink",
+        inset === "md" ? "m-[var(--media-inset)]" : "m-2",
         "[&>video]:absolute [&>video]:inset-0 [&>video]:h-full [&>video]:w-full [&>video]:object-cover [&>video]:[object-position:var(--media-object-position)]",
         "[&>canvas]:absolute [&>canvas]:inset-0 [&>canvas]:h-full [&>canvas]:w-full [&>canvas]:pointer-events-none",
         "[&>img]:absolute [&>img]:inset-0 [&>img]:h-full [&>img]:w-full [&>img]:object-cover",
@@ -83,7 +87,14 @@ export const MediaScrim = ({ icon, label, tone = "sage", passive, className, chi
       {children}
     </>
   );
-  if (passive || !onClick) return <div className={cls} role="status">{content}</div>;
+  if (passive || !onClick) {
+    const dataAttrs = Object.fromEntries(Object.entries(p).filter(([k]) => k.startsWith("data-") || k.startsWith("aria-")));
+    return (
+      <div {...dataAttrs} className={cls} role="status">
+        {content}
+      </div>
+    );
+  }
   return (
     <button
       type="button"
