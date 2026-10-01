@@ -30,7 +30,7 @@ export const ExampleTile = ({
   <SurfaceCard
     aria-label={`Example of ${word}`}
     data-testid="example-tile"
-    className={className}
+    className={cn("mx-auto w-full max-w-[var(--card-max-w)]", className)}
     footer={
       // All four controls are the same size (56px) and width: one row on a wide card, 2x2 on a narrow one.
       <div className="stage-controls">
@@ -54,7 +54,7 @@ export const ExampleTile = ({
             icon={<Turtle className="h-5 w-5" />}
             data-testid="slow"
           >
-            Slow <span className="tabular-nums">{rateLabel(rate)}</span>
+            <span className="stage-ctl-word">Slow</span> <span className="tabular-nums">{rateLabel(rate)}</span>
           </PillButton>
           <PillButton size="lg" className="px-3" variant="secondary" onClick={onReplay} aria-label="Replay from the start" icon={<RotateCcw className="h-5 w-5" />} data-testid="replay">
             Replay
@@ -76,7 +76,6 @@ export const ExampleTile = ({
     }
   >
     <MediaWell
-      style={{ maxHeight: "var(--video-max-h)" }}
       topLeft={
         <OverlayChip className="p-1" data-testid="example-switch">
           <span role="group" aria-label="Choose an example signer" className="flex gap-1">

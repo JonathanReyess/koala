@@ -118,10 +118,10 @@ describe("stage layout tokens", () => {
     const inset = parseInt(STAGE_THEME.pipInset, 10);
     expect(inset).toBeGreaterThanOrEqual(16);
     expect(inset).toBeLessThanOrEqual(24);
-    expect(STAGE_THEME.splitPractice).toBe("1fr 1fr");
-    expect(STAGE_THEME.splitLearn).toMatch(/72fr/);
+    expect(STAGE_THEME.splitPractice).toBe("repeat(2,minmax(0,var(--card-max-w)))"); // two equal columns
+    expect(STAGE_THEME.splitLearn).toContain("var(--card-max-w)");
     const vars = stageCssVars();
-    expect(vars["--split-practice"]).toBe("1fr 1fr");
+    expect(vars["--split-practice"]).toContain("repeat(2,");
     expect(vars["--video-max-h"]).toContain("100dvh");
     // Colours, radii, shadows and button looks are NOT defined here: they come from the design-system tokens.
     expect(Object.keys(vars).some((k) => /color|shadow|radius|border/.test(k))).toBe(false);

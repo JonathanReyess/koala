@@ -5,18 +5,21 @@
  */
 export const STAGE_THEME = {
   /** Column splits as CSS grid templates (md and up; phones stack). */
-  splitLearn: "minmax(0,72fr) minmax(200px,28fr)", // example ~72% of the stage; camera picture-in-picture column ~28% (>= 22%, min 200px)
-  splitPractice: "1fr 1fr", // side by side, 50/50
+  // Columns are sized to the cards (whose width follows the fitted video height) and the pair is centred, so a
+  // shorter screen gives smaller cards that stay together instead of drifting apart.
+  splitLearn: "minmax(0,var(--card-max-w)) minmax(200px,280px)", // example card + camera picture-in-picture column (>= 200px)
+  splitPractice: "repeat(2,minmax(0,var(--card-max-w)))", // side by side, equal halves
   /** Learn-mode camera picture-in-picture: >= 22% of stage width, never below 200px, inset 16-24px. */
   pipMinWidthPx: 200,
   pipWidthPct: 22,
   pipInset: "20px",
   /**
-   * Vertical space the rest of the page uses (header, word title, card chrome, action bar). Media wells are capped
-   * at (viewport height - this) so a whole stage fits a ~800px laptop screen without scrolling; when the cap binds
-   * the video is cropped from the TOP only (object-position centre-bottom keeps torso and hands).
+   * FALLBACK estimate of the vertical space everything except the media wells takes, used only until
+   * hooks/useFitToViewport measures the real value in the browser and sets --video-max-h exactly (no scrolling on
+   * md+ screens). When the cap binds, the CARD gets narrower and the video keeps its 16:10 shape (no cropping).
    */
-  stageChrome: "500px",
+  stageChrome: "480px", // learn / practice / countdown / recording / grading (one button below the cards)
+  stageChromeResult: "528px", // result (the result panel is taller than one button)
   /** Never let the cap shrink a media well below this. */
   videoMinHeight: "240px",
   /** Minimum tap targets in px (ds PillButton sizes: touch = 48, lg = 60). */
@@ -26,13 +29,16 @@ export const STAGE_THEME = {
 
 export type StageTheme = typeof STAGE_THEME;
 
-export function stageCssVars(t: StageTheme = STAGE_THEME): Record<string, string> {
+export function stageCssVars(t: StageTheme = STAGE_THEME, mode?: string): Record<string, string> {
+  const chrome = mode === "result" ? t.stageChromeResult : t.stageChrome;
   return {
     "--split-learn": t.splitLearn,
     "--split-practice": t.splitPractice,
     "--pip-min-width": `${t.pipMinWidthPx}px`,
     "--pip-width": `${t.pipWidthPct}%`,
     "--pip-inset": t.pipInset,
-    "--video-max-h": `max(${t.videoMinHeight}, calc(100dvh - ${t.stageChrome}))`,
+    "--video-max-h": `max(${t.videoMinHeight}, calc(100dvh - ${chrome}))`,
+    // widest a card may be so its 16:10 well is no taller than --video-max-h (+ 2 x 16px inset + 2px border)
+    "--card-max-w": "calc(var(--video-max-h) * 1.6 + 34px)",
   };
 }

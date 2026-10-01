@@ -185,7 +185,7 @@ const WordDisplay = ({
   onNext,
   canGoPrevious,
 }: WordDisplayProps) => (
-  <div className="flex items-center justify-between gap-4 py-3 md:py-4">
+  <div className="flex items-center justify-between gap-4 py-3">
     <button
       type="button"
       onClick={onPrevious}
@@ -450,7 +450,7 @@ const Learn = () => {
       <main
         className={`
           flex-1 flex flex-col items-stretch
-          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-6 pt-[132px] md:pt-[140px] pb-12
+          max-w-6xl mx-auto w-full px-4 sm:px-6 gap-6 pt-[132px] md:pt-[140px] pb-5
           transition-opacity duration-700 ease-out
           ${isLoaded ? "opacity-100" : "opacity-0"}
         `}
@@ -480,7 +480,7 @@ const Learn = () => {
           />
         )}
 
-        <p className="text-xs text-ink-muted text-center -mt-2">
+        <p className="text-xs text-ink-muted text-center mt-2">
           Original source videos:{" "}
           <a
             href="https://doi.org/10.1007/978-3-030-37731-1_43"

@@ -6,6 +6,7 @@ import { ResultPanel } from "./ResultPanel";
 import { PillButton, PillButtonRow } from "@/components/ds";
 import { usePracticeSession } from "@/hooks/usePracticeSession";
 import { useExamplePlayer } from "@/hooks/useExamplePlayer";
+import { useFitToViewport } from "@/hooks/useFitToViewport";
 import { initialStageState, stageReducer, type ResultKind } from "@/lib/stage/stageMachine";
 import { stageCssVars } from "@/lib/stage/theme";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
   const player = useExamplePlayer(word, state.example, state.rate, state.loop);
   const session = usePracticeSession({ word, mode: state.mode, showMe: state.showMe, dispatch, onFeedback });
   const fileRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   const goNext = useCallback(() => {
     dispatch({ type: "NEXT", word });
@@ -98,6 +100,8 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
   }, [player, recordOrStop, goNext]);
 
   const inLearn = state.mode === "learn";
+  // Size the videos so the page never scrolls on laptop/desktop screens (re-measured per mode / word / result).
+  useFitToViewport(rootRef, [state.mode, state.result, state.showMe, word, session.modelStatus]);
   const ready = session.modelStatus === "ready";
   const result: ResultKind | null = state.result;
 
@@ -128,17 +132,18 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
 
   return (
     <div
+      ref={rootRef}
       data-testid="stage"
       data-mode={state.mode}
       style={
         {
-          ...stageCssVars(),
+          ...stageCssVars(undefined, state.mode),
           "--split": inLearn ? "var(--split-learn)" : "var(--split-practice)",
         } as CSSProperties
       }
-      className="w-full space-y-10"
+      className="w-full space-y-7"
     >
-      <div className={cn("grid grid-cols-1 gap-5 md:grid-cols-[var(--split)]", inLearn ? "md:items-end" : "md:items-start")}>
+      <div className={cn("grid grid-cols-1 gap-5 md:justify-center md:grid-cols-[var(--split)]", inLearn ? "md:items-end" : "md:items-start")}>
         <ExampleTile
           word={word}
           example={state.example}

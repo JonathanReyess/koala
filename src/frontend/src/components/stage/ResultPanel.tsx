@@ -35,15 +35,15 @@ export const ResultPanel = ({ result, message, onNext, onTryAgain, onWatchAgain,
   const primary = primaryActionFor(result);
   const text = result === "error" ? "Something went wrong checking that clip. This isn't your signing. Please try again." : message;
   return (
-    <SurfaceCard data-testid="result-panel" data-result={result} className="p-4 md:p-6">
+    <SurfaceCard data-testid="result-panel" data-result={result} className="px-4 py-3 md:px-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div role="status" aria-live="polite" className="flex min-w-0 items-center gap-4">
-          <span className={cn("inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full", look.positive ? "bg-sage-50 text-sage-700" : "bg-sage-50 text-ink")}>
-            <Icon className="h-8 w-8" aria-hidden="true" />
+          <span className={cn("inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full", look.positive ? "bg-sage-50 text-sage-700" : "bg-sage-50 text-ink")}>
+            <Icon className="h-7 w-7" aria-hidden="true" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold uppercase tracking-wide text-ink-muted">{look.label}</p>
-            <p className="text-2xl font-bold leading-tight text-ink md:text-3xl" data-testid="result-message">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-muted">{look.label}</p>
+            <p className="text-lg font-bold leading-snug text-ink md:text-base lg:text-lg xl:text-xl" data-testid="result-message">
               {text}
             </p>
           </div>
@@ -60,7 +60,7 @@ export const ResultPanel = ({ result, message, onNext, onTryAgain, onWatchAgain,
 
       {/* Reserved for future per-part feedback (handshape / location / movement) from the pose coach.
           Intentionally empty for now: `empty:hidden` collapses it until something is rendered here. */}
-      <section data-slot="pose-coach-feedback" aria-label="Per-part feedback: handshape, location, movement" className="mt-4 empty:hidden" />
+      <section data-slot="pose-coach-feedback" aria-label="Per-part feedback: handshape, location, movement" className="mt-3 empty:hidden" />
       {children}
     </SurfaceCard>
   );

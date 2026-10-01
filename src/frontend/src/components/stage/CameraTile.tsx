@@ -108,10 +108,9 @@ export const CameraTile = ({
   ) : null;
 
   return (
-    <SurfaceCard aria-label="Your camera" data-testid="camera-tile" data-recording={recording || undefined} className={cn(recording && "ring-2 ring-sage-600", className)} footer={footer}>
+    <SurfaceCard aria-label="Your camera" data-testid="camera-tile" data-recording={recording || undefined} className={cn("mx-auto w-full", !compact && "max-w-[var(--card-max-w)]", recording && "ring-2 ring-sage-600", className)} footer={footer}>
       <MediaWell
         inset={compact ? "sm" : "md"}
-        style={{ maxHeight: "var(--video-max-h)" }}
         scrim={scrim}
         topLeft={
           !compact &&
