@@ -17,13 +17,13 @@ interface HeaderSelectProps {
   className?: string;
 }
 
-/** Pill-shaped select for the page header (sage-50, hairline border): e.g. "All words (67)". */
+/** Pill-shaped select for the page header (white, hairline border): e.g. "All words (67)". */
 export const HeaderSelect = ({ value, onValueChange, options, size = "md", className, ...p }: HeaderSelectProps) => (
   <Select value={value} onValueChange={onValueChange}>
     <SelectTrigger
       aria-label={p["aria-label"]}
       className={cn(
-        "rounded-chip bg-sage-50 text-sage-700 font-semibold [border:var(--card-border)] shadow-none",
+        "rounded-chip bg-surface text-sage-700 font-semibold [border:var(--card-border)] shadow-none hover:bg-sage-50",
         size === "md" ? "h-btn px-4" : "h-10 px-3 text-sm",
         "focus:ring-0 focus:ring-offset-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600",
         className,
