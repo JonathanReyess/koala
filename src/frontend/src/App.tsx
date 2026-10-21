@@ -10,8 +10,6 @@ import { lazy, Suspense } from "react";
 
 // Dev-only landmark parity tool; tree-shaken out of production builds.
 const DebugParity = import.meta.env.DEV ? lazy(() => import("./pages/DebugParity")) : null;
-// Dev-only koala intro animation comparison.
-const KoalaPreview = import.meta.env.DEV ? lazy(() => import("./pages/KoalaPreview")) : null;
 // New Imports for Auth Pages
 import { LoginPage } from "./pages/LoginPage";
 import { SignupPage } from "./pages/SignupPage";
@@ -33,16 +31,6 @@ const App = () => (
           element={
             <Suspense fallback={null}>
               <DebugParity />
-            </Suspense>
-          }
-        />
-      )}
-      {KoalaPreview && (
-        <Route
-          path="/koala/:variant?"
-          element={
-            <Suspense fallback={null}>
-              <KoalaPreview />
             </Suspense>
           }
         />

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { KoalaIntro, type KoalaVariant } from "@/components/KoalaIntro";
+import { KoalaIntro } from "@/components/KoalaIntro";
 
 const JumpyText = ({
   text,
@@ -52,17 +52,9 @@ const KOALA_INTRO_KEY = "koala-intro-seen";
 interface HeroProps {
   onStartLearning: () => void;
   onOpenDictionary?: () => void;
-  koalaVariant?: KoalaVariant;
-  // Replay the koala intro on every mount (used by the /koala preview routes).
-  alwaysPlayKoalaIntro?: boolean;
 }
 
-export const Hero = ({
-  onStartLearning,
-  onOpenDictionary,
-  koalaVariant,
-  alwaysPlayKoalaIntro = false,
-}: HeroProps) => {
+export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const [isKorean, setIsKorean] = useState(false);
@@ -70,7 +62,6 @@ export const Hero = ({
   // Play the big koala hello once per browser session (not on every return to "/").
   const [koalaIntro] = useState(() => {
     if (shouldReduceMotion) return false;
-    if (alwaysPlayKoalaIntro) return true;
     try {
       return sessionStorage.getItem(KOALA_INTRO_KEY) === null;
     } catch {
@@ -79,7 +70,6 @@ export const Hero = ({
   });
 
   const endKoalaIntro = () => {
-    if (alwaysPlayKoalaIntro) return;
     try {
       sessionStorage.setItem(KOALA_INTRO_KEY, "1");
     } catch {
@@ -283,11 +273,7 @@ export const Hero = ({
         </div>
       </main>
       {/* Koala: big waving hello on first visit, then settles into the corner. */}
-      <KoalaIntro
-        variant={koalaVariant}
-        playIntro={koalaIntro}
-        onIntroDone={endKoalaIntro}
-      />
+      <KoalaIntro playIntro={koalaIntro} onIntroDone={endKoalaIntro} />
     </div>
   );
 };
