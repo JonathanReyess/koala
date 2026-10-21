@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Globe } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { KoalaIntro, type KoalaVariant } from "@/components/KoalaIntro";
 
 const JumpyText = ({
   text,
@@ -46,16 +47,45 @@ const JumpyText = ({
   );
 };
 
+const KOALA_INTRO_KEY = "koala-intro-seen";
+
 interface HeroProps {
   onStartLearning: () => void;
   onOpenDictionary?: () => void;
+  koalaVariant?: KoalaVariant;
+  // Replay the koala intro on every mount (used by the /koala preview routes).
+  alwaysPlayKoalaIntro?: boolean;
 }
 
-export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
+export const Hero = ({
+  onStartLearning,
+  onOpenDictionary,
+  koalaVariant,
+  alwaysPlayKoalaIntro = false,
+}: HeroProps) => {
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const [isKorean, setIsKorean] = useState(false);
   const [isWiggling, setIsWiggling] = useState(false);
+  // Play the big koala hello once per browser session (not on every return to "/").
+  const [koalaIntro] = useState(() => {
+    if (shouldReduceMotion) return false;
+    if (alwaysPlayKoalaIntro) return true;
+    try {
+      return sessionStorage.getItem(KOALA_INTRO_KEY) === null;
+    } catch {
+      return true;
+    }
+  });
+
+  const endKoalaIntro = () => {
+    if (alwaysPlayKoalaIntro) return;
+    try {
+      sessionStorage.setItem(KOALA_INTRO_KEY, "1");
+    } catch {
+      // storage unavailable; intro just replays next visit
+    }
+  };
 
   const textVariants = shouldReduceMotion
     ? { initial: {}, animate: {}, exit: {} }
@@ -246,18 +276,17 @@ export const Hero = ({ onStartLearning, onOpenDictionary }: HeroProps) => {
                 className="text-base md:text-lg text-gray-600 dark:text-gray-400"
                 lang={isKorean ? "ko" : "en"}
               >
-                {isKorean ? "인공지능 기반 학습" : "AI Powered Learning"}
+                {isKorean ? "인공지능 기반 학습" : "Powered Learning"}
               </div>
             </div>
           </div>
         </div>
       </main>
-      {/* Peeking koala */}
-      <img
-        src="/koala_wave.png"
-        alt=""
-        aria-hidden="true"
-        className="absolute bottom-2 right-12 w-48 md:w-72 translate-y-1/4 pointer-events-none select-none"
+      {/* Koala: big waving hello on first visit, then settles into the corner. */}
+      <KoalaIntro
+        variant={koalaVariant}
+        playIntro={koalaIntro}
+        onIntroDone={endKoalaIntro}
       />
     </div>
   );
