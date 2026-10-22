@@ -91,34 +91,36 @@ afterEach(cleanup);
 
 const exampleVideo = () => screen.getByTestId("example-video") as HTMLVideoElement;
 const cameraVideo = () => screen.getByTestId("camera-video") as HTMLVideoElement;
+const openSettings = () => fireEvent.click(screen.getByTestId("settings-button"));
 const mode = () => screen.getByTestId("stage").getAttribute("data-mode");
 const goToResult = (result: ResultKind) => {
   session.nextResult = result;
-  fireEvent.click(screen.getByTestId("ready"));
   fireEvent.click(screen.getByTestId("record"));
   fireEvent.click(screen.getByTestId("stop"));
 };
 
-describe("Learn mode", () => {
-  it("shows the example with custom controls, one primary CTA, and no native video controls", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    expect(mode()).toBe("learn");
+describe("Practice view", () => {
+  it("shows the example with custom controls next to the camera, and no native video controls", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
+    expect(mode()).toBe("ready");
     expect(exampleVideo().hasAttribute("controls")).toBe(false);
     expect(exampleVideo().getAttribute("src")).toBe("/videos/hi_example1.mp4");
-    for (const id of ["play-pause", "slow", "replay", "loop"]) expect(screen.getByTestId(id)).toBeTruthy();
-    expect(screen.getByTestId("ready").textContent).toContain("I'm ready to practice");
-    expect(screen.queryByTestId("record")).toBeNull();
+    for (const id of ["play-pause", "slow", "loop"]) expect(screen.getByTestId(id)).toBeTruthy();
+    expect(screen.getByTestId("camera-tile")).toBeTruthy();
+    expect(screen.getByTestId("record").textContent).toContain("Record"); // no separate learn step: you can record right away
+    expect(screen.queryByTestId("ready")).toBeNull();
+    expect(screen.queryByTestId("show-me")).toBeNull();
     expect(exampleVideo().loop).toBe(true); // loop on by default
   });
 
   it("toggles between example 1 and example 2", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: "Example 2" }));
     expect(exampleVideo().getAttribute("src")).toBe("/videos/hi_example2.mp4");
   });
 
   it("Slow sets the video's playbackRate: 1x -> 0.5x -> 0.25x -> 1x", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     expect(exampleVideo().playbackRate).toBe(1);
     fireEvent.click(screen.getByTestId("slow"));
     expect(exampleVideo().playbackRate).toBe(0.5);
@@ -129,40 +131,26 @@ describe("Learn mode", () => {
     expect(exampleVideo().playbackRate).toBe(1);
   });
 
-  it("Loop toggles the video's loop attribute; Replay restarts and plays", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
+  it("Loop toggles the video's loop attribute; there is no separate Replay button", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     fireEvent.click(screen.getByTestId("loop"));
     expect(exampleVideo().loop).toBe(false);
-    exampleVideo().currentTime = 5;
-    fireEvent.click(screen.getByTestId("replay"));
-    expect(exampleVideo().currentTime).toBe(0);
-    expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
+    expect(screen.queryByTestId("replay")).toBeNull();
   });
 
-  it("'Show me' turns the camera picture-in-picture on (compact tile with a Hide button); off by default", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    expect(screen.getByTestId("camera-tile").classList.contains("hidden")).toBe(true);
-    fireEvent.click(screen.getByTestId("show-me"));
-    expect(screen.getByTestId("camera-tile").classList.contains("hidden")).toBe(false);
-    expect(screen.getByRole("button", { name: "Hide my camera" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Hide my camera" }));
-    expect(screen.getByTestId("camera-tile").classList.contains("hidden")).toBe(true);
-  });
-
-  it("no auto-advance: stays in Learn until the CTA is pressed", () => {
+  it("no auto-advance: stays ready until Record is pressed", () => {
     vi.useFakeTimers();
-    render(<Stage word="hi" onNext={vi.fn()} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     vi.advanceTimersByTime(60_000);
-    expect(mode()).toBe("learn");
+    expect(mode()).toBe("ready");
     vi.useRealTimers();
   });
 });
 
-describe("Practice flow", () => {
-  it("Learn -> Practice -> Recording (Stop) -> Result", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
-    expect(mode()).toBe("practice");
+describe("Record flow", () => {
+  it("Ready -> Recording (Stop) -> Result", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
+    expect(mode()).toBe("ready");
     expect(screen.getByTestId("record").textContent).toContain("Record");
     fireEvent.click(screen.getByTestId("record"));
     expect(session.beginRecording).toHaveBeenCalled();
@@ -174,11 +162,11 @@ describe("Practice flow", () => {
   });
 
   it("camera tile mirror: default mirrored; 'Match the example' unmirrors ONLY the camera tile, and persists", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     expect(cameraVideo().className).toContain("scale-x-[-1]");
     expect(screen.getByTestId("camera-canvas").className).toContain("scale-x-[-1]");
     const exampleClassBefore = exampleVideo().className;
+    openSettings();
     fireEvent.click(screen.getByRole("switch", { name: "Match the example" }));
     expect(cameraVideo().className).not.toContain("scale-x-[-1]");
     expect(screen.getByTestId("camera-canvas").className).not.toContain("scale-x-[-1]");
@@ -186,27 +174,36 @@ describe("Practice flow", () => {
     expect(exampleVideo().className).not.toContain("scale-x-[-1]");
     expect(localStorage.getItem("koala.mirrorCamera")).toBe("0");
     cleanup();
-    render(<Stage word="hi" onNext={vi.fn()} />); // remembered
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />); // remembered
     expect(cameraVideo().className).not.toContain("scale-x-[-1]");
   });
 
-  it("status hints and the tracking/mirror toggles are overlay chips in the media well's TOP row (not the centre)", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+  it("the tracking/mirror options are behind a gear in the media well's TOP-RIGHT, not loose chips over the video", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     const tile = screen.getByTestId("camera-tile");
     const overlay = cameraVideo().parentElement!.querySelector("div.absolute.inset-0")!;
     const [topRow, bottomRow] = Array.from(overlay.children) as HTMLElement[];
-    expect(topRow.contains(within(tile).getByRole("switch", { name: "Show tracking" }))).toBe(true);
-    expect(topRow.contains(within(tile).getByRole("switch", { name: "Match the example" }))).toBe(true);
-    expect(topRow.textContent).toContain("You're all set");
+    expect(topRow.contains(within(tile).getByTestId("settings-button"))).toBe(true);
+    expect(within(tile).queryByRole("switch")).toBeNull(); // nothing taking up video space until the gear is opened
+    openSettings();
+    expect(screen.getByRole("switch", { name: "Show tracking" })).toBeTruthy();
+    expect(screen.getByRole("switch", { name: "Match the example" })).toBeTruthy();
+    expect(screen.getByTestId("settings-popover").closest("section")).toBeNull(); // floats above the card, not inside the video
+  });
+
+  it("the status chip sits in the TOP row and has no star icon", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
+    const overlay = cameraVideo().parentElement!.querySelector("div.absolute.inset-0")!;
+    const [topRow, bottomRow] = Array.from(overlay.children) as HTMLElement[];
+    const chip = within(topRow).getByRole("status");
+    expect(chip.textContent).toContain("You're all set. Press Record.");
+    expect(chip.querySelector("svg")).toBeNull();
     // nothing sits in the bottom row until recording starts
     expect(bottomRow?.textContent ?? "").toBe("");
   });
 
   it("recording state is conveyed with text, not colour alone (Recording label + timer)", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     fireEvent.click(screen.getByTestId("record"));
     const tile = screen.getByTestId("camera-tile");
     expect(tile.textContent).toContain("Recording");
@@ -216,7 +213,7 @@ describe("Practice flow", () => {
 
 describe("Result panel", () => {
   const primaryLabel = (r: ResultKind) => {
-    render(<ResultPanel result={r} message="msg" onNext={vi.fn()} onTryAgain={vi.fn()} onWatchAgain={vi.fn()} />);
+    render(<ResultPanel result={r} message="msg" onNext={vi.fn()} onTryAgain={vi.fn()} />);
     const label = screen.getByTestId("primary-action").textContent;
     cleanup();
     return label;
@@ -227,21 +224,22 @@ describe("Result panel", () => {
     for (const r of ["close", "confused", "incorrect", "not_detected", "error"] as ResultKind[]) expect(primaryLabel(r)).toBe("Try again");
   });
 
-  it("always offers 'Watch again' as the quieter secondary, and wires the primary correctly", () => {
-    const onNext = vi.fn(), onTryAgain = vi.fn(), onWatchAgain = vi.fn();
-    const { rerender } = render(<ResultPanel result="correct" message="Perfect!" onNext={onNext} onTryAgain={onTryAgain} onWatchAgain={onWatchAgain} />);
+  it("wires the primary action correctly; the quieter secondary only appears when given", () => {
+    const onNext = vi.fn(), onTryAgain = vi.fn(), onSecondary = vi.fn();
+    const { rerender } = render(<ResultPanel result="correct" message="Perfect!" onNext={onNext} onTryAgain={onTryAgain} />);
+    expect(screen.queryByTestId("secondary-action")).toBeNull();
     fireEvent.click(screen.getByTestId("primary-action"));
     expect(onNext).toHaveBeenCalledTimes(1);
-    fireEvent.click(screen.getByTestId("watch-again"));
-    expect(onWatchAgain).toHaveBeenCalledTimes(1);
-    rerender(<ResultPanel result="close" message="Almost" onNext={onNext} onTryAgain={onTryAgain} onWatchAgain={onWatchAgain} />);
+    rerender(<ResultPanel result="close" message="Almost" onNext={onNext} onTryAgain={onTryAgain} secondary={{ label: "Show me the sign", onClick: onSecondary }} />);
+    fireEvent.click(screen.getByTestId("secondary-action"));
+    expect(onSecondary).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByTestId("primary-action"));
     expect(onTryAgain).toHaveBeenCalledTimes(1);
     expect(onNext).toHaveBeenCalledTimes(1);
   });
 
   it("shows the feedback message and leaves an empty, marked slot for future per-part feedback", () => {
-    render(<ResultPanel result="confused" message="That looked like “eat”." onNext={vi.fn()} onTryAgain={vi.fn()} onWatchAgain={vi.fn()} />);
+    render(<ResultPanel result="confused" message="That looked like “eat”." onNext={vi.fn()} onTryAgain={vi.fn()} />);
     expect(screen.getByTestId("result-message").textContent).toBe("That looked like “eat”.");
     const slot = document.querySelector('[data-slot="pose-coach-feedback"]')!;
     expect(slot).toBeTruthy();
@@ -250,7 +248,7 @@ describe("Result panel", () => {
   });
 
   it("is rendered below the tiles, not inside a video area", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     goToResult("close");
     const panel = screen.getByTestId("result-panel");
     for (const v of [exampleVideo(), cameraVideo()]) expect(v.parentElement!.contains(panel)).toBe(false);
@@ -259,50 +257,90 @@ describe("Result panel", () => {
   });
 
   it.each(["correct", "close", "confused", "incorrect", "not_detected"] as ResultKind[])("Stage shows the right primary action for %s", (r) => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     goToResult(r);
     expect(screen.getByTestId("primary-action").textContent).toBe(r === "correct" ? "Next sign" : "Try again");
   });
 
-  it("'Next sign' calls onNext; 'Try again' returns to Practice", () => {
+  it("'Next sign' calls onNext; 'Try again' returns to ready", () => {
     const onNext = vi.fn();
-    render(<Stage word="hi" onNext={onNext} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={onNext} />);
     goToResult("correct");
     fireEvent.click(screen.getByTestId("primary-action"));
     expect(onNext).toHaveBeenCalledTimes(1);
     cleanup();
-    render(<Stage word="hi" onNext={vi.fn()} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     goToResult("incorrect");
     fireEvent.click(screen.getByTestId("primary-action"));
-    expect(mode()).toBe("practice");
+    expect(mode()).toBe("ready");
   });
 
-  it("Watch again returns to Learn on the SAME word with loop on (even if it was turned off)", () => {
-    render(<Stage word="eat" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("loop")); // loop off
-    expect(exampleVideo().loop).toBe(false);
-    fireEvent.click(screen.getByTestId("slow")); // 0.5x
+  it("Practice has no 'Watch again' (the example is already on screen)", () => {
+    render(<Stage word="eat" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     goToResult("incorrect");
-    fireEvent.click(screen.getByTestId("watch-again"));
-    expect(mode()).toBe("learn");
-    expect(exampleVideo().getAttribute("src")).toContain("eat_example");
-    expect(exampleVideo().loop).toBe(true);
-    expect(screen.getByTestId("loop").getAttribute("aria-label")).toBe("Loop on");
-    expect(screen.getByTestId("ready")).toBeTruthy();
+    expect(screen.queryByTestId("watch-again")).toBeNull();
+    expect(screen.queryByTestId("secondary-action")).toBeNull();
+  });
+});
+
+describe("Practice | Quiz switch", () => {
+  it("sits centred below the cards, marks the current view, and asks the page to change it", () => {
+    const onViewChange = vi.fn();
+    render(<Stage word="hi" view="practice" onViewChange={onViewChange} onNext={vi.fn()} />);
+    const sw = screen.getByTestId("view-switch");
+    expect(screen.getByTestId("action-bar").contains(sw)).toBe(true);
+    expect(within(sw).getByRole("button", { name: "Practice" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(within(sw).getByRole("button", { name: "Quiz" }));
+    expect(onViewChange).toHaveBeenCalledWith("quiz");
+  });
+
+  it("is only offered while ready (not mid-take or on the result)", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
+    goToResult("close");
+    expect(screen.queryByTestId("view-switch")).toBeNull();
+  });
+});
+
+describe("Quiz view", () => {
+  const renderQuiz = (onViewChange = vi.fn()) => render(<Stage word="hi" view="quiz" onViewChange={onViewChange} onNext={vi.fn()} />);
+
+  it("shows only your camera: no example video or its controls", () => {
+    renderQuiz();
+    expect(screen.getByTestId("stage").getAttribute("data-view")).toBe("quiz");
+    expect(screen.queryByTestId("example-tile")).toBeNull();
+    expect(screen.queryByTestId("example-video")).toBeNull();
+    for (const id of ["play-pause", "slow", "loop"]) expect(screen.queryByTestId(id)).toBeNull();
+    expect(screen.getByTestId("camera-tile")).toBeTruthy();
+    expect(screen.getByTestId("record")).toBeTruthy();
+  });
+
+  it("runs the same record -> result flow", () => {
+    renderQuiz();
+    session.nextResult = "correct";
+    fireEvent.click(screen.getByTestId("record"));
+    fireEvent.click(screen.getByTestId("stop"));
+    expect(mode()).toBe("result");
+    expect(screen.getByTestId("primary-action").textContent).toBe("Next sign");
+  });
+
+  it("the result offers 'Show me the sign', which asks the page to switch to Practice", () => {
+    const onViewChange = vi.fn();
+    renderQuiz(onViewChange);
+    goToResult("incorrect");
+    fireEvent.click(screen.getByTestId("secondary-action"));
+    expect(screen.getByTestId("secondary-action").textContent).toBe("Show me the sign");
+    expect(onViewChange).toHaveBeenCalledWith("practice");
   });
 });
 
 describe("Keyboard shortcuts", () => {
   it("S cycles slow, Space plays/pauses, R records then stops, N goes next", () => {
     const onNext = vi.fn();
-    render(<Stage word="hi" onNext={onNext} />);
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={onNext} />);
     fireEvent.keyDown(window, { key: "s" });
     expect(exampleVideo().playbackRate).toBe(0.5);
     fireEvent.keyDown(window, { key: " " });
     expect(HTMLMediaElement.prototype.play).toHaveBeenCalled();
-    fireEvent.keyDown(window, { key: "r" }); // ignored in Learn
-    expect(mode()).toBe("learn");
-    fireEvent.click(screen.getByTestId("ready"));
     fireEvent.keyDown(window, { key: "r" });
     expect(mode()).toBe("recording");
     fireEvent.keyDown(window, { key: "R" });
@@ -316,7 +354,7 @@ describe("Keyboard shortcuts", () => {
     render(
       <>
         <input aria-label="notes" />
-        <Stage word="hi" onNext={vi.fn()} />
+        <Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />
       </>,
     );
     fireEvent.keyDown(screen.getByLabelText("notes"), { key: "s" });
@@ -324,46 +362,43 @@ describe("Keyboard shortcuts", () => {
   });
 
   it("all stage controls have accessible names", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     for (const b of screen.getAllByRole("button")) {
       expect((b.getAttribute("aria-label") ?? b.textContent ?? "").trim().length, b.outerHTML).toBeGreaterThan(0);
     }
+    openSettings();
     for (const sw of screen.getAllByRole("switch")) expect((sw.getAttribute("aria-label") ?? sw.textContent ?? "").trim().length).toBeGreaterThan(0);
   });
 });
 
 describe("layout rules from review", () => {
-  it("the four example controls are exactly the same size", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    const sizes = ["play-pause", "slow", "replay", "loop"].map((id) =>
+  it("the three example controls are exactly the same size", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
+    const sizes = ["play-pause", "slow", "loop"].map((id) =>
       screen.getByTestId(id).className.split(" ").filter((c) => /^(h|min-h)-/.test(c)).sort().join(" "),
     );
     expect(new Set(sizes).size).toBe(1);
     expect(sizes[0]).toContain("h-14");
   });
 
-  it("Practice: Upload + Record sit inside the camera card under the video; below the cards there is only 'Watch again'", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+  it("Upload + Record sit inside the camera card under the video; only the Practice | Quiz switch is below the cards", () => {
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     const tile = screen.getByTestId("camera-tile");
     expect(tile.contains(screen.getByTestId("upload"))).toBe(true);
     expect(tile.contains(screen.getByTestId("record"))).toBe(true);
     const bar = screen.getByTestId("action-bar");
-    expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual(["Watch again"]);
+    expect(within(bar).getAllByRole("button").map((b) => b.textContent)).toEqual(["Practice", "Quiz"]);
   });
 
   it("the camera card has no duplicate framing tip under the video (the status chip on the video is the only one)", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     expect(screen.getByTestId("camera-tile").textContent).not.toContain("Keep your head");
     expect(within(screen.getByTestId("camera-tile")).getAllByRole("status")[0].textContent).toContain("You're all set");
   });
 
   it("the 3-2-1 countdown is an overlay ON the camera video, with Cancel under it", () => {
     session.holdCountdown = true;
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     fireEvent.click(screen.getByTestId("record"));
     expect(mode()).toBe("countdown");
     const countdown = screen.getByTestId("countdown");
@@ -376,8 +411,7 @@ describe("layout rules from review", () => {
   });
 
   it("Stop is inside the camera card while recording", () => {
-    render(<Stage word="hi" onNext={vi.fn()} />);
-    fireEvent.click(screen.getByTestId("ready"));
+    render(<Stage word="hi" view="practice" onViewChange={vi.fn()} onNext={vi.fn()} />);
     fireEvent.click(screen.getByTestId("record"));
     expect(screen.getByTestId("camera-tile").contains(screen.getByTestId("stop"))).toBe(true);
   });

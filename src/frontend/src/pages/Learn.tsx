@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react
 import { useNavigate } from "react-router-dom";
 import { Stage } from "@/components/stage/Stage";
 import { AppDialog, HeaderChip, HeaderSelect, PillButton, PillButtonRow } from "@/components/ds";
+import type { StageView } from "@/lib/stage/stageMachine";
 import { CompareDialog } from "@/components/CompareDialog";
 import {
   calculateNextReview,
@@ -35,6 +36,15 @@ const MASTERY_INTERVAL_DAYS = 7;
 export const getWords = () => AVAILABLE_WORDS.map((w) => w.english);
 
 const DECK_STORAGE_KEY = "koala.deck";
+const VIEW_STORAGE_KEY = "koala.view";
+
+const loadView = (): StageView => {
+  try {
+    return localStorage.getItem(VIEW_STORAGE_KEY) === "quiz" ? "quiz" : "practice";
+  } catch {
+    return "practice";
+  }
+};
 
 const loadDeckChoice = (): DeckChoice => {
   try {
@@ -275,6 +285,15 @@ const Learn = () => {
   const decks = useMemo(() => availableDecks(), []);
   const deckWords = useMemo(() => wordsInDeck(deck).map((w) => w.english), [deck]);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [view, setViewState] = useState<StageView>(loadView);
+  const setView = useCallback((v: StageView) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, v);
+    } catch {
+      /* preference just isn't remembered */
+    }
+  }, []);
 
   const [practiceQueue, setPracticeQueue] = useState<string[]>(() =>
     shuffleArray(wordsInDeck(loadDeckChoice()).map((w) => w.english)),
@@ -446,7 +465,7 @@ const Learn = () => {
           `Current word: ${currentWordData.english}, Korean: ${currentWordData.korean}`}
       </div>
 
-      {/* Main content: word header, then the Learn -> Practice stage */}
+      {/* Main content: word header, then the Practice / Quiz stage */}
       <main
         className={`
           flex-1 flex flex-col items-stretch
@@ -463,7 +482,8 @@ const Learn = () => {
               <WordBadges
                 tricky={isTricky(currentWordData.english)}
                 accuracy={heldOutAccuracy(currentWordData.english)}
-                onCompare={compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
+                // Compare shows demo videos, so it is a Practice-only helper.
+                onCompare={view === "practice" && compareWith.length > 0 ? () => setCompareOpen(true) : undefined}
               />
             }
             onPrevious={handlePrevious}
@@ -475,6 +495,8 @@ const Learn = () => {
         {currentWord && (
           <Stage
             word={currentWord}
+            view={view}
+            onViewChange={setView}
             onNext={handleNext}
             onFeedback={updateProgress}
           />

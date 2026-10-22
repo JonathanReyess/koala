@@ -23,7 +23,6 @@ const COUNTDOWN_SECONDS = 3;
 interface Options {
   word: string;
   mode: StageMode;
-  showMe: boolean;
   dispatch: (e: StageEvent) => void;
   /** Spaced-repetition hook: correct -> credit, confused/incorrect -> miss (close/not_detected: no call). */
   onFeedback?: (word: string, correct: boolean) => void;
@@ -59,7 +58,7 @@ function forcedGrade(status: Grade["status"], targetId: number): Grade {
  * recording (MediaRecorder + live landmarks), upload extraction, grading, the debug log. It reports progress
  * to the stage state machine through `dispatch`.
  */
-export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }: Options) {
+export function usePracticeSession({ word, mode, dispatch, onFeedback }: Options) {
   const videoRef = useRef<HTMLVideoElement>(null); // live camera
   const canvasRef = useRef<HTMLCanvasElement>(null); // skeleton overlay (mirrors with the camera)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -103,7 +102,7 @@ export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }:
     videoRef,
     canvasRef,
     landmarker: models?.landmarker ?? null,
-    active: cameraOn && (mode === "practice" || mode === "countdown" || mode === "recording" || (mode === "learn" && showMe)),
+    active: cameraOn && cameraWanted({ mode }),
     recording: mode === "recording",
     drawOverlay: showTracking,
   });
@@ -151,7 +150,7 @@ export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }:
     setCameraOn(false);
   }, []);
 
-  const wantCamera = cameraWanted({ mode, showMe });
+  const wantCamera = cameraWanted({ mode });
   useEffect(() => {
     if (wantCamera) void startCamera();
     else if (!recorderActiveRef.current) stopCamera(); // the recorder's onstop releases the camera after flushing
@@ -185,9 +184,9 @@ export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }:
   }, [word, discardTake]);
   useEffect(() => () => clearTimers(), []);
 
-  // Leaving the result screen (Try again / Watch again) drops the previous take.
+  // Leaving the result screen (Try again) drops the previous take.
   useEffect(() => {
-    if (mode === "practice" || mode === "learn") discardTake();
+    if (mode === "ready") discardTake();
   }, [mode, discardTake]);
 
   // --- Grading ---------------------------------------------------------------------------------------------
@@ -253,7 +252,7 @@ export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }:
 
   /** Uploaded clip: same VIDEO-mode (tracking) extraction as the live camera, then grade. */
   const uploadFile = async (file: File) => {
-    if (modeRef.current !== "practice" && modeRef.current !== "result") return;
+    if (modeRef.current !== "ready" && modeRef.current !== "result") return;
     discardTake();
     dispatch({ type: "UPLOAD" });
     setRecordedUrl(URL.createObjectURL(file));
@@ -281,7 +280,7 @@ export function usePracticeSession({ word, mode, showMe, dispatch, onFeedback }:
 
   // --- Recording -------------------------------------------------------------------------------------------
   const beginRecording = async () => {
-    if (modeRef.current !== "practice" && modeRef.current !== "result") return;
+    if (modeRef.current !== "ready" && modeRef.current !== "result") return;
     discardTake();
     dispatch({ type: "RECORD" });
     if (!(await startCamera())) {

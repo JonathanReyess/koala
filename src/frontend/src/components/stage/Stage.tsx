@@ -1,18 +1,23 @@
 import { useCallback, useEffect, useReducer, useRef, useState, type CSSProperties } from "react";
-import { Camera, Square, Upload, Video } from "lucide-react";
+import { Camera, Square, Upload } from "lucide-react";
 import { ExampleTile } from "./ExampleTile";
 import { CameraTile } from "./CameraTile";
 import { ResultPanel } from "./ResultPanel";
+import { ViewSwitch } from "./ViewSwitch";
 import { PillButton, PillButtonRow } from "@/components/ds";
 import { usePracticeSession } from "@/hooks/usePracticeSession";
 import { useExamplePlayer } from "@/hooks/useExamplePlayer";
 import { useFitToViewport } from "@/hooks/useFitToViewport";
-import { initialStageState, stageReducer, type ResultKind } from "@/lib/stage/stageMachine";
+import { initialStageState, stageReducer, type ResultKind, type StageView } from "@/lib/stage/stageMachine";
 import { stageCssVars } from "@/lib/stage/theme";
 import { cn } from "@/lib/utils";
 
 interface StageProps {
   word: string;
+  /** Practice: example video + camera. Quiz: only the word (shown by the page) and your camera. */
+  view: StageView;
+  /** Ask the page to change view (Quiz result: "Show me the sign"). */
+  onViewChange: (view: StageView) => void;
   /** Advance to the next word (parent owns the queue/deck). */
   onNext: () => void;
   onFeedback?: (word: string, correct: boolean) => void;
@@ -31,10 +36,10 @@ const isTypingTarget = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(t.tagName));
 
 /**
- * The Learn -> Practice stage for one word. Learn: big example video (+ optional camera picture-in-picture).
- * Practice: example and camera side by side. State machine: lib/stage/stageMachine.ts.
+ * The stage for one word. Practice view: example and camera side by side. Quiz view: just your camera, the word is
+ * the prompt. Both run the same record -> grade -> result flow (state machine: lib/stage/stageMachine.ts).
  */
-export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
+export const Stage = ({ word, view, onViewChange, onNext, onFeedback }: StageProps) => {
   const [state, dispatch] = useReducer(stageReducer, word, initialStageState);
   useEffect(() => dispatch({ type: "SET_WORD", word }), [word]);
 
@@ -49,7 +54,7 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
   };
 
   const player = useExamplePlayer(word, state.example, state.rate, state.loop);
-  const session = usePracticeSession({ word, mode: state.mode, showMe: state.showMe, dispatch, onFeedback });
+  const session = usePracticeSession({ word, mode: state.mode, dispatch, onFeedback });
   const fileRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -60,7 +65,7 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
 
   const recordOrStop = useCallback(() => {
     switch (state.mode) {
-      case "practice":
+      case "ready":
       case "result":
         if (session.modelStatus === "ready") void session.beginRecording();
         break;
@@ -99,15 +104,15 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
     return () => window.removeEventListener("keydown", onKey);
   }, [player, recordOrStop, goNext]);
 
-  const inLearn = state.mode === "learn";
-  // Size the videos so the page never scrolls on laptop/desktop screens (re-measured per mode / word / result).
-  useFitToViewport(rootRef, [state.mode, state.result, state.showMe, word, session.modelStatus]);
+  const quiz = view === "quiz";
+  // Size the videos so the page never scrolls on laptop/desktop screens (re-measured per mode / view / word / result).
+  useFitToViewport(rootRef, [state.mode, state.result, view, word, session.modelStatus]);
   const ready = session.modelStatus === "ready";
   const result: ResultKind | null = state.result;
 
   // Actions that live in the camera card, right under the video.
   const cameraActions =
-    state.mode === "practice" ? (
+    state.mode === "ready" ? (
       <PillButtonRow className="flex-col-reverse sm:flex-row">
         <PillButton size="lg" variant="secondary" onClick={() => fileRef.current?.click()} disabled={!ready} icon={<Upload className="h-5 w-5" />} data-testid="upload">
           Upload a video
@@ -135,50 +140,36 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
       ref={rootRef}
       data-testid="stage"
       data-mode={state.mode}
+      data-view={view}
       style={
         {
           ...stageCssVars(undefined, state.mode),
-          "--split": inLearn ? "var(--split-learn)" : "var(--split-practice)",
+          "--split": quiz ? "var(--split-quiz)" : "var(--split-practice)",
         } as CSSProperties
       }
       className="w-full space-y-7"
     >
-      <div className={cn("grid grid-cols-1 gap-5 md:justify-center md:grid-cols-[var(--split)]", inLearn ? "md:items-end" : "md:items-start")}>
-        <ExampleTile
-          word={word}
-          example={state.example}
-          rate={state.rate}
-          loop={state.loop}
-          playing={player.playing}
-          videoRef={player.videoRef}
-          onExample={(example) => dispatch({ type: "SET_EXAMPLE", example })}
-          onTogglePlay={player.togglePlay}
-          onCycleRate={() => dispatch({ type: "CYCLE_RATE" })}
-          onReplay={player.replay}
-          onToggleLoop={() => dispatch({ type: "TOGGLE_LOOP" })}
-          onVideoReady={player.onVideoReady}
-          onPlayState={player.setPlaying}
-        />
+      <div className="grid grid-cols-1 gap-5 md:justify-center md:items-start md:grid-cols-[var(--split)]">
+        {!quiz && (
+          <ExampleTile
+            word={word}
+            example={state.example}
+            rate={state.rate}
+            loop={state.loop}
+            playing={player.playing}
+            videoRef={player.videoRef}
+            onExample={(example) => dispatch({ type: "SET_EXAMPLE", example })}
+            onTogglePlay={player.togglePlay}
+            onCycleRate={() => dispatch({ type: "CYCLE_RATE" })}
+            onToggleLoop={() => dispatch({ type: "TOGGLE_LOOP" })}
+            onVideoReady={player.onVideoReady}
+            onPlayState={player.setPlaying}
+          />
+        )}
 
-        {/* Camera: a practice tile, or (Learn + "Show me") a picture-in-picture at the bottom-right of the stage,
-            >= 22% wide (min 200px), inset from the corner, beside the example so it never covers its hands. */}
-        <div
-          className={cn(
-            inLearn
-              ? "w-[max(var(--pip-width),var(--pip-min-width))] justify-self-end md:w-full p-[var(--pip-inset)]"
-              : "w-full",
-          )}
-        >
-          {inLearn && !state.showMe && (
-            <div className="rounded-card border-2 border-dashed border-sage-200 bg-surface p-4 flex flex-col items-center gap-3 text-center">
-              <p className="text-sm font-medium text-ink-muted">Want to check yourself? (optional)</p>
-              <PillButton size="lg" variant="secondary" onClick={() => dispatch({ type: "TOGGLE_SHOW_ME" })} icon={<Camera className="h-5 w-5" />} data-testid="show-me">
-                Show me
-              </PillButton>
-            </div>
-          )}
+        {/* Camera: always on screen (the only tile in Quiz). */}
+        <div className="w-full">
           <CameraTile
-            className={cn(inLearn && !state.showMe && "hidden")}
             mode={state.mode}
             videoRef={session.videoRef}
             canvasRef={session.canvasRef}
@@ -194,20 +185,18 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
             recordedUrl={session.recordedUrl}
             countdown={session.countdown}
             actions={cameraActions}
-            compact={inLearn}
-            onHide={() => dispatch({ type: "TOGGLE_SHOW_ME" })}
           />
         </div>
       </div>
 
-      {/* Bottom bar: ONE primary action at a time. */}
+      {/* Below the cards: the Practice | Quiz switch while ready, the result panel after a take. Upload / Record / Stop live in the camera card; keep the height otherwise so nothing jumps. */}
       {state.mode === "result" && result ? (
         <ResultPanel
           result={result}
           message={session.feedbackText}
           onNext={goNext}
           onTryAgain={() => dispatch({ type: "TRY_AGAIN" })}
-          onWatchAgain={() => dispatch({ type: "WATCH_AGAIN" })}
+          secondary={quiz ? { label: "Show me the sign", onClick: () => onViewChange("practice") } : undefined}
         >
           {session.debug && (
             <div className="mt-3 rounded-media border border-dashed border-sage-200 p-2 text-xs text-ink-muted">
@@ -215,22 +204,12 @@ export const Stage = ({ word, onNext, onFeedback }: StageProps) => {
             </div>
           )}
         </ResultPanel>
-      ) : inLearn || state.mode === "practice" ? (
-        // Below the cards: only ever ONE button. The camera card holds Upload / Record / Stop itself.
+      ) : state.mode === "ready" ? (
         <div className="flex justify-center" data-testid="action-bar">
-          {inLearn ? (
-            <PillButton size="lg" onClick={() => dispatch({ type: "READY" })} icon={<Video className="h-5 w-5" />} data-testid="ready">
-              I'm ready to practice
-            </PillButton>
-          ) : (
-            <PillButton size="lg" variant="secondary" onClick={() => dispatch({ type: "WATCH_AGAIN" })} data-testid="watch-again">
-              Watch again
-            </PillButton>
-          )}
+          <ViewSwitch view={view} onChange={onViewChange} />
         </div>
       ) : (
-        // Countdown / recording / analysing: the controls are in the camera card; keep the height so nothing jumps.
-        <div className="h-14" aria-hidden="true" />
+        <div className="h-12" aria-hidden="true" />
       )}
 
       <input

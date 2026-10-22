@@ -20,16 +20,17 @@ interface Props {
   message: string;
   onNext: () => void;
   onTryAgain: () => void;
-  onWatchAgain: () => void;
+  /** Optional quieter secondary action (Quiz: "Show me the sign"). Omitted in Practice, where the example is already on screen. */
+  secondary?: { label: string; onClick: () => void };
   /** Extra content (debug view). */
   children?: ReactNode;
 }
 
 /**
  * Shown BELOW the cards (never over the video). One primary action, by outcome:
- * correct -> "Next sign"; everything else -> "Try again". "Watch again" is always the quieter secondary.
+ * correct -> "Next sign"; everything else -> "Try again". An optional quieter secondary sits beside it.
  */
-export const ResultPanel = ({ result, message, onNext, onTryAgain, onWatchAgain, children }: Props) => {
+export const ResultPanel = ({ result, message, onNext, onTryAgain, secondary, children }: Props) => {
   const look = LOOK[result];
   const Icon = look.icon;
   const primary = primaryActionFor(result);
@@ -49,9 +50,11 @@ export const ResultPanel = ({ result, message, onNext, onTryAgain, onWatchAgain,
           </div>
         </div>
         <div className="flex shrink-0 flex-col-reverse gap-3 sm:flex-row sm:items-center">
-          <PillButton size="lg" variant="secondary" onClick={onWatchAgain} data-testid="watch-again">
-            Watch again
-          </PillButton>
+          {secondary && (
+            <PillButton size="lg" variant="secondary" onClick={secondary.onClick} data-testid="secondary-action">
+              {secondary.label}
+            </PillButton>
+          )}
           <PillButton size="lg" onClick={primary.event === "NEXT" ? onNext : onTryAgain} data-testid="primary-action">
             {primary.label}
           </PillButton>

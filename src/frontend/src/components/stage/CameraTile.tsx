@@ -1,7 +1,7 @@
-import { EyeOff, Lightbulb, Loader, RotateCcw, Sparkles } from "lucide-react";
+import { Lightbulb, Loader, RotateCcw, Settings } from "lucide-react";
 import type { ReactNode, RefObject } from "react";
-import { MediaScrim, MediaWell, OverlayChip, OverlayToggle, PillButton, SurfaceCard } from "@/components/ds";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MediaScrim, MediaWell, OverlayChip, OverlayIconButton, OverlayToggle, PillButton, SurfaceCard } from "@/components/ds";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import type { StageMode } from "@/lib/stage/stageMachine";
 
@@ -25,9 +25,6 @@ interface Props {
   countdown?: number | null;
   /** Primary actions for the card footer, right under the video (Upload / Record, Cancel, Stop, ...). */
   actions?: ReactNode;
-  /** Learn-mode picture-in-picture: video only, plus a Hide button. */
-  compact?: boolean;
-  onHide?: () => void;
   className?: string;
 }
 
@@ -37,16 +34,15 @@ export const formatTimer = (ms: number): string => {
 };
 
 /**
- * Live camera card. Status/hints and the tracking / mirror toggles are overlay chips along the TOP edge of the
- * media well (headroom, never the signing space); the Recording label + timer is a chip in the bottom-left corner.
+ * Live camera card. The status/hint is an overlay chip along the TOP-left edge of the media well (headroom, never
+ * the signing space); the tracking / mirror options live behind a gear button at the top right so they take no
+ * video space; the Recording label + timer is a chip in the bottom-left corner.
  */
 export const CameraTile = ({
   mode, videoRef, canvasRef, mirrored, onMirroredChange, showTracking, onShowTracking, hint, framingOk, modelStatus,
-  cameraError, elapsedMs, recordedUrl, countdown, actions, compact, onHide, className,
+  cameraError, elapsedMs, recordedUrl, countdown, actions, className,
 }: Props) => {
-  // On phones the media well is small: option toggles move to the card footer so they never cover the signer.
-  const narrow = useMediaQuery("(max-width: 639px)");
-  const live = mode === "practice" || mode === "countdown" || mode === "recording" || mode === "learn";
+  const live = mode === "ready" || mode === "countdown" || mode === "recording";
   const reviewing = (mode === "grading" || mode === "result") && !!recordedUrl;
   const recording = mode === "recording";
   const grading = mode === "grading";
@@ -61,20 +57,27 @@ export const CameraTile = ({
     : hint ?? (framingOk ? (recording ? "Looking good, keep signing." : "You're all set. Press Record.") : "Getting a good look at you…");
   const statusIsHint = live && !!hint && modelStatus === "ready" && !cameraError;
 
-  const toggles = !compact && live && (
-    <>
-      <OverlayToggle label="Show tracking" checked={showTracking} onCheckedChange={onShowTracking} />
-      <OverlayToggle label="Match the example" checked={!mirrored} onCheckedChange={(match) => onMirroredChange(!match)} />
-    </>
+  const settings = live && (
+    <Popover>
+      <PopoverTrigger asChild>
+        <OverlayIconButton label="Camera settings" data-testid="settings-button">
+          <Settings className="h-5 w-5" aria-hidden="true" />
+        </OverlayIconButton>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        data-testid="settings-popover"
+        className="flex w-auto flex-col items-stretch gap-2 rounded-card bg-surface p-3 [border:var(--card-border)] shadow-lg"
+      >
+        <OverlayToggle label="Show tracking" checked={showTracking} onCheckedChange={onShowTracking} />
+        <OverlayToggle label="Match the example" checked={!mirrored} onCheckedChange={(match) => onMirroredChange(!match)} />
+      </PopoverContent>
+    </Popover>
   );
 
-  const footer = compact ? (
-    <PillButton size="sm" variant="secondary" block onClick={onHide} aria-label="Hide my camera" icon={<EyeOff className="h-4 w-4" />}>
-      Hide me
-    </PillButton>
-  ) : (
+  const footer = (
     <div className="space-y-3">
-      {narrow && toggles && <div className="flex flex-wrap items-center justify-center gap-2">{toggles}</div>}
       {actions ??
         (reviewing && !grading ? (
           <PillButton
@@ -108,25 +111,23 @@ export const CameraTile = ({
   ) : null;
 
   return (
-    <SurfaceCard aria-label="Your camera" data-testid="camera-tile" data-recording={recording || undefined} className={cn("mx-auto w-full", !compact && "max-w-[var(--card-max-w)]", recording && "ring-2 ring-sage-600", className)} footer={footer}>
+    <SurfaceCard aria-label="Your camera" data-testid="camera-tile" data-recording={recording || undefined} className={cn("mx-auto w-full max-w-[var(--card-max-w)]", recording && "ring-2 ring-sage-600", className)} footer={footer}>
       <MediaWell
-        inset={compact ? "sm" : "md"}
         scrim={scrim}
         topLeft={
-          !compact &&
           !counting &&
           !grading && (
             <OverlayChip
               role="status"
               aria-live="polite"
               tone={statusIsHint ? "default" : "sage"}
-              icon={statusIsHint ? <Lightbulb className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+              icon={statusIsHint ? <Lightbulb className="h-4 w-4" /> : undefined}
             >
               {status}
             </OverlayChip>
           )
         }
-        topRight={!narrow && toggles}
+        topRight={settings}
         bottomLeft={
           recording && (
             <OverlayChip

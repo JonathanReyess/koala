@@ -16,11 +16,6 @@ export function applyPlayback(video: PlayableVideo, { rate, loop }: { rate: Play
   video.loop = loop;
 }
 
-export function replay(video: PlayableVideo): void {
-  video.currentTime = 0;
-  void video.play();
-}
-
 export const rateLabel = (rate: PlaybackRate): string => `${rate}×`;
 
 /** URL of a demo clip (public/videos/<word>_example<n>.mp4). */

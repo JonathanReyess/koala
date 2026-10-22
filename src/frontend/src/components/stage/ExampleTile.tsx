@@ -1,4 +1,4 @@
-import { Pause, Play, Repeat, RotateCcw, Turtle } from "lucide-react";
+import { Pause, Play, Repeat, Turtle } from "lucide-react";
 import type { RefObject } from "react";
 import { MediaWell, OverlayChip, PillButton, SurfaceCard } from "@/components/ds";
 import { exampleSrc, rateLabel } from "@/lib/stage/player";
@@ -15,7 +15,6 @@ interface Props {
   onExample: (n: 1 | 2) => void;
   onTogglePlay: () => void;
   onCycleRate: () => void;
-  onReplay: () => void;
   onToggleLoop: () => void;
   /** Called on every metadata load / source change so speed + loop are re-applied. */
   onVideoReady: () => void;
@@ -23,16 +22,16 @@ interface Props {
   className?: string;
 }
 
-/** The example video (inset media well) with big custom controls in the card footer: Play/Pause, Slow, Replay, Loop. */
+/** The example video (inset media well) with big custom controls in the card footer: Play/Pause, Slow, Loop (Play restarts a clip that has ended). */
 export const ExampleTile = ({
-  word, example, rate, loop, playing, videoRef, onExample, onTogglePlay, onCycleRate, onReplay, onToggleLoop, onVideoReady, onPlayState, className,
+  word, example, rate, loop, playing, videoRef, onExample, onTogglePlay, onCycleRate, onToggleLoop, onVideoReady, onPlayState, className,
 }: Props) => (
   <SurfaceCard
     aria-label={`Example of ${word}`}
     data-testid="example-tile"
     className={cn("mx-auto w-full max-w-[var(--card-max-w)]", className)}
     footer={
-      // All four controls are the same size (56px) and width: one row on a wide card, 2x2 on a narrow one.
+      // All three controls are the same size (56px) and width: one row on a wide card, 2x2 on a narrow one.
       <div className="stage-controls">
         <div className="stage-controls-grid">
           <PillButton
@@ -55,9 +54,6 @@ export const ExampleTile = ({
             data-testid="slow"
           >
             <span className="stage-ctl-word">Slow</span> <span className="tabular-nums">{rateLabel(rate)}</span>
-          </PillButton>
-          <PillButton size="lg" className="px-3" variant="secondary" onClick={onReplay} aria-label="Replay from the start" icon={<RotateCcw className="h-5 w-5" />} data-testid="replay">
-            Replay
           </PillButton>
           <PillButton
             size="lg"
@@ -111,6 +107,7 @@ export const ExampleTile = ({
         onLoadedMetadata={onVideoReady}
         onPlay={() => onPlayState(true)}
         onPause={() => onPlayState(false)}
+        onEnded={() => onPlayState(false)}
         aria-label={`Demonstration of the sign for ${word}, example ${example}`}
       />
     </MediaWell>

@@ -1,4 +1,4 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export type OverlayChipTone = "default" | "sage" | "danger";
@@ -59,28 +59,22 @@ export const OverlayToggle = ({ label, checked, onCheckedChange, tone = "default
   </button>
 );
 
-/** Icon-only round chip button for media overlays (flip, replay). Needs an aria-label. */
-export const OverlayIconButton = ({
-  label,
-  onClick,
-  children,
-  className,
-}: {
-  label: string;
-  onClick?: () => void;
-  children: ReactNode;
-  className?: string;
-}) => (
-  <button
-    type="button"
-    aria-label={label}
-    onClick={onClick}
-    className={cn(
-      "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink [border:var(--card-border)] shadow-sm",
-      "hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600",
-      className,
-    )}
-  >
-    {children}
-  </button>
+/** Icon-only round chip button for media overlays (settings, flip, replay). Needs an aria-label (`label`). */
+export const OverlayIconButton = forwardRef<HTMLButtonElement, { label: string } & Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label">>(
+  ({ label, className, children, ...p }, ref) => (
+    <button
+      type="button"
+      {...p}
+      ref={ref}
+      aria-label={label}
+      className={cn(
+        "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/80 text-ink [border:var(--card-border)] shadow-sm",
+        "hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sage-600",
+        className,
+      )}
+    >
+      {children}
+    </button>
+  ),
 );
+OverlayIconButton.displayName = "OverlayIconButton";

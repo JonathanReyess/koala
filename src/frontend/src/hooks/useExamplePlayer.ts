@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { applyPlayback, replay as replayVideo } from "@/lib/stage/player";
+import { applyPlayback } from "@/lib/stage/player";
 import type { PlaybackRate } from "@/lib/stage/stageMachine";
 
-/** Drives the example <video>: applies speed/loop from stage state, tracks play state, exposes Play/Replay. */
+/** Drives the example <video>: applies speed/loop from stage state, tracks play state, exposes Play/Pause. */
 export function useExamplePlayer(word: string, example: 1 | 2, rate: PlaybackRate, loop: boolean) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(true); // autoplays muted
@@ -20,9 +20,6 @@ export function useExamplePlayer(word: string, example: 1 | 2, rate: PlaybackRat
     if (v.paused) void v.play();
     else v.pause();
   }, []);
-  const replay = useCallback(() => {
-    if (videoRef.current) replayVideo(videoRef.current);
-  }, []);
 
-  return { videoRef, playing, setPlaying, togglePlay, replay, onVideoReady: apply };
+  return { videoRef, playing, setPlaying, togglePlay, onVideoReady: apply };
 }
